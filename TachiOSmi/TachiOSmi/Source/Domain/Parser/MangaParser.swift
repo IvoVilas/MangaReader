@@ -121,6 +121,13 @@ final class MangaParser {
       return nil
     }
 
+    guard let data else {
+      return MangaModel.from(
+        manga,
+        coverData: nil
+      )
+    }
+
     mangaCrud.updateCoverArt(manga, data: data)
 
     _ = moc.saveIfNeeded(rollbackOnError: true)
