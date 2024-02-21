@@ -77,53 +77,34 @@ final class MangaSearchDatasource {
       do {
         try Task.checkCancellation()
 
-        let mangas = try await makeSearchRequest(searchValue)
+        print("MangaSearchDatasource -> Fetch task intiated")
 
-        self.mangas.value = mangas.map { $0.manga }
-        self.state.value  = .normal
+        self.mangas.value = []
 
-        try Task.checkCancellation()
+        try await self.makeSearchRequest(searchValue)
 
-        let needCovers = mangaCrud.getAllMangasIdsWithoutCovers(
-          fromIds: mangas.map { $0.manga.id },
-          moc: moc
-        )
+        self.state.value = .normal
 
-        try Task.checkCancellation()
-
-        let mangasWithCovers = try await makeCoversRequest(mangas: mangas.filter { needCovers.contains($0.manga.id) })
-
-        var updatedMangas = [MangaModel]()
-
-        for manga in mangas {
-          if let updated = mangasWithCovers.first(where: { $0.id == manga.manga.id }) {
-            updatedMangas.append(updated)
-          } else {
-            updatedMangas.append(manga.manga)
-          }
-        }
-
-        self.mangas.value = updatedMangas
-
-        print("Chapter fetch request -> Fetch task ended")
+        print("MangaSearchDatasource -> Fetch task ended")
       } catch {
         self.state.value = .cancelled
 
-        print("Chapter fetch request -> Fetch task cancelled")
+        print("MangaSearchDatasource -> Fetch task cancelled")
       }
 
       self.fetchTask = nil
     }
   }
 
-  private func makeSearchRequest(_ searchValue: String) async throws -> [MangaParser.MangaModelWrapper] {
-    print("Chapter fetch request -> Fetch task intiated")
-
-    var results = [MangaParser.MangaModelWrapper]()
+  private func makeSearchRequest(
+    _ searchValue: String
+  ) async throws{
+    var results = [MangaParser.MangaParsedData]()
     let limit   = 10
     var offset  = 0
 
     // TODO: Implement user pagination
+    // TODO: Implement taskGroup
     while true && offset < 30 {
       try Task.checkCancellation()
 
@@ -135,19 +116,48 @@ final class MangaSearchDatasource {
 
       if result.isEmpty { break }
 
+      results.append(contentsOf: result)
       offset += limit
 
-      results.append(contentsOf: result)
+      mangas.value.append(
+        contentsOf: result.map {
+          $0.toModel(mangaCrud.getManga($0.id, moc: moc)?.coverArt)
+        }
+      )
     }
 
-    return results
+    try Task.checkCancellation()
+
+    print("MangaSearchDatasource -> Starting to fetch missing covers")
+
+    let needCovers = Set(
+      mangas.value
+        .filter { $0.cover == nil }
+        .map { $0.id }
+    )
+
+    let shouldFetchCover = results.filter { needCovers.contains($0.id) }
+    let updatedCovers    = try await makeCoversRequest(mangas: shouldFetchCover)
+    var updatedMangas    = [MangaModel]()
+
+    for manga in mangas.value {
+      if let updated = updatedCovers.first(where: { $0.id == manga.id }) {
+        updatedMangas.append(updated)
+      } else {
+        updatedMangas.append(manga)
+      }
+    }
+
+    print("MangaSearchDatasource -> Fetched \(updatedCovers.count) covers from \(updatedMangas.count) mangas")
+
+    self.mangas.value = updatedMangas
   }
 
   private func makeSearchRequest(
     _ searchValue: String,
     limit: Int,
     offset: Int
-  ) async throws -> [MangaParser.MangaModelWrapper] {
+  ) async throws -> [MangaParser.MangaParsedData] {
     let urlString = "https://api.mangadex.org/manga"
 
     let parameters: [String: Any] = [
@@ -198,7 +208,23 @@ final class MangaSearchDatasource {
 
       try Task.checkCancellation()
 
-      return mangaParser.parseMangaSearchResponse(dataJson)
+      let parsedData = mangaParser.parseMangaSearchResponse(dataJson)
+
+      for manga in parsedData {
+        if mangaCrud.createOrUpdateManga(
+          id: manga.id,
+          title: manga.title,
+          about: manga.description,
+          status: manga.status,
+          moc: moc
+        ) == nil {
+          print("MangaSearchDatasource -> Error creating entities")
+        }
+      }
+
+      _ = moc.saveIfNeeded(rollbackOnError: true)
+
+      return parsedData
     } catch {
       if let cancellationError = error as? CancellationError {
         throw cancellationError
@@ -211,12 +237,12 @@ final class MangaSearchDatasource {
   }
 
   private func makeCoversRequest(
-    mangas: [MangaParser.MangaModelWrapper]
+    mangas: [MangaParser.MangaParsedData]
   ) async throws -> Set<MangaModel> {
     return try await withThrowingTaskGroup(of: MangaModel?.self, returning: Set<MangaModel>.self) { taskGroup in
       for manga in mangas {
         taskGroup.addTask {
-          try await self.makeCoverRequest(mangaId: manga.manga.id, coverFileName: manga.coverFileName)
+          try await self.makeCoverRequest(mangaId: manga.id, coverFileName: manga.coverFileName)
         }
       }
 
@@ -261,7 +287,20 @@ final class MangaSearchDatasource {
         return nil
       }
 
-      return mangaParser.handleMangaCoverResponse(mangaId, data: data)
+      guard let manga = mangaCrud.getManga(mangaId, moc: moc) else {
+        print("MangaParser Error -> Manga not found \(mangaId)")
+
+        return nil
+      }
+
+      mangaCrud.updateCoverArt(manga, data: data)
+
+      _ = moc.saveIfNeeded(rollbackOnError: true)
+
+      return MangaModel.from(
+        manga,
+        coverData: data
+      )
     } catch {
       if let cancellationError = error as? CancellationError {
         throw cancellationError

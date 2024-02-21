@@ -132,7 +132,7 @@ final class MangaChapterDatasource {
   }
 
   private func chapterRefreshIfNeeded() async throws {
-    guard let manga = mangaCrud.getManga(withId: mangaId, moc: moc) else {
+    guard let manga = mangaCrud.getManga(mangaId, moc: moc) else {
       print("MangaChapterDatasource -> Manga not found \(mangaId)")
 
       return

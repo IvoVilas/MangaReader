@@ -77,7 +77,7 @@ final class ChapterParser {
     }
 
     guard
-      let manga = mangaCrud.getManga(withId: mangaId, moc: moc),
+      let manga = mangaCrud.getManga(mangaId, moc: moc),
       let chapter = chapterCrud.createOrUpdateChapter(
         id: id,
         chapterNumber: number,

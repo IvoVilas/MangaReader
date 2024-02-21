@@ -76,10 +76,12 @@ final class MangaDetailsViewModel: ObservableObject {
 
 extension MangaDetailsViewModel {
 
+  // TODO: Make both syncs at the same time
   func onViewAppear() {
     switch chaptersDatasource.stateValue {
     case .starting:
       Task {
+        coverDatasource.setupInitialValue()
         await chaptersDatasource.refresh()
       }
 

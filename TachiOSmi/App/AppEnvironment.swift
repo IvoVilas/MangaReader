@@ -46,12 +46,7 @@ final class AppEnvironment {
     authorCrud  = AuthorCrud()
     tagCrud     = TagCrud()
 
-    mangaParser = MangaParser(
-      mangaCrud: mangaCrud,
-      authorCrud: authorCrud,
-      tagCrud: tagCrud,
-      moc: moc
-    )
+    mangaParser   = MangaParser()
     chapterParser = ChapterParser(
       mangaCrud: mangaCrud,
       chapterCrud: chapterCrud,
