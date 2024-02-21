@@ -52,16 +52,8 @@ struct MangaDetailsView: View {
       .padding(.leading, 24)
       .padding(.trailing, 24)
     }
-    .refreshable {
-      Task {
-        await viewModel
-          .chaptersDatasource
-          .refresh(isForceRefresh: true)
-      }
-    }
-    .onAppear {
-      viewModel.onViewAppear()
-    }
+    .refreshable { viewModel.forceRefresh() }
+    .onAppear { viewModel.onViewAppear() }
   }
 
   @ViewBuilder
@@ -112,12 +104,6 @@ extension MangaDetailsView {
     let chapterCrud = ChapterCrud()
     let moc = PersistenceController.preview.container.viewContext
     let mangaId = "c52b2ce3-7f95-469c-96b0-479524fb7a1a"
-    let mangaParser = MangaParser(
-      mangaCrud: mangaCrud,
-      authorCrud: AuthorCrud(),
-      tagCrud: TagCrud(),
-      moc: moc
-    )
 
     let chapterParser = ChapterParser(
       mangaCrud: mangaCrud,
@@ -136,7 +122,7 @@ extension MangaDetailsView {
       ),
       coverDatasource: MangaCoverDatasource(
         mangaId: mangaId,
-        mangaParser: mangaParser,
+        mangaParser: MangaParser(),
         mangaCrud: mangaCrud,
         moc: moc
       )

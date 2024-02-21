@@ -14,7 +14,7 @@ final class MangaCrud { }
 extension MangaCrud {
 
   func getManga(
-    withId id: String,
+    _ id: String,
     moc: NSManagedObjectContext
   ) -> MangaMO? {
     let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Manga")
@@ -120,7 +120,7 @@ extension MangaCrud {
   ) -> MangaMO? {
     var manga: MangaMO?
 
-    if let local = getManga(withId: id, moc: moc) {
+    if let local = getManga(id, moc: moc) {
       updateManga(
         local,
         title: title,
@@ -212,7 +212,7 @@ extension MangaCrud {
     date: Date?,
     moc: NSManagedObjectContext
   ) {
-    guard let manga = getManga(withId: id, moc: moc) else {
+    guard let manga = getManga(id, moc: moc) else {
       print("MangaCrud Error -> Manga not found \(id)")
 
       return

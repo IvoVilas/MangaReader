@@ -88,19 +88,6 @@ struct MangaSearchView: View {
 
 }
 
-//struct NavigationLazyView<Content: View>: View {
-//  let build: () -> Content
-//
-//  init(_ build: @autoclosure @escaping () -> Content) {
-//    self.build = build
-//  }
-//
-//  var body: Content {
-//    build()
-//  }
-//
-//}
-
 #Preview {
   MangaSearchView(
     viewModel: MangaSearchView.buildPreviewViewModel()
@@ -111,20 +98,12 @@ extension MangaSearchView {
 
   static func buildPreviewViewModel(
   ) -> MangaSearchViewModel {
-    let mangaCrud = MangaCrud()
     let moc = PersistenceController.preview.container.viewContext
-
-    let mangaParser = MangaParser(
-      mangaCrud: mangaCrud,
-      authorCrud: AuthorCrud(),
-      tagCrud: TagCrud(),
-      moc: moc
-    )
 
     return MangaSearchViewModel(
       datasource: MangaSearchDatasource(
-        mangaParser: mangaParser,
-        mangaCrud: mangaCrud,
+        mangaParser: MangaParser(),
+        mangaCrud: MangaCrud(),
         moc: moc
       ),
       moc: moc

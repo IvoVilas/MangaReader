@@ -11,32 +11,36 @@ import UIKit
 
 final class MangaParser {
 
-  struct MangaModelWrapper {
-    let manga: MangaModel
+  struct MangaParsedData {
+    let id: String
+    let title: String
+    let description: String?
+    let status: MangaStatus
     let coverFileName: String
-  }
 
-  private let mangaCrud: MangaCrud
-  private let authorCrud: AuthorCrud
-  private let tagCrud: TagCrud
+    func convertToModel(
+      coverData: Data?
+    ) -> MangaModel {
+      var cover: UIImage?
 
-  private let moc: NSManagedObjectContext
+      if let coverData {
+        cover = UIImage(data: coverData)
+      }
 
-  init(
-    mangaCrud: MangaCrud,
-    authorCrud: AuthorCrud,
-    tagCrud: TagCrud,
-    moc: NSManagedObjectContext
-  ) {
-    self.mangaCrud  = mangaCrud
-    self.authorCrud = authorCrud
-    self.tagCrud    = tagCrud
-    self.moc        = moc
+      return MangaModel(
+        id: id,
+        title: title,
+        description: description,
+        status: status,
+        cover: cover,
+        tags: []
+      )
+    }
   }
 
   func parseMangaSearchResponse(
     _ data: [[String: Any]]
-  ) -> [MangaModelWrapper] {
+  ) -> [MangaParsedData] {
     return data.compactMap {
       parseMangaSearchResponse($0)
     }
@@ -44,7 +48,7 @@ final class MangaParser {
 
   func parseMangaSearchResponse(
     _ data: [String: Any]
-  ) -> MangaModelWrapper? {
+  ) -> MangaParsedData? {
     var id: String?
     var title: String?
     var description: String?
@@ -93,48 +97,12 @@ final class MangaParser {
       return nil
     }
 
-    guard let manga = mangaCrud.createOrUpdateManga(
+    return MangaParsedData(
       id: id,
       title: title,
-      about: description,
+      description: description,
       status: status,
-      moc: moc
-    ) else {
-      print("MangaParser Error -> Entity creation failed")
-
-      return nil
-    }
-
-    return MangaModelWrapper(
-      manga: MangaModel.from(manga),
       coverFileName: coverFileName
-    )
-  }
-
-  func handleMangaCoverResponse(
-    _ id: String,
-    data: Data?
-  ) -> MangaModel? {
-    guard let manga = mangaCrud.getManga(withId: id, moc: moc) else {
-      print("MangaParser Error -> Manga with id:\(id) not found")
-
-      return nil
-    }
-
-    guard let data else {
-      return MangaModel.from(
-        manga,
-        coverData: nil
-      )
-    }
-
-    mangaCrud.updateCoverArt(manga, data: data)
-
-    _ = moc.saveIfNeeded(rollbackOnError: true)
-
-    return MangaModel.from(
-      manga,
-      coverData: data
     )
   }
 

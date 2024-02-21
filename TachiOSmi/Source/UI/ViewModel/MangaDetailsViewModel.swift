@@ -11,8 +11,8 @@ import Combine
 
 final class MangaDetailsViewModel: ObservableObject {
 
-  let chaptersDatasource: MangaChapterDatasource
-  let coverDatasource: MangaCoverDatasource
+  private let chaptersDatasource: MangaChapterDatasource
+  private let coverDatasource: MangaCoverDatasource
 
   @Published var image: UIImage?
   @Published var title: String
@@ -80,11 +80,23 @@ extension MangaDetailsViewModel {
     switch chaptersDatasource.stateValue {
     case .starting:
       Task {
-        await chaptersDatasource.refresh()
+        await withTaskGroup(of: Void.self) { taskGroup in
+          taskGroup.addTask { await self.chaptersDatasource.refresh() }
+          taskGroup.addTask { await self.coverDatasource.setupInitialValue() }
+        }
       }
 
     default:
       break
+    }
+  }
+
+  func forceRefresh() {
+    Task {
+      await withTaskGroup(of: Void.self) { taskGroup in
+        taskGroup.addTask { await self.chaptersDatasource.refresh(isForceRefresh: true) }
+        taskGroup.addTask { await self.coverDatasource.refresh() }
+      }
     }
   }
 

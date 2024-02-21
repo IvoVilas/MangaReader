@@ -42,8 +42,6 @@ final class MangaCoverDatasource {
 
     image = CurrentValueSubject(nil)
     state = CurrentValueSubject(.starting)
-
-    setupInitialValue()
   }
 
   func refresh() async {
@@ -58,8 +56,8 @@ final class MangaCoverDatasource {
     image.value = result
   }
 
-  private func setupInitialValue() {
-    guard let manga = mangaCrud.getManga(withId: mangaId, moc: moc) else {
+  func setupInitialValue() async {
+    guard let manga = mangaCrud.getManga(mangaId, moc: moc) else {
       print("MangaCoverDatasource -> Manga not found \(mangaId)")
 
       return
@@ -167,7 +165,15 @@ final class MangaCoverDatasource {
         return nil
       }
 
-      _ = mangaParser.handleMangaCoverResponse(mangaId, data: data)
+      guard let manga = mangaCrud.getManga(mangaId, moc: moc) else {
+        print("MangaCoverDatasource Error -> Manga with id:\(mangaId) not found")
+
+        return nil
+      }
+
+      mangaCrud.updateCoverArt(manga, data: data)
+
+      _ = moc.saveIfNeeded()
 
       return UIImage(data: data)
     } catch {
