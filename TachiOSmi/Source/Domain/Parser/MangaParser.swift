@@ -11,14 +11,13 @@ import UIKit
 
 final class MangaParser {
 
-  struct MangaModelWrapper {
-    let manga: MangaModel
+  struct MangaParsedData {
+    let id: String
+    let title: String
+    let description: String
     let coverFileName: String
+    let status: MangaStatus
   }
-
-  private let mangaCrud: MangaCrud
-  private let authorCrud: AuthorCrud
-  private let tagCrud: TagCrud
 
   private let moc: NSManagedObjectContext
 
@@ -28,10 +27,7 @@ final class MangaParser {
     tagCrud: TagCrud,
     moc: NSManagedObjectContext
   ) {
-    self.mangaCrud  = mangaCrud
-    self.authorCrud = authorCrud
-    self.tagCrud    = tagCrud
-    self.moc        = moc
+    self.moc = moc
   }
 
   func parseMangaSearchResponse(
@@ -92,6 +88,15 @@ final class MangaParser {
 
       return nil
     }
+
+    guard let manga = MangaMO(
+      id: id,
+      title: title,
+      about: description,
+      statusId: status.id,
+      lastUpdateAt: nil,
+      coverArt: nil,
+      moc: moc)
 
     guard let manga = mangaCrud.createOrUpdateManga(
       id: id,
