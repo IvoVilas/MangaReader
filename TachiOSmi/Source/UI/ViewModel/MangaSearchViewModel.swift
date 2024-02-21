@@ -19,7 +19,6 @@ final class MangaSearchViewModel: ObservableObject {
   private let datasource: MangaSearchDatasource
   private let moc: NSManagedObjectContext
 
-//  private var datasources = [String: MangaChapterDatasource]()
   private var observers   = Set<AnyCancellable>()
 
   init(
@@ -54,7 +53,7 @@ final class MangaSearchViewModel: ObservableObject {
 
   func doSearch() {
     Task {
-      await datasource.refresh(input)
+      try? await datasource.refresh(input)
     }
   }
 
@@ -65,48 +64,78 @@ extension MangaSearchViewModel {
   func buildMangaDetailsViewModel(
     _ manga: MangaModel
   ) -> MangaDetailsViewModel {
-//    if let datasource = datasources[manga.id] {
-//      return MangaDetailsViewModel(
-//        chaptersDatasource: datasource,
-//        coverDatasource:
-//      )
-//    }
-//
-//    if datasources.keys.count >= 10 {
-//      datasources.removeAll()
-//    }
-//
-//    let datasource = MangaChapterDatasource(
-//      mangaId: manga.id,
-//      chapterParser: AppEnv.env.chapterParser,
-//      mangaCrud: AppEnv.env.mangaCrud,
-//      chapterCrud: AppEnv.env.chapterCrud,
-//      systemDateTime: AppEnv.env.systemDateTime,
-//      moc: moc
-//    )
-//
-//    datasources[manga.id] = datasource
-//
-//    return MangaDetailsViewModel(
-//      datasource: datasource
-//    )
+    let id = manga.id
 
     return MangaDetailsViewModel(
-      chaptersDatasource: MangaChapterDatasource(
-        mangaId: manga.id,
-        chapterParser: AppEnv.env.chapterParser,
-        mangaCrud: AppEnv.env.mangaCrud,
-        chapterCrud: AppEnv.env.chapterCrud,
-        systemDateTime: AppEnv.env.systemDateTime,
-        moc: moc
-      ), 
-      coverDatasource: MangaCoverDatasource(
-        mangaId: manga.id,
-        mangaParser: AppEnv.env.mangaParser,
-        mangaCrud: AppEnv.env.mangaCrud,
-        moc: moc
-      )
+      chaptersDatasource: GlobalMangaChapterDatasource.getDatasourceFor(id, moc: moc),
+      coverDatasource: GlobalMangaCoverDatasource.getDatasourceFor(id, moc: moc)
     )
+  }
+
+}
+
+struct GlobalMangaChapterDatasource {
+
+  static var datasources = [String: MangaChapterDatasource]()
+
+  static func getDatasourceFor(
+    _ id: String,
+    moc: NSManagedObjectContext
+  ) -> MangaChapterDatasource {
+    if let datasource = datasources[id] {
+
+      return datasource
+    }
+
+    let datasource = MangaChapterDatasource(
+      mangaId: id,
+      chapterParser: AppEnv.env.chapterParser,
+      mangaCrud: AppEnv.env.mangaCrud,
+      chapterCrud: AppEnv.env.chapterCrud,
+      systemDateTime: AppEnv.env.systemDateTime,
+      moc: moc
+    )
+
+    // TODO
+    if datasources.count >= 50 {
+      datasources.removeAll()
+    }
+
+    datasources[id] = datasource
+
+    return datasource
+  }
+
+}
+
+struct GlobalMangaCoverDatasource {
+
+  static var datasources = [String: MangaCoverDatasource]()
+
+  static func getDatasourceFor(
+    _ id: String,
+    moc: NSManagedObjectContext
+  ) -> MangaCoverDatasource {
+    if let datasource = datasources[id] {
+
+      return datasource
+    }
+
+    let datasource = MangaCoverDatasource(
+      mangaId: id,
+      mangaParser: AppEnv.env.mangaParser,
+      mangaCrud: AppEnv.env.mangaCrud,
+      moc: moc
+    )
+
+    // TODO
+    if datasources.count >= 50 {
+      datasources.removeAll()
+    }
+
+    datasources[id] = datasource
+
+    return datasource
   }
 
 }
