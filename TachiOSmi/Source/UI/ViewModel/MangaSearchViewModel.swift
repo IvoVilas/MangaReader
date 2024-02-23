@@ -89,11 +89,11 @@ struct GlobalMangaChapterDatasource {
 
     let datasource = MangaChapterDatasource(
       mangaId: id,
+      restRequester: AppEnv.env.restRequester,
       chapterParser: AppEnv.env.chapterParser,
       mangaCrud: AppEnv.env.mangaCrud,
       chapterCrud: AppEnv.env.chapterCrud,
-      systemDateTime: AppEnv.env.systemDateTime,
-      moc: moc
+      systemDateTime: AppEnv.env.systemDateTime
     )
 
     // TODO

@@ -13,11 +13,12 @@ final class MangaChapterDatasource {
 
   private let mangaId: String
 
+  private let restRequester: RestRequester
   private let chapterParser: ChapterParser
   private let mangaCrud: MangaCrud
   private let chapterCrud: ChapterCrud
   private let systemDateTime: SystemDateTimeType
-  private let moc: NSManagedObjectContext
+  private let viewMoc: NSManagedObjectContext
 
   private let chapters: CurrentValueSubject<[ChapterModel], Never>
   private let state: CurrentValueSubject<DatasourceState, Never>
@@ -36,20 +37,33 @@ final class MangaChapterDatasource {
 
   private var fetchTask: Task<Void, any Error>?
 
+  private static let sortByNumber: (ChapterModel, ChapterModel) -> Bool = {
+    guard
+      let lhs = $0.number,
+      let rhs = $01.number
+    else {
+      return $0.publishAt < $1.publishAt
+    }
+
+    return lhs < rhs
+  }
+
   init(
     mangaId: String,
+    restRequester: RestRequester,
     chapterParser: ChapterParser,
     mangaCrud: MangaCrud,
     chapterCrud: ChapterCrud,
     systemDateTime: SystemDateTimeType,
-    moc: NSManagedObjectContext
+    viewMoc: NSManagedObjectContext = PersistenceController.shared.container.viewContext
   ) {
     self.mangaId        = mangaId
+    self.restRequester  = restRequester
     self.chapterParser  = chapterParser
     self.mangaCrud      = mangaCrud
     self.chapterCrud    = chapterCrud
     self.systemDateTime = systemDateTime
-    self.moc            = moc
+    self.viewMoc        = viewMoc
 
     chapters = CurrentValueSubject([])
     state    = CurrentValueSubject(.starting)
@@ -74,7 +88,11 @@ final class MangaChapterDatasource {
         return
       }
 
-      self.chapters.value = self.fetchLocalChapters()
+      let chapters = await self.fetchLocalChapters()
+
+      Task { @MainActor [chapters] in
+        self.chapters.value = chapters
+      }
 
       do {
         try Task.checkCancellation()
@@ -86,8 +104,6 @@ final class MangaChapterDatasource {
         }
 
         self.state.value = .normal
-
-        print("MangaChapterDatasource -> Fetch task ended")
       } catch {
         self.state.value = .cancelled
 
@@ -98,41 +114,20 @@ final class MangaChapterDatasource {
     }
   }
 
-  private func fetchLocalChapters() -> [ChapterModel] {
-    let chapters = chapterCrud
-      .getAllChapters(mangaId: mangaId, moc: moc)
-      .map { ChapterModel.from($0) }
-      .sorted {
-        guard
-          let lhs = $0.number,
-          let rhs = $1.number
-        else {
-          return $0.publishAt < $1.publishAt
-        }
+  private func fetchLocalChapters() async -> [ChapterModel] {
+    /// Maybe move to background?
+    return await viewMoc.perform { [weak viewMoc] in
+      guard let viewMoc else { return [] }
 
-        return lhs < rhs
-      }
-
-    return chapters
-  }
-
-  private func chapterRefresh() async throws {
-    let results = try await fetchChapters()
-
-    chapters.value = results.sorted {
-      guard
-        let lhs = $0.number,
-        let rhs = $1.number
-      else {
-        return $0.publishAt < $1.publishAt
-      }
-
-      return lhs < rhs
+      return self.chapterCrud
+        .getAllChapters(mangaId: self.mangaId, moc: viewMoc)
+        .map { ChapterModel.from($0) }
+        .sorted(by: MangaChapterDatasource.sortByNumber)
     }
   }
 
   private func chapterRefreshIfNeeded() async throws {
-    guard let manga = mangaCrud.getManga(mangaId, moc: moc) else {
+    guard let manga = mangaCrud.getManga(mangaId, moc: viewMoc) else {
       print("MangaChapterDatasource -> Manga not found \(mangaId)")
 
       return
@@ -150,6 +145,32 @@ final class MangaChapterDatasource {
     }
   }
 
+  private func chapterRefresh() async throws {
+    print("MangaChapterDatasource -> Fetch task started")
+
+    let results = try await fetchChapters()
+
+    Task.detached { [results] in
+      await PersistenceController.shared.container.performBackgroundTask { moc in
+        print("MangaChapterDatabase -> Saving \(results.count) items into the database")
+
+        self.updateDatabase(
+          chapters: results,
+          updatedAt: Date(),
+          moc: moc
+        )
+
+        if !moc.saveIfNeeded(rollbackOnError: true).isSuccess {
+          print("MangaChapterDatasource -> Failed to save database")
+        } else {
+          print("MangaChapterDatasource -> Saved database successfully")
+        }
+      }
+    }
+
+    print("MangaChapterDatasource -> Fetch task ended")
+  }
+
   private func fetchChapters() async throws -> [ChapterModel] {
     print("MangaChapterDatasource -> Fetch task intiated")
 
@@ -160,79 +181,74 @@ final class MangaChapterDatasource {
     while true {
       try Task.checkCancellation()
 
-      let result = try await updateChapters(limit: limit, offset: offset)
+      let result = await makeChapterFeedRequest(limit: limit, offset: offset)
 
       if result.isEmpty { break }
 
       offset += limit
 
       results.append(contentsOf: result)
-    }
 
-    mangaCrud.updateLastUpdateAt(mangaId, date: Date(), moc: moc)
+      Task { @MainActor [results] in
+        self.chapters.value = results.sorted(by: MangaChapterDatasource.sortByNumber)
+      }
+    }
 
     return results
   }
 
-  private func updateChapters(
+  private func updateDatabase(
+    chapters: [ChapterModel],
+    updatedAt: Date,
+    moc: NSManagedObjectContext
+  ) {
+    guard let manga = mangaCrud.getManga(mangaId, moc: moc) else {
+      print("MangaChapterDatasource Error -> Manga not found \(mangaId)")
+
+      return
+    }
+
+    for chapter in chapters {
+      if chapterCrud.createOrUpdateChapter(
+        id: chapter.id,
+        chapterNumber: chapter.number,
+        title: chapter.title,
+        numberOfPages: chapter.numberOfPages,
+        publishAt: chapter.publishAt, 
+        manga: manga,
+        moc: moc
+      ) == nil {
+        print("MangaChapterDatasource Error -> Failed to create entity")
+      }
+    }
+
+    mangaCrud.updateLastUpdateAt(manga, date: updatedAt)
+  }
+
+}
+
+extension MangaChapterDatasource {
+
+  private func makeChapterFeedRequest(
     limit: Int,
     offset: Int
-  ) async throws -> [ChapterModel] {
-    let urlString = "https://api.mangadex.org/manga/\(mangaId)/feed"
+  ) async -> [ChapterModel] {
+    let json: [String: Any] = await restRequester.makeGetRequest(
+      url: "https://api.mangadex.org/manga/\(mangaId)/feed",
+      parameters: [
+        "translatedLanguage[]": "en",
+        "limit": limit,
+        "offset": offset
+      ]
+    )
 
-    let parameters: [String: Any] = [
-      "translatedLanguage[]": "en",
-      "limit": limit,
-      "offset": offset
-    ]
-
-    var urlParameters = URLComponents(string: urlString)
-    urlParameters?.queryItems = parameters.map { URLQueryItem(name: $0.key, value: String(describing: $0.value)) }
-
-    guard let url = urlParameters?.url else {
-      print ("MangaChapterDatasource -> Error creating url")
+    guard let dataJson = json["data"] as? [[String: Any]] else {
+      print("MangaChapterDatasource -> Error creating response json")
 
       return []
     }
 
-    var request = URLRequest(url: url)
-    request.httpMethod = "GET"
-    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-    do {
-      let (data, response) = try await URLSession.shared.data(for: request)
-
-      guard let response = response as? HTTPURLResponse else {
-        print("MangaChapterDatasource -> Response parse error")
-
-        return []
-      }
-
-      guard response.statusCode == 200 else {
-        print("MangaChapterDatasource -> Received response with code \(response.statusCode)")
-
-        return []
-      }
-
-      guard 
-        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-        let dataJson = json["data"] as? [[String: Any]]
-      else {
-        print("MangaChapterDatasource -> Error creating response json")
-
-        return []
-      }
-
-      return chapterParser.parseChapterData(mangaId: mangaId, data: dataJson)
-    }  catch {
-      if let cancellationError = error as? CancellationError {
-        throw cancellationError
-      } else {
-        print("MangaChapterDatasource -> Error during request \(error)")
-      }
-    }
-
-    return []
+    return chapterParser.parseChapterData(mangaId: mangaId, data: dataJson)
   }
 
 }

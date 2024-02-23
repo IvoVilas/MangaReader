@@ -94,10 +94,8 @@ final class MangaSearchDatasource {
 
     fetchTask = Task.detached { [weak self] in
       guard let self else {
-        Task { @MainActor [self] in
-          self?.state.value = .cancelled
-          self?.fetchTask   = nil
-        }
+        self?.state.value = .cancelled
+        self?.fetchTask   = nil
 
         return
       }
@@ -105,19 +103,19 @@ final class MangaSearchDatasource {
       do {
         try await makeRefresh(searchValue)
       } catch {
-        Task { @MainActor in self.state.value = .cancelled }
+        self.state.value = .cancelled
 
         print("MangaSearchDatasource -> Fetch task cancelled")
       }
 
-      Task { @MainActor in self.fetchTask = nil }
+      self.fetchTask = nil
     }
   }
 
   private func makeRefresh(
     _ searchValue: String
   ) async throws {
-    print("MangaSearchDatasource -> Fetch task intiated")
+    print("MangaSearchDatasource -> Fetch task started")
 
     var parsedData = [MangaParser.MangaParsedData]()
     var results    = [MangaModel]()
@@ -147,9 +145,9 @@ final class MangaSearchDatasource {
       }
     }
 
-    Task { @MainActor in
-      self.state.value = .normal
-    }
+    try Task.checkCancellation()
+
+    state.value = .normal
 
     let models = try await withThrowingTaskGroup(of: MangaModel?.self, returning: [MangaModel].self) { taskGroup in
       for data in parsedData {
@@ -185,7 +183,7 @@ final class MangaSearchDatasource {
       }
     }
 
-    print("Chapter fetch request -> Fetch task ended")
+    print("MangaSearchDatasource -> Fetch task ended")
   }
 
   private func updateResult(

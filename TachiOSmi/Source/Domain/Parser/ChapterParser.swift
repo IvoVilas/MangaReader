@@ -76,24 +76,13 @@ final class ChapterParser {
       return nil
     }
 
-    guard
-      let manga = mangaCrud.getManga(mangaId, moc: moc),
-      let chapter = chapterCrud.createOrUpdateChapter(
-        id: id,
-        chapterNumber: number,
-        title: title,
-        numberOfPages: numberOfPages,
-        publishAt: publishAt,
-        manga: manga,
-        moc: moc
-      )
-    else {
-      print("MangaParser Error -> Entity creation failed")
-
-      return nil
-    }
-
-    return .from(chapter)
+    return ChapterModel(
+      id: id,
+      title: title,
+      number: number,
+      numberOfPages: numberOfPages,
+      publishAt: publishAt
+    )
   }
 
 }

@@ -79,7 +79,7 @@ extension MangaDetailsViewModel {
   func onViewAppear() {
     switch chaptersDatasource.stateValue {
     case .starting:
-      Task {
+      Task.detached {
         await withTaskGroup(of: Void.self) { taskGroup in
           taskGroup.addTask { await self.chaptersDatasource.refresh() }
           taskGroup.addTask { await self.coverDatasource.setupInitialValue() }
@@ -92,7 +92,7 @@ extension MangaDetailsViewModel {
   }
 
   func forceRefresh() {
-    Task {
+    Task.detached {
       await withTaskGroup(of: Void.self) { taskGroup in
         taskGroup.addTask { await self.chaptersDatasource.refresh(isForceRefresh: true) }
         taskGroup.addTask { await self.coverDatasource.refresh() }

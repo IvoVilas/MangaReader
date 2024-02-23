@@ -100,10 +100,10 @@ struct MangaDetailsView: View {
 extension MangaDetailsView {
 
   static func buildPreviewViewModel() -> MangaDetailsViewModel {
-    let mangaCrud = MangaCrud()
+    let mangaCrud   = MangaCrud()
     let chapterCrud = ChapterCrud()
-    let moc = PersistenceController.preview.container.viewContext
-    let mangaId = "c52b2ce3-7f95-469c-96b0-479524fb7a1a"
+    let moc         = PersistenceController.preview.container.viewContext
+    let mangaId     = "c52b2ce3-7f95-469c-96b0-479524fb7a1a"
 
     let chapterParser = ChapterParser(
       mangaCrud: mangaCrud,
@@ -114,11 +114,12 @@ extension MangaDetailsView {
     return MangaDetailsViewModel(
       chaptersDatasource: MangaChapterDatasource(
         mangaId: mangaId,
+        restRequester: RestRequester(),
         chapterParser: chapterParser,
         mangaCrud: mangaCrud,
         chapterCrud: chapterCrud,
         systemDateTime: SystemDateTime(),
-        moc: moc
+        viewMoc: moc
       ),
       coverDatasource: MangaCoverDatasource(
         mangaId: mangaId,
