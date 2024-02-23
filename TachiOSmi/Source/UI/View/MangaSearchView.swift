@@ -61,7 +61,6 @@ struct MangaSearchView: View {
             }
             .padding(.leading, 24)
             .padding(.trailing, 24)
-            .opacity(viewModel.results.isEmpty || viewModel.isLoading ? 0 : 1)
           }
         }
       }
@@ -102,9 +101,10 @@ extension MangaSearchView {
 
     return MangaSearchViewModel(
       datasource: MangaSearchDatasource(
+        restRequester: RestRequester(),
         mangaParser: MangaParser(),
         mangaCrud: MangaCrud(),
-        moc: moc
+        viewMoc: moc
       ),
       moc: moc
     )

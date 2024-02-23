@@ -19,14 +19,8 @@ final class MangaParser {
     let coverFileName: String
 
     func convertToModel(
-      coverData: Data?
+      cover: UIImage? = nil
     ) -> MangaModel {
-      var cover: UIImage?
-
-      if let coverData {
-        cover = UIImage(data: coverData)
-      }
-
       return MangaModel(
         id: id,
         title: title,

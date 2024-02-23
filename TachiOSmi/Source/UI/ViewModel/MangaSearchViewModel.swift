@@ -52,8 +52,8 @@ final class MangaSearchViewModel: ObservableObject {
   }
 
   func doSearch() {
-    Task {
-      try? await datasource.refresh(input)
+    Task.detached {
+      await self.datasource.refresh(self.input)
     }
   }
 

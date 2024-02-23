@@ -27,6 +27,7 @@
 		1E1235532B853C940022652F /* Date+Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E1235522B853C940022652F /* Date+Helpers.swift */; };
 		1E1235552B853D0E0022652F /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E1235542B853D0E0022652F /* AppEnvironment.swift */; };
 		1E1235572B8565590022652F /* MangaCoverDatasource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E1235562B8565590022652F /* MangaCoverDatasource.swift */; };
+		1E79A4D42B8929D80075C234 /* RestRequester.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E79A4D32B8929D80075C234 /* RestRequester.swift */; };
 		1EE89F492B84C519000CAA20 /* AuthorMO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EE89F482B84C519000CAA20 /* AuthorMO.swift */; };
 		1EE89F4B2B84C57D000CAA20 /* MangaMO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EE89F4A2B84C57D000CAA20 /* MangaMO.swift */; };
 		1EE89F4D2B84C585000CAA20 /* ChapterMO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EE89F4C2B84C585000CAA20 /* ChapterMO.swift */; };
@@ -79,6 +80,7 @@
 		1E1235522B853C940022652F /* Date+Helpers.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Date+Helpers.swift"; sourceTree = "<group>"; };
 		1E1235542B853D0E0022652F /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
 		1E1235562B8565590022652F /* MangaCoverDatasource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaCoverDatasource.swift; sourceTree = "<group>"; };
+		1E79A4D32B8929D80075C234 /* RestRequester.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestRequester.swift; sourceTree = "<group>"; };
 		1EE89F482B84C519000CAA20 /* AuthorMO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthorMO.swift; sourceTree = "<group>"; };
 		1EE89F4A2B84C57D000CAA20 /* MangaMO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaMO.swift; sourceTree = "<group>"; };
 		1EE89F4C2B84C585000CAA20 /* ChapterMO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterMO.swift; sourceTree = "<group>"; };
@@ -153,6 +155,14 @@
 				1E1235312B8534570022652F /* SystemDateTimeType.swift */,
 			);
 			path = SystemDateTime;
+			sourceTree = "<group>";
+		};
+		1E79A4D72B892ADD0075C234 /* Rest */ = {
+			isa = PBXGroup;
+			children = (
+				1E79A4D32B8929D80075C234 /* RestRequester.swift */,
+			);
+			path = Rest;
 			sourceTree = "<group>";
 		};
 		1EDACD462B83A9E7006FE956 /* App */ = {
@@ -321,6 +331,7 @@
 		1EF816172B83443400D9759F /* Domain */ = {
 			isa = PBXGroup;
 			children = (
+				1E79A4D72B892ADD0075C234 /* Rest */,
 				1EE89F562B84CB94000CAA20 /* Crud */,
 				1EDACD472B83A9FA006FE956 /* Datasource */,
 				1EE89F632B84D228000CAA20 /* Parser */,
@@ -455,6 +466,7 @@
 				1EE89F702B84DD65000CAA20 /* AuthorInfoModel.swift in Sources */,
 				1E12352E2B8524B10022652F /* ChapterParser.swift in Sources */,
 				1EE89F5E2B84CFD7000CAA20 /* PageCrud.swift in Sources */,
+				1E79A4D42B8929D80075C234 /* RestRequester.swift in Sources */,
 				1E1235472B8534580022652F /* SystemDateTime.swift in Sources */,
 				1E1235532B853C940022652F /* Date+Helpers.swift in Sources */,
 				1EE89F6E2B84DD48000CAA20 /* TagInfoModel.swift in Sources */,

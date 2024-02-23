@@ -8,12 +8,19 @@
 import Foundation
 import Combine
 import CoreData
+import UIKit
 
 final class MangaSearchDatasource {
 
+  enum VarUpdate<T> {
+    case skip
+    case update(T)
+  }
+
+  private let restRequester: RestRequester
   private let mangaParser: MangaParser
   private let mangaCrud: MangaCrud
-  private let moc: NSManagedObjectContext
+  private let viewMoc: NSManagedObjectContext
 
   private let mangas: CurrentValueSubject<[MangaModel], Never>
   private let state: CurrentValueSubject<DatasourceState, Never>
@@ -30,16 +37,18 @@ final class MangaSearchDatasource {
     state.value
   }
 
-  private var fetchTask: Task<Void, any Error>?
+  private var fetchTask: Task<Void, Never>?
 
   init(
+    restRequester: RestRequester,
     mangaParser: MangaParser,
     mangaCrud: MangaCrud,
-    moc: NSManagedObjectContext
+    viewMoc: NSManagedObjectContext = PersistenceController.shared.container.viewContext
   ) {
-    self.mangaParser = mangaParser
-    self.mangaCrud   = mangaCrud
-    self.moc         = moc
+    self.restRequester = restRequester
+    self.mangaParser   = mangaParser
+    self.mangaCrud     = mangaCrud
+    self.viewMoc       = viewMoc
 
     mangas = CurrentValueSubject([])
     state  = CurrentValueSubject(.starting)
@@ -49,58 +58,78 @@ final class MangaSearchDatasource {
 
   func setupInitalValues() {
     mangas.value = mangaCrud
-      .getAllMangasWithChapters(moc: moc)
+      .getAllMangasWithChapters(moc: viewMoc)
       .map { .from($0) }
 
     state.value = .normal
   }
 
+  /**
+   Refreshes the datasource
+
+   - Parameters:
+    - searchValue: The filter applied when searching
+
+   ## You should know
+   - This method is meant to be called on a background thread for increased performance.
+   - It is not garanted that the published changes are stored in the database.
+
+   ## How it works:
+   1. We make each api page request (background) and append it's result to the publisher (main)
+   2. For each manga we receive we will try to fetch de cover from the database and if not present, request it from the api (background detached)
+   3. We will then update the publisher value with the covers (main)
+   4. At last, we update the database using the values currently published
+   */
   func refresh(
     _ searchValue: String
   ) async {
     if let fetchTask {
       fetchTask.cancel()
 
-      try? await fetchTask.value
+      await fetchTask.value
     }
 
     state.value = .loading
+    mangas.value = []
 
-    fetchTask = Task { [weak self] in
+    fetchTask = Task.detached { [weak self] in
       guard let self else {
-        self?.fetchTask   = nil
-        self?.state.value = .normal
+        Task { @MainActor [self] in
+          self?.state.value = .cancelled
+          self?.fetchTask   = nil
+        }
 
         return
       }
 
       do {
-        try await makeSearchRequest(searchValue)
+        try await makeRefresh(searchValue)
       } catch {
-        self.state.value = .cancelled
+        Task { @MainActor in self.state.value = .cancelled }
 
-        print("Chapter fetch request -> Fetch task cancelled")
+        print("MangaSearchDatasource -> Fetch task cancelled")
       }
 
-      self.fetchTask = nil
+      Task { @MainActor in self.fetchTask = nil }
     }
   }
 
-  private func makeSearchRequest(
+  private func makeRefresh(
     _ searchValue: String
   ) async throws {
-    print("Chapter fetch request -> Fetch task intiated")
+    print("MangaSearchDatasource -> Fetch task intiated")
 
-    var results = [MangaParser.MangaParsedData]()
-    let limit   = 10
-    var offset  = 0
+    var parsedData = [MangaParser.MangaParsedData]()
+    var results    = [MangaModel]()
+    let limit      = 10
+    var offset     = 0
 
     // TODO: Implement user pagination
     // TODO: TaskGroup
     while true && offset < 30 {
       try Task.checkCancellation()
 
-      let result = try await makeSearchRequest(
+      let result = await makeSearchRequest(
         searchValue,
         limit: limit,
         offset: offset
@@ -110,201 +139,154 @@ final class MangaSearchDatasource {
 
       offset += limit
 
-      results.append(contentsOf: result)
-    }
+      parsedData.append(contentsOf: result)
+      results.append(contentsOf: result.map { $0.convertToModel() })
 
-    _ = moc.saveIfNeeded(rollbackOnError: true)
-
-    let mangas = results.map {
-      $0.convertToModel(
-        coverData: mangaCrud.getManga($0.id, moc: moc)?.coverArt
-      )
-    }
-
-    self.mangas.value = mangas
-    self.state.value  = .normal
-
-    try Task.checkCancellation()
-
-    let needCovers = mangaCrud.getAllMangasIdsWithoutCovers(
-      fromIds: mangas.map { $0.id },
-      moc: moc
-    )
-
-    try Task.checkCancellation()
-
-    let mangasWithCovers = try await makeCoversRequest(mangas: results.filter { needCovers.contains($0.id) })
-
-    _ = moc.saveIfNeeded(rollbackOnError: true)
-
-    var updatedMangas = [MangaModel]()
-
-    for manga in mangas {
-      if let updated = mangasWithCovers.first(where: { $0.id == manga.id }) {
-        updatedMangas.append(updated)
-      } else {
-        updatedMangas.append(manga)
+      Task { @MainActor [results] in
+        self.mangas.value = results
       }
     }
 
-    self.mangas.value = updatedMangas
+    Task { @MainActor in
+      self.state.value = .normal
+    }
+
+    let models = try await withThrowingTaskGroup(of: MangaModel?.self, returning: [MangaModel].self) { taskGroup in
+      for data in parsedData {
+        taskGroup.addTask {
+          try Task.checkCancellation()
+
+          let cover = await self.getCover(for: data.id, fileName: data.coverFileName)
+
+          return await Task { @MainActor () -> MangaModel? in
+            return self.updateResult(data.id, withCover: cover)
+          }.value
+        }
+      }
+
+      return try await taskGroup.reduce(into: [MangaModel]()) { partialResult, manga in
+        if let manga {
+          partialResult.append(manga)
+        }
+      }
+    }
+
+    try Task.checkCancellation()
+
+    await PersistenceController.shared.container.performBackgroundTask { moc in
+      print("MangaSearchDatasource -> Saving \(models.count) items into the database")
+
+      self.updateDatabase(with: models, moc: moc)
+
+      if !moc.saveIfNeeded(rollbackOnError: true).isSuccess {
+        print("MangaSearchDatasource -> Failed to save database")
+      } else {
+        print("MangaSearchDatasource -> Saved database successfully")
+      }
+    }
 
     print("Chapter fetch request -> Fetch task ended")
   }
+
+  private func updateResult(
+    _ id: String,
+    withCover cover: UIImage?
+  ) -> MangaModel? {
+    if let i = mangas.value.firstIndex(where: { $0.id == id }) {
+      let manga = mangas.value[i]
+
+      let updated = MangaModel(
+        id: manga.id,
+        title: manga.title,
+        description: manga.description,
+        status: manga.status,
+        cover: cover,
+        tags: manga.tags
+      )
+
+      mangas.value[i] = updated
+
+      return updated
+    }
+
+    return nil
+  }
+
+  private func updateDatabase(
+    with mangas: [MangaModel],
+    moc: NSManagedObjectContext
+  ) {
+    for manga in mangas {
+      if mangaCrud.createOrUpdateManga(
+        id: manga.id,
+        title: manga.title, 
+        about: manga.description,
+        status: manga.status,
+        moc: moc
+      ) == nil {
+        print ("MangaSearchDatasource Error -> Error creating entity")
+      }
+    }
+  }
+
+}
+
+// MARK: Search
+extension MangaSearchDatasource {
 
   private func makeSearchRequest(
     _ searchValue: String,
     limit: Int,
     offset: Int
-  ) async throws -> [MangaParser.MangaParsedData] {
-    let urlString = "https://api.mangadex.org/manga"
+  ) async -> [MangaParser.MangaParsedData] {
+    let data: [String: Any] = await restRequester.makeGetRequest(
+      url: "https://api.mangadex.org/manga",
+      parameters: [
+        "title": searchValue,
+        "includes[]": "cover_art",
+        "limit": limit,
+        "offset": offset
+      ]
+    )
 
-    let parameters: [String: Any] = [
-      "title": searchValue,
-      "includes[]": "cover_art",
-      "limit": limit,
-      "offset": offset
-    ]
-
-    var urlParameters = URLComponents(string: urlString)
-    urlParameters?.queryItems = parameters.map { URLQueryItem(name: $0.key, value: String(describing: $0.value)) }
-
-    guard let url = urlParameters?.url else {
-      print ("MangaSearchDatasource -> Error creating url")
+    guard let dataJson = data["data"] as? [[String: Any]] else {
+      print("MangaSearchDatasource -> Error getting json data")
 
       return []
     }
 
-    var request = URLRequest(url: url)
-    request.httpMethod = "GET"
-    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-    do {
-      try Task.checkCancellation()
-
-      let (data, response) = try await URLSession.shared.data(for: request)
-
-      guard let response = response as? HTTPURLResponse else {
-        print("MangaSearchDatasource -> Response parse error")
-
-        return []
-      }
-
-      guard response.statusCode == 200 else {
-        print("MangaSearchDatasource -> Received response with code \(response.statusCode)")
-
-        return []
-      }
-
-      guard
-        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-        let dataJson = json["data"] as? [[String: Any]]
-      else {
-        print("MangaSearchDatasource -> Error creating response json")
-
-        return []
-      }
-
-      try Task.checkCancellation()
-
-      let parsedData = mangaParser.parseMangaSearchResponse(dataJson)
-
-      parsedData.forEach {
-        if mangaCrud.createOrUpdateManga(
-          id: $0.id,
-          title: $0.title,
-          about: $0.description,
-          status: $0.status,
-          moc: moc
-        ) == nil {
-          print("MangaSearchDatasource Error -> Entity creation failed")
-        }
-      }
-
-      return parsedData
-    } catch {
-      if let cancellationError = error as? CancellationError {
-        throw cancellationError
-      } else {
-        print("MangaSearchDatasource -> Error during request \(error)")
-      }
-    }
-
-    return []
+    return mangaParser.parseMangaSearchResponse(dataJson)
   }
 
-  private func makeCoversRequest(
-    mangas: [MangaParser.MangaParsedData]
-  ) async throws -> Set<MangaModel> {
-    return try await withThrowingTaskGroup(of: MangaModel?.self, returning: Set<MangaModel>.self) { taskGroup in
-      for manga in mangas {
-        taskGroup.addTask {
-          try await self.makeCoverRequest(mangaId: manga.id, coverFileName: manga.coverFileName)
-        }
-      }
+}
 
-      return try await taskGroup.reduce(into: Set<MangaModel>()) { partialResult, manga in
-        if let manga {
-          partialResult.insert(manga)
-        }
-      }
-    }
-  }
+// MARK: Cover
+extension MangaSearchDatasource {
 
-  private func makeCoverRequest(
-    mangaId: String,
-    coverFileName: String
-  ) async throws -> MangaModel? {
-    let urlString = "https://uploads.mangadex.org/covers/\(mangaId)/\(coverFileName).256.jpg"
-
-    guard let url = URL(string: urlString) else {
-      print ("MangaSearchDatasource -> Error creating url")
-
-      return nil
+  private func getCover(
+    for id: String,
+    fileName: String
+  ) async -> UIImage? {
+    if let localCoverData = self.mangaCrud.getMangaCover(id, moc: viewMoc) {
+      return UIImage(data: localCoverData)
     }
 
-    var request = URLRequest(url: url)
-    request.httpMethod = "GET"
-    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-    do {
-      try Task.checkCancellation()
-
-      let (data, response) = try await URLSession.shared.data(for: request)
-
-      guard let response = response as? HTTPURLResponse else {
-        print("MangaSearchDatasource -> Response parse error")
-
-        return nil
-      }
-
-      guard response.statusCode == 200 else {
-        print("MangaSearchDatasource -> Received response with code \(response.statusCode)")
-
-        return nil
-      }
-
-      guard let manga = mangaCrud.getManga(mangaId, moc: moc) else {
-        print("MangaParser Error -> Manga with id:\(mangaId) not found")
-
-        return nil
-      }
-
-      mangaCrud.updateCoverArt(manga, data: data)
-
-      return MangaModel.from(
-        manga,
-        coverData: data
-      )
-    } catch {
-      if let cancellationError = error as? CancellationError {
-        throw cancellationError
-      } else {
-        print("MangaSearchDatasource -> Error during request \(error)")
-      }
+    if let remoteCoverData = await makeCoverRequest(id: id, coverFileName: fileName) {
+      return UIImage(data: remoteCoverData)
     }
 
     return nil
+  }
+
+  private func makeCoverRequest(
+    id: String,
+    coverFileName: String
+  ) async -> Data? {
+    let coverData: Data? = await restRequester.makeGetRequest(
+      url: "https://uploads.mangadex.org/covers/\(id)/\(coverFileName).256.jpg"
+    )
+
+    return coverData
   }
 
 }

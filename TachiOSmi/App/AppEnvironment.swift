@@ -18,6 +18,9 @@ struct AppEnv {
 
 final class AppEnvironment {
 
+  // Rest
+  let restRequester: RestRequester
+
   // Crud
   let mangaCrud: MangaCrud
   let chapterCrud: ChapterCrud
@@ -41,6 +44,8 @@ final class AppEnvironment {
   ) {
     self.moc = moc
 
+    restRequester = RestRequester()
+
     mangaCrud   = MangaCrud()
     chapterCrud = ChapterCrud()
     authorCrud  = AuthorCrud()
@@ -54,9 +59,9 @@ final class AppEnvironment {
     )
 
     mangaSearchDatasource = MangaSearchDatasource(
+      restRequester: restRequester,
       mangaParser: mangaParser,
-      mangaCrud: mangaCrud,
-      moc: moc
+      mangaCrud: mangaCrud
     )
 
     systemDateTime = SystemDateTime()

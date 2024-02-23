@@ -106,6 +106,17 @@ extension MangaCrud {
     return []
   }
 
+  func getMangaCover(
+    _ id: String,
+    moc: NSManagedObjectContext
+  ) -> Data? {
+    guard let manga = getManga(id, moc: moc) else {
+      return nil
+    }
+
+    return manga.coverArt
+  }
+
 }
 
 // MARK: - Create or Update
