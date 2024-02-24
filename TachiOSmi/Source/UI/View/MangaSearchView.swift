@@ -100,7 +100,7 @@ extension MangaSearchView {
 
     return MangaSearchViewModel(
       datasource: MangaSearchDatasource(
-        restRequester: RestRequester(),
+        httpClient: HttpClient(),
         mangaParser: MangaParser(),
         mangaCrud: MangaCrud(),
         viewMoc: moc

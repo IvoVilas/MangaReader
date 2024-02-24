@@ -19,7 +19,7 @@ struct AppEnv {
 final class AppEnvironment {
 
   // Rest
-  let restRequester: RestRequester
+  let httpClient: HttpClient
 
   // Crud
   let mangaCrud: MangaCrud
@@ -44,7 +44,7 @@ final class AppEnvironment {
   ) {
     self.moc = moc
 
-    restRequester = RestRequester()
+    httpClient = HttpClient()
 
     mangaCrud   = MangaCrud()
     chapterCrud = ChapterCrud()
@@ -59,7 +59,7 @@ final class AppEnvironment {
     )
 
     mangaSearchDatasource = MangaSearchDatasource(
-      restRequester: restRequester,
+      httpClient: httpClient,
       mangaParser: mangaParser,
       mangaCrud: mangaCrud
     )

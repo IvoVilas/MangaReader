@@ -11,104 +11,70 @@ import Combine
 
 final class MangaReaderViewModel: ObservableObject {
 
-  @Published var pages: [ImageViewModel]
+  enum Page: Identifiable {
+    case remote(URL)
+    case notFound(Int)
+
+    var id: String {
+      switch self {
+      case .remote(let url):
+        return url.absoluteString
+
+      case .notFound(let pos):
+        return "\(pos)"
+      }
+    }
+  }
+
+  @Published var pages: [Page]
 
   private let chapterId: String
-  private let restRequester: RestRequester
+  private let httpClient: HttpClient
 
   private var observers = Set<AnyCancellable>()
 
   init(
     chapterId: String,
-    restRequester: RestRequester
+    httpClient: HttpClient
   ) {
-    self.chapterId     = chapterId
-    self.restRequester = restRequester
+    self.chapterId  = chapterId
+    self.httpClient = httpClient
 
     pages = []
-
-    $pages.sink { pages in
-      for page in pages {
-        Task { await page.loadImage() }
-      }
-    }.store(in: &observers)
   }
-}
 
-extension MangaReaderViewModel {
+  func makePagesRequest() async {
+    print("MangaReaderViewModel -> Starting chapter download")
 
-  func viewDidAppear() {
+    let json: [String : Any] = await httpClient.makeGetRequest(url: "https://api.mangadex.org/at-home/server/\(chapterId)")
+
+    guard
+      let baseUrl = json["baseUrl"] as? String,
+      let chapterJson = json["chapter"] as? [String: Any],
+      let hash = chapterJson["hash"] as? String,
+      let data = chapterJson["data"] as? [String]
+    else {
+      print("MangaReaderViewModel Error -> Error parsing response")
+      
+      return
+    }
+
+    if pages.isEmpty {
+      /// Handle error better
+      print("Pages not found")
+    }
+
     Task { @MainActor in
-      print("MangaReaderViewModel -> Starting chapter download")
-      pages = []
+      pages = data.enumerated().map { index, data in
+        if let url = URL(string: "\(baseUrl)/data/\(hash)/\(data)") {
+          return .remote(url)
+        }
 
-      let json: [String : Any] = await restRequester.makeGetRequest(url: "https://api.mangadex.org/at-home/server/\(chapterId)")
-
-      guard
-        let baseUrl = json["baseUrl"] as? String,
-        let chapterJson = json["chapter"] as? [String: Any],
-        let hash = chapterJson["hash"] as? String,
-        let data = chapterJson["data"] as? [String]
-      else {
-        print("MangaReaderViewModel Error -> Error parsing response")
-
-        return
+        return .notFound(index)
       }
-
-      if pages.isEmpty {
-        /// Handle error better
-        print("Pages not found")
-      }
-
-      let pages = data.map {
-        ImageViewModel(
-          url: "\(baseUrl)/data/\(hash)/\($0)",
-          restRequester: restRequester
-        )
-      }
-
-      self.pages = pages
-      print("MangaReaderViewModel -> Ending chapter download")
-    }
-  }
-
-}
-
-final class ImageViewModel: ObservableObject {
-
-  @Published var page: UIImage?
-  @Published var isLoading: Bool
-
-  let url: String
-  private let restRequester: RestRequester
-
-  init(
-    url: String,
-    restRequester: RestRequester
-  ) {
-    self.url           = url
-    self.restRequester = restRequester
-
-    page      = nil
-    isLoading = true
-  }
-
-  func loadImage() async {
-    Task { @MainActor in
-      self.isLoading = true
     }
 
-    let data: Data? = await restRequester.makeGetRequest(url: url)
-
-    Task { @MainActor [data] in
-      if let data {
-        page = UIImage(data: data)
-      } else {
-        page = UIImage.coverNotFound
-      }
-
-      self.isLoading = false
-    }
+    print("MangaReaderViewModel -> Ending chapter download")
   }
 
 }

@@ -89,7 +89,7 @@ struct GlobalMangaChapterDatasource {
 
     let datasource = MangaChapterDatasource(
       mangaId: id,
-      restRequester: AppEnv.env.restRequester,
+      httpClient: AppEnv.env.httpClient,
       chapterParser: AppEnv.env.chapterParser,
       mangaCrud: AppEnv.env.mangaCrud,
       chapterCrud: AppEnv.env.chapterCrud,
@@ -123,9 +123,10 @@ struct GlobalMangaCoverDatasource {
 
     let datasource = MangaCoverDatasource(
       mangaId: id,
+      httpClient: AppEnv.env.httpClient,
       mangaParser: AppEnv.env.mangaParser,
       mangaCrud: AppEnv.env.mangaCrud,
-      moc: moc
+      viewMoc: moc
     )
 
     // TODO

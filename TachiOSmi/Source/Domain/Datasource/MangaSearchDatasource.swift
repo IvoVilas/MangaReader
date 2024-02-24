@@ -17,7 +17,7 @@ final class MangaSearchDatasource {
     case update(T)
   }
 
-  private let restRequester: RestRequester
+  private let httpClient: HttpClient
   private let mangaParser: MangaParser
   private let mangaCrud: MangaCrud
   private let viewMoc: NSManagedObjectContext
@@ -40,15 +40,15 @@ final class MangaSearchDatasource {
   private var fetchTask: Task<Void, Never>?
 
   init(
-    restRequester: RestRequester,
+    httpClient: HttpClient,
     mangaParser: MangaParser,
     mangaCrud: MangaCrud,
     viewMoc: NSManagedObjectContext = PersistenceController.shared.container.viewContext
   ) {
-    self.restRequester = restRequester
-    self.mangaParser   = mangaParser
-    self.mangaCrud     = mangaCrud
-    self.viewMoc       = viewMoc
+    self.httpClient  = httpClient
+    self.mangaParser = mangaParser
+    self.mangaCrud   = mangaCrud
+    self.viewMoc     = viewMoc
 
     mangas = CurrentValueSubject([])
     state  = CurrentValueSubject(.starting)
@@ -216,7 +216,7 @@ extension MangaSearchDatasource {
     limit: Int,
     offset: Int
   ) async -> [MangaModel] {
-    let data: [String: Any] = await restRequester.makeGetRequest(
+    let data: [String: Any] = await httpClient.makeGetRequest(
       url: "https://api.mangadex.org/manga",
       parameters: [
         "title": searchValue,
@@ -273,7 +273,7 @@ extension MangaSearchDatasource {
     id: String,
     coverFileName: String
   ) async -> Data? {
-    let coverData: Data? = await restRequester.makeGetRequest(
+    let coverData: Data? = await httpClient.makeGetRequest(
       url: "https://uploads.mangadex.org/covers/\(id)/\(coverFileName).256.jpg"
     )
 

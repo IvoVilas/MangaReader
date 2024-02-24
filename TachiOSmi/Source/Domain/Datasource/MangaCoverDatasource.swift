@@ -14,10 +14,10 @@ final class MangaCoverDatasource {
 
   private let mangaId: String
 
-  private let restRequester: RestRequester
+  private let httpClient: HttpClient
   private let mangaParser: MangaParser
   private let mangaCrud: MangaCrud
-  private let moc: NSManagedObjectContext
+  private let viewMoc: NSManagedObjectContext
 
   private let image: CurrentValueSubject<UIImage?, Never>
   private let state: CurrentValueSubject<DatasourceState, Never>
@@ -32,23 +32,23 @@ final class MangaCoverDatasource {
 
   init(
     mangaId: String,
-    restRequester: RestRequester,
+    httpClient: HttpClient,
     mangaParser: MangaParser,
     mangaCrud: MangaCrud,
-    moc: NSManagedObjectContext
+    viewMoc: NSManagedObjectContext
   ) {
-    self.mangaId       = mangaId
-    self.restRequester = restRequester
-    self.mangaParser   = mangaParser
-    self.mangaCrud     = mangaCrud
-    self.moc           = moc
+    self.mangaId     = mangaId
+    self.httpClient  = httpClient
+    self.mangaParser = mangaParser
+    self.mangaCrud   = mangaCrud
+    self.viewMoc     = viewMoc
 
     image = CurrentValueSubject(nil)
     state = CurrentValueSubject(.starting)
   }
 
   func setupInitialValue() async {
-    guard let manga = mangaCrud.getManga(mangaId, moc: moc) else {
+    guard let manga = mangaCrud.getManga(mangaId, moc: viewMoc) else {
       print("MangaCoverDatasource -> Manga not found \(mangaId)")
 
       return
@@ -101,7 +101,7 @@ final class MangaCoverDatasource {
   }
 
   private func makeMangaIndexRequest() async -> String? {
-    let json: [String: Any] = await restRequester.makeGetRequest(
+    let json: [String: Any] = await httpClient.makeGetRequest(
       url: "https://api.mangadex.org/manga/\(mangaId)",
       parameters: ["includes[]": "cover_art"]
     )
@@ -128,7 +128,7 @@ final class MangaCoverDatasource {
   private func makeCoverRequest(
     coverFileName: String
   ) async -> Data? {
-    return await restRequester.makeGetRequest(
+    return await httpClient.makeGetRequest(
       url: "https://uploads.mangadex.org/covers/\(mangaId)/\(coverFileName).256.jpg"
     )
   }

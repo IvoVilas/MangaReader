@@ -76,14 +76,12 @@ final class MangaDetailsViewModel: ObservableObject {
 
 extension MangaDetailsViewModel {
 
-  func onViewAppear() {
+  func setupData() async {
     switch chaptersDatasource.stateValue {
     case .starting:
-      Task {
-        await withTaskGroup(of: Void.self) { taskGroup in
-          taskGroup.addTask { await self.chaptersDatasource.refresh() }
-          taskGroup.addTask { await self.coverDatasource.setupInitialValue() }
-        }
+      await withTaskGroup(of: Void.self) { taskGroup in
+        taskGroup.addTask { await self.chaptersDatasource.refresh() }
+        taskGroup.addTask { await self.coverDatasource.setupInitialValue() }
       }
 
     default:
@@ -98,6 +96,15 @@ extension MangaDetailsViewModel {
         taskGroup.addTask { await self.coverDatasource.refresh() }
       }
     }
+  }
+
+  func buildChapterReaderViewModel(
+    for id: String
+  ) -> MangaReaderViewModel {
+    return MangaReaderViewModel(
+      chapterId: id,
+      httpClient: AppEnv.env.httpClient
+    )
   }
 
 }

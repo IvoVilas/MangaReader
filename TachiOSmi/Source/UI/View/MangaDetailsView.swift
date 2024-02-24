@@ -50,10 +50,7 @@ struct MangaDetailsView: View {
           }
           .navigationDestination(for: ChapterModel.self) { chapter in
             MangaReaderView(
-              viewModel: MangaReaderViewModel(
-                chapterId: chapter.id,
-                restRequester: RestRequester()
-              )
+              viewModel: viewModel.buildChapterReaderViewModel(for: chapter.id)
             )
           }
         }
@@ -63,7 +60,7 @@ struct MangaDetailsView: View {
       .padding(.trailing, 24)
     }
     .refreshable { viewModel.forceRefresh() }
-    .onAppear { viewModel.onViewAppear() }
+    .task { await viewModel.setupData() }
   }
 
   @ViewBuilder
@@ -112,6 +109,7 @@ extension MangaDetailsView {
   static func buildPreviewViewModel() -> MangaDetailsViewModel {
     let mangaCrud   = MangaCrud()
     let chapterCrud = ChapterCrud()
+    let httpClient  = HttpClient()
     let moc         = PersistenceController.preview.container.viewContext
     let mangaId     = "c52b2ce3-7f95-469c-96b0-479524fb7a1a"
 
@@ -124,7 +122,7 @@ extension MangaDetailsView {
     return MangaDetailsViewModel(
       chaptersDatasource: MangaChapterDatasource(
         mangaId: mangaId,
-        restRequester: RestRequester(),
+        httpClient: httpClient,
         chapterParser: chapterParser,
         mangaCrud: mangaCrud,
         chapterCrud: chapterCrud,
@@ -133,9 +131,10 @@ extension MangaDetailsView {
       ),
       coverDatasource: MangaCoverDatasource(
         mangaId: mangaId,
+        httpClient: httpClient,
         mangaParser: MangaParser(),
         mangaCrud: mangaCrud,
-        moc: moc
+        viewMoc: moc
       )
     )
   }

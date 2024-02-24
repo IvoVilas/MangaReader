@@ -22,15 +22,15 @@ struct MangaReaderView: View {
 
         ScrollView(.horizontal) {
           HStack(spacing: 0) {
-            ForEach(Array(viewModel.pages.enumerated()), id:\.offset) { _, viewModel in
-              ImageView(viewModel: viewModel)
+            ForEach(viewModel.pages) { page in
+              makePage(page)
                 .frame(width: geo.size.width)
                 .frame(maxWidth: geo.size.width, maxHeight: .infinity, alignment: .center)
             }
           }
         }
         .scrollTargetBehavior(.paging)
-        .onAppear { viewModel.viewDidAppear() }
+        .task { await viewModel.makePagesRequest() }
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
@@ -38,32 +38,37 @@ struct MangaReaderView: View {
     .environment(\.layoutDirection, .rightToLeft)
   }
 
+  @ViewBuilder
+  private func makePage(
+    _ page: MangaReaderViewModel.Page
+  ) -> some View {
+    switch page {
+    case .remote(let url):
+      ImageView(url: url)
+
+    case .notFound:
+      Image(uiImage: .coverNotFound)
+        .resizable()
+        .aspectRatio(contentMode: .fit)
+    }
+  }
+
 }
 
 struct ImageView: View {
 
-  @ObservedObject var viewModel: ImageViewModel
+  @State var url: URL
 
   var body: some View {
-    ZStack {
+    AsyncImage(url: url) { image in
+      image
+        .resizable()
+        .aspectRatio(contentMode: .fit)
+    } placeholder: {
       ProgressView()
         .progressViewStyle(.circular)
         .tint(.white)
-        .opacity(viewModel.isLoading ? 1 : 0)
-
-      make(viewModel.page)
     }
-  }
-
-  @ViewBuilder
-  private func make(_ image: UIImage?) -> some View {
-    if let image {
-      Image(uiImage: image)
-        .resizable()
-        .aspectRatio(contentMode: .fit)
-    }
-
-    EmptyView()
   }
 
 }
@@ -72,7 +77,7 @@ struct ImageView: View {
   MangaReaderView(
     viewModel: MangaReaderViewModel(
       chapterId: "97e84c86-e3cd-416d-998d-3b4c732e317d",
-      restRequester: RestRequester()
+      httpClient: HttpClient()
     )
   )
 }

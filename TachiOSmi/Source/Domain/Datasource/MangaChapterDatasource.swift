@@ -13,7 +13,7 @@ final class MangaChapterDatasource {
 
   private let mangaId: String
 
-  private let restRequester: RestRequester
+  private let httpClient: HttpClient
   private let chapterParser: ChapterParser
   private let mangaCrud: MangaCrud
   private let chapterCrud: ChapterCrud
@@ -50,7 +50,7 @@ final class MangaChapterDatasource {
 
   init(
     mangaId: String,
-    restRequester: RestRequester,
+    httpClient: HttpClient,
     chapterParser: ChapterParser,
     mangaCrud: MangaCrud,
     chapterCrud: ChapterCrud,
@@ -58,7 +58,7 @@ final class MangaChapterDatasource {
     viewMoc: NSManagedObjectContext = PersistenceController.shared.container.viewContext
   ) {
     self.mangaId        = mangaId
-    self.restRequester  = restRequester
+    self.httpClient     = httpClient
     self.chapterParser  = chapterParser
     self.mangaCrud      = mangaCrud
     self.chapterCrud    = chapterCrud
@@ -235,7 +235,7 @@ extension MangaChapterDatasource {
     limit: Int,
     offset: Int
   ) async -> [ChapterModel] {
-    let json: [String: Any] = await restRequester.makeGetRequest(
+    let json: [String: Any] = await httpClient.makeGetRequest(
       url: "https://api.mangadex.org/manga/\(mangaId)/feed",
       parameters: [
         "translatedLanguage[]": "en",
