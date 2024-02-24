@@ -43,8 +43,18 @@ struct MangaDetailsView: View {
 
           VStack(alignment: .leading, spacing: 24) {
             ForEach(viewModel.chapters) { chapter in
-              makeChapterView(chapter)
+              NavigationLink(value: chapter) {
+                makeChapterView(chapter)
+              }
             }
+          }
+          .navigationDestination(for: ChapterModel.self) { chapter in
+            MangaReaderView(
+              viewModel: MangaReaderViewModel(
+                chapterId: chapter.id,
+                restRequester: RestRequester()
+              )
+            )
           }
         }
         .frame(maxWidth: .infinity)

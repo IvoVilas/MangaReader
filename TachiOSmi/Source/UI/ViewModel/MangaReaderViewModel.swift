@@ -13,42 +13,62 @@ final class MangaReaderViewModel: ObservableObject {
 
   @Published var pages: [ImageViewModel]
 
-  private let baseUrl: String
-  private let chapterHash: String
-  private let data: [String]
+  private let chapterId: String
+  private let restRequester: RestRequester
+
+  private var observers = Set<AnyCancellable>()
 
   init(
-    baseUrl: String,
-    chapterHash: String,
-    data: [String],
+    chapterId: String,
     restRequester: RestRequester
   ) {
-    self.baseUrl     = baseUrl
-    self.chapterHash = chapterHash
-    self.data        = data
-    self.pages       = []
+    self.chapterId     = chapterId
+    self.restRequester = restRequester
 
-    data.forEach {
-      pages.append(
-        ImageViewModel(
-          url: "\(baseUrl)/data/\(chapterHash)/\($0)",
-          restRequester: restRequester
-        )
-      )
-    }
+    pages = []
+
+    $pages.sink { pages in
+      for page in pages {
+        Task { await page.loadImage() }
+      }
+    }.store(in: &observers)
   }
-
 }
 
 extension MangaReaderViewModel {
 
   func viewDidAppear() {
-    Task {
-      await withTaskGroup(of: Void.self) { taskGroup in
-        for page in pages {
-          taskGroup.addTask { await page.loadImage() }
-        }
+    Task { @MainActor in
+      print("MangaReaderViewModel -> Starting chapter download")
+      pages = []
+
+      let json: [String : Any] = await restRequester.makeGetRequest(url: "https://api.mangadex.org/at-home/server/\(chapterId)")
+
+      guard
+        let baseUrl = json["baseUrl"] as? String,
+        let chapterJson = json["chapter"] as? [String: Any],
+        let hash = chapterJson["hash"] as? String,
+        let data = chapterJson["data"] as? [String]
+      else {
+        print("MangaReaderViewModel Error -> Error parsing response")
+
+        return
       }
+
+      if pages.isEmpty {
+        /// Handle error better
+        print("Pages not found")
+      }
+
+      let pages = data.map {
+        ImageViewModel(
+          url: "\(baseUrl)/data/\(hash)/\($0)",
+          restRequester: restRequester
+        )
+      }
+
+      self.pages = pages
+      print("MangaReaderViewModel -> Ending chapter download")
     }
   }
 

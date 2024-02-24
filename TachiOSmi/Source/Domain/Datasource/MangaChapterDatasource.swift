@@ -42,10 +42,10 @@ final class MangaChapterDatasource {
       let lhs = $0.number,
       let rhs = $01.number
     else {
-      return $0.publishAt < $1.publishAt
+      return $0.publishAt > $1.publishAt
     }
 
-    return lhs < rhs
+    return lhs > rhs
   }
 
   init(

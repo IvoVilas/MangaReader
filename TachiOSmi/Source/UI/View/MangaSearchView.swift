@@ -15,7 +15,7 @@ struct MangaSearchView: View {
   @FocusState private var inputFieldIsFocused: Bool
 
   var body: some View {
-    NavigationView {
+    NavigationStack {
       VStack() {
         Text("Manga Search")
           .font(.largeTitle)
@@ -50,15 +50,16 @@ struct MangaSearchView: View {
           ScrollView {
             VStack(alignment: .leading, spacing: 0) {
               ForEach(viewModel.results) { manga in
-                NavigationLink {
-                  makeDetailsView(manga.id)
-                } label: {
+                NavigationLink(value: manga) {
                   makeResultView(manga: manga)
                 }
               }
             }
             .padding(.leading, 24)
             .padding(.trailing, 24)
+          }
+          .navigationDestination(for: MangaModel.self) { manga in
+            MangaDetailsView(viewModel: viewModel.buildMangaDetailsViewModel(manga))
           }
         }
       }
@@ -80,19 +81,6 @@ struct MangaSearchView: View {
         .padding(8)
         .multilineTextAlignment(.leading)
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-  }
-
-  @ViewBuilder
-  private func makeDetailsView(
-    _ id: String
-  ) -> some View {
-    if let viewModel = viewModel.viewModels[id] {
-      MangaDetailsView(viewModel: viewModel)
-    }
-
-    EmptyView().onAppear {
-      print("MangaSearchView Error -> View model not found for \(id)")
     }
   }
 

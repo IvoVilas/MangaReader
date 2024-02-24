@@ -16,8 +16,6 @@ final class MangaSearchViewModel: ObservableObject {
   @Published var input: String
   @Published var isLoading: Bool
 
-  var viewModels: [String: MangaDetailsViewModel]
-
   private let datasource: MangaSearchDatasource
   private let moc: NSManagedObjectContext
 
@@ -33,18 +31,10 @@ final class MangaSearchViewModel: ObservableObject {
     results   = []
     input     = ""
     isLoading = false
-    viewModels = [:]
 
     datasource.mangasPublisher
       .receive(on: DispatchQueue.main)
-      .sink { [weak self] in
-        guard let self else { return }
-
-        self.results = $0
-        self.viewModels = Dictionary(uniqueKeysWithValues: $0.map { manga in
-          (manga.id, self.buildMangaDetailsViewModel(manga))
-        })
-      }
+      .sink { [weak self] in self?.results = $0 }
       .store(in: &observers)
 
     datasource.statePublisher
