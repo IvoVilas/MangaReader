@@ -88,17 +88,19 @@ final class MangaChapterDatasource {
         return
       }
 
-      let chapters = await self.fetchLocalChapters()
+      let chapters = await Task.detached { () -> [ChapterModel] in
+        await self.fetchLocalChapters()
+      }.value
 
-      Task { @MainActor [chapters] in
-        self.chapters.value = chapters
-      }
+      self.chapters.value = chapters
 
       do {
         try Task.checkCancellation()
 
         if isForceRefresh {
-          try await self.chapterRefresh()
+          try await Task.detached {
+            try await self.chapterRefresh()
+          }.value
         } else {
           try await self.chapterRefreshIfNeeded()
         }
@@ -138,10 +140,14 @@ final class MangaChapterDatasource {
         lastUpdateAt,
         lessThanOrEqual: systemDateTime.calculator.removeDays(5, to: systemDateTime.now)
       ) {
-        try await chapterRefresh()
+        try await Task.detached {
+          try await self.chapterRefresh()
+        }.value
       }
     } else {
-      try await chapterRefresh()
+      try await Task.detached {
+        try await self.chapterRefresh()
+      }.value
     }
   }
 
@@ -150,21 +156,19 @@ final class MangaChapterDatasource {
 
     let results = try await fetchChapters()
 
-    Task.detached { [results] in
-      await PersistenceController.shared.container.performBackgroundTask { moc in
-        print("MangaChapterDatabase -> Saving \(results.count) items into the database")
+    await PersistenceController.shared.container.performBackgroundTask { moc in
+      print("MangaChapterDatabase -> Saving \(results.count) items into the database")
 
-        self.updateDatabase(
-          chapters: results,
-          updatedAt: Date(),
-          moc: moc
-        )
+      self.updateDatabase(
+        chapters: results,
+        updatedAt: Date(),
+        moc: moc
+      )
 
-        if !moc.saveIfNeeded(rollbackOnError: true).isSuccess {
-          print("MangaChapterDatasource -> Failed to save database")
-        } else {
-          print("MangaChapterDatasource -> Saved database successfully")
-        }
+      if !moc.saveIfNeeded(rollbackOnError: true).isSuccess {
+        print("MangaChapterDatasource -> Failed to save database")
+      } else {
+        print("MangaChapterDatasource -> Saved database successfully")
       }
     }
 
@@ -212,7 +216,7 @@ final class MangaChapterDatasource {
         chapterNumber: chapter.number,
         title: chapter.title,
         numberOfPages: chapter.numberOfPages,
-        publishAt: chapter.publishAt, 
+        publishAt: chapter.publishAt,
         manga: manga,
         moc: moc
       ) == nil {

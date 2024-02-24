@@ -52,7 +52,7 @@ final class MangaSearchViewModel: ObservableObject {
   }
 
   func doSearch() {
-    Task.detached {
+    Task {
       await self.datasource.refresh(self.input)
     }
   }

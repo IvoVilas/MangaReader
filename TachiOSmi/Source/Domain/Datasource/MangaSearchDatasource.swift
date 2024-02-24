@@ -68,7 +68,7 @@ final class MangaSearchDatasource {
    Refreshes the datasource
 
    - Parameters:
-    - searchValue: The filter applied when searching
+   - searchValue: The filter applied when searching
 
    ## You should know
    - This method is meant to be called on a background thread for increased performance.
@@ -92,7 +92,7 @@ final class MangaSearchDatasource {
     state.value = .loading
     mangas.value = []
 
-    fetchTask = Task.detached { [weak self] in
+    fetchTask = Task { [weak self] in
       guard let self else {
         self?.state.value = .cancelled
         self?.fetchTask   = nil
@@ -117,64 +117,43 @@ final class MangaSearchDatasource {
   ) async throws {
     print("MangaSearchDatasource -> Fetch task started")
 
-    var parsedData = [MangaParser.MangaParsedData]()
     var results    = [MangaModel]()
     let limit      = 10
     var offset     = 0
+    let max        = searchValue == "" ? 30 : 100
 
     // TODO: Implement user pagination
     // TODO: TaskGroup
-    while true && offset < 30 {
+    while true && offset < max {
       try Task.checkCancellation()
 
-      let result = await makeSearchRequest(
-        searchValue,
-        limit: limit,
-        offset: offset
-      )
+      let result = await Task.detached { [searchValue, limit, offset] () -> [MangaModel] in
+        return await self.makeSearchRequest(
+          searchValue,
+          limit: limit,
+          offset: offset
+        )
+      }.value
 
       if result.isEmpty { break }
 
       offset += limit
 
-      parsedData.append(contentsOf: result)
-      results.append(contentsOf: result.map { $0.convertToModel() })
+      results.append(contentsOf: result)
 
-      Task { @MainActor [results] in
-        self.mangas.value = results
-      }
+      self.mangas.value = results
     }
 
     try Task.checkCancellation()
 
     state.value = .normal
 
-    let models = try await withThrowingTaskGroup(of: MangaModel?.self, returning: [MangaModel].self) { taskGroup in
-      for data in parsedData {
-        taskGroup.addTask {
-          try Task.checkCancellation()
-
-          let cover = await self.getCover(for: data.id, fileName: data.coverFileName)
-
-          return await Task { @MainActor () -> MangaModel? in
-            return self.updateResult(data.id, withCover: cover)
-          }.value
-        }
-      }
-
-      return try await taskGroup.reduce(into: [MangaModel]()) { partialResult, manga in
-        if let manga {
-          partialResult.append(manga)
-        }
-      }
-    }
-
     try Task.checkCancellation()
 
     await PersistenceController.shared.container.performBackgroundTask { moc in
-      print("MangaSearchDatasource -> Saving \(models.count) items into the database")
+      print("MangaSearchDatasource -> Saving \(results.count) items into the database")
 
-      self.updateDatabase(with: models, moc: moc)
+      self.updateDatabase(with: results, moc: moc)
 
       if !moc.saveIfNeeded(rollbackOnError: true).isSuccess {
         print("MangaSearchDatasource -> Failed to save database")
@@ -217,7 +196,7 @@ final class MangaSearchDatasource {
     for manga in mangas {
       if mangaCrud.createOrUpdateManga(
         id: manga.id,
-        title: manga.title, 
+        title: manga.title,
         about: manga.description,
         status: manga.status,
         moc: moc
@@ -236,7 +215,7 @@ extension MangaSearchDatasource {
     _ searchValue: String,
     limit: Int,
     offset: Int
-  ) async -> [MangaParser.MangaParsedData] {
+  ) async -> [MangaModel] {
     let data: [String: Any] = await restRequester.makeGetRequest(
       url: "https://api.mangadex.org/manga",
       parameters: [
@@ -253,7 +232,21 @@ extension MangaSearchDatasource {
       return []
     }
 
-    return mangaParser.parseMangaSearchResponse(dataJson)
+    let parsedData = mangaParser.parseMangaSearchResponse(dataJson)
+
+    return await withTaskGroup(of: MangaModel.self, returning: [MangaModel].self) { taskGroup in
+      for data in parsedData {
+        taskGroup.addTask {
+          let cover = await self.getCover(for: data.id, fileName: data.coverFileName)
+
+          return data.convertToModel(cover: cover)
+        }
+      }
+
+      return await taskGroup.reduce(into: [MangaModel]()) { partialResult, manga in
+        partialResult.append(manga)
+      }
+    }
   }
 
 }

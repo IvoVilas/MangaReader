@@ -14,6 +14,7 @@ final class MangaCoverDatasource {
 
   private let mangaId: String
 
+  private let restRequester: RestRequester
   private let mangaParser: MangaParser
   private let mangaCrud: MangaCrud
   private let moc: NSManagedObjectContext
@@ -31,29 +32,19 @@ final class MangaCoverDatasource {
 
   init(
     mangaId: String,
+    restRequester: RestRequester,
     mangaParser: MangaParser,
     mangaCrud: MangaCrud,
     moc: NSManagedObjectContext
   ) {
-    self.mangaId     = mangaId
-    self.mangaParser = mangaParser
-    self.mangaCrud   = mangaCrud
-    self.moc         = moc
+    self.mangaId       = mangaId
+    self.restRequester = restRequester
+    self.mangaParser   = mangaParser
+    self.mangaCrud     = mangaCrud
+    self.moc           = moc
 
     image = CurrentValueSubject(nil)
     state = CurrentValueSubject(.starting)
-  }
-
-  func refresh() async {
-    guard let coverFileName = await makeMangaIndexRequest() else {
-      print("MangaCoverDatasource -> coverFileName not found")
-
-      return
-    }
-
-    let result = await makeCoverRequest(coverFileName: coverFileName)
-
-    image.value = result
   }
 
   func setupInitialValue() async {
@@ -63,73 +54,72 @@ final class MangaCoverDatasource {
       return
     }
 
-    if 
+    guard
       let coverData = manga.coverArt,
       let coverImage = UIImage(data: coverData)
-    {
-      image.value = coverImage
-    } else {
-      Task {
-        await refresh()
+    else {
+      await refresh()
+
+      return
+    }
+
+    image.value = coverImage
+  }
+
+  func refresh() async {
+    let result = await Task.detached { () -> Data? in
+      guard let coverFileName = await self.makeMangaIndexRequest() else {
+        print("MangaCoverDatasource -> coverFileName not found")
+
+        return nil
+      }
+
+      return await self.makeCoverRequest(coverFileName: coverFileName)
+    }.value
+
+    guard let result else {
+      print("MangaCoverDatasource -> No data from request")
+
+      return
+    }
+
+    image.value = UIImage(data: result)
+
+    await PersistenceController.shared.container.performBackgroundTask { moc in
+      guard let manga = self.mangaCrud.getManga(self.mangaId, moc: moc) else {
+        print("MangaCoverDatasource Error -> Manga not found \(self.mangaId)")
+
+        return
+      }
+
+      self.mangaCrud.updateCoverArt(manga, data: result)
+
+      if !moc.saveIfNeeded(rollbackOnError: true).isSuccess {
+        print("MangaCoverDatasource Error -> Database update failed")
       }
     }
   }
 
   private func makeMangaIndexRequest() async -> String? {
-    let urlString = "https://api.mangadex.org/manga/\(mangaId)"
+    let json: [String: Any] = await restRequester.makeGetRequest(
+      url: "https://api.mangadex.org/manga/\(mangaId)",
+      parameters: ["includes[]": "cover_art"]
+    )
 
-    let parameters = [
-      "includes[]": "cover_art"
-    ]
-
-    var urlParameters = URLComponents(string: urlString)
-    urlParameters?.queryItems = parameters.map { URLQueryItem(name: $0.key, value: String(describing: $0.value)) }
-
-    guard let url = urlParameters?.url else {
-      print ("MangaCoverDatasource -> Error creating url")
+    guard let dataJson = json["data"] as? [String: Any] else {
+      print("MangaCoverDatasource -> Error creating response json")
 
       return nil
     }
 
-    var request = URLRequest(url: url)
-    request.httpMethod = "GET"
-    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-    do {
-      let (data, response) = try await URLSession.shared.data(for: request)
-
-      guard let response = response as? HTTPURLResponse else {
-        print("MangaCoverDatasource -> Response parse error")
-
-        return nil
-      }
-
-      guard response.statusCode == 200 else {
-        print("MangaCoverDatasource -> Received response with code \(response.statusCode)")
-
-        return nil
-      }
-
-      guard
-        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-        let dataJson = json["data"] as? [String: Any]
-      else {
-        print("MangaCoverDatasource -> Error creating response json")
-
-        return nil
-      }
-
-      if let relationships = dataJson["relationships"] as? [[String: Any]] {
-        for relationshipJson in relationships {
-          if relationshipJson["type"] as? String == "cover_art" {
-            if let attributesJson = relationshipJson["attributes"] as? [String: Any] {
-              return attributesJson["fileName"] as? String
-            }
+    if let relationships = dataJson["relationships"] as? [[String: Any]] {
+      for relationshipJson in relationships {
+        if relationshipJson["type"] as? String == "cover_art" {
+          if let attributesJson = relationshipJson["attributes"] as? [String: Any] {
+            return attributesJson["fileName"] as? String
           }
         }
       }
-    } catch {
-      print("MangaCoverDatasource -> Error during request \(error)")
     }
 
     return nil
@@ -137,50 +127,10 @@ final class MangaCoverDatasource {
 
   private func makeCoverRequest(
     coverFileName: String
-  ) async -> UIImage? {
-    let urlString = "https://uploads.mangadex.org/covers/\(mangaId)/\(coverFileName).256.jpg"
-
-    guard let url = URL(string: urlString) else {
-      print ("MangaCoverDatasource -> Error creating url")
-
-      return nil
-    }
-
-    var request = URLRequest(url: url)
-    request.httpMethod = "GET"
-    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-    do {
-      let (data, response) = try await URLSession.shared.data(for: request)
-
-      guard let response = response as? HTTPURLResponse else {
-        print("MangaCoverDatasource -> Response parse error")
-
-        return nil
-      }
-
-      guard response.statusCode == 200 else {
-        print("MangaCoverDatasource -> Received response with code \(response.statusCode)")
-
-        return nil
-      }
-
-      guard let manga = mangaCrud.getManga(mangaId, moc: moc) else {
-        print("MangaCoverDatasource Error -> Manga with id:\(mangaId) not found")
-
-        return nil
-      }
-
-      mangaCrud.updateCoverArt(manga, data: data)
-
-      _ = moc.saveIfNeeded()
-
-      return UIImage(data: data)
-    } catch {
-      print("MangaCoverDatasource -> Error during request \(error)")
-    }
-
-    return nil
+  ) async -> Data? {
+    return await restRequester.makeGetRequest(
+      url: "https://uploads.mangadex.org/covers/\(mangaId)/\(coverFileName).256.jpg"
+    )
   }
 
 }
