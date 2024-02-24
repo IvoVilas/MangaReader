@@ -188,11 +188,9 @@ final class MangaChapterDatasource {
       offset += limit
 
       results.append(contentsOf: result)
-
-      Task { @MainActor [results] in
-        self.chapters.value = results.sorted(by: MangaChapterDatasource.sortByNumber)
-      }
     }
+
+    self.chapters.value = results.sorted(by: MangaChapterDatasource.sortByNumber)
 
     return results
   }

@@ -51,9 +51,7 @@ struct MangaSearchView: View {
             VStack(alignment: .leading, spacing: 0) {
               ForEach(viewModel.results) { manga in
                 NavigationLink {
-                  MangaDetailsView(
-                    viewModel: viewModel.buildMangaDetailsViewModel(manga)
-                  )
+                  makeDetailsView(manga.id)
                 } label: {
                   makeResultView(manga: manga)
                 }
@@ -82,6 +80,19 @@ struct MangaSearchView: View {
         .padding(8)
         .multilineTextAlignment(.leading)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+  }
+
+  @ViewBuilder
+  private func makeDetailsView(
+    _ id: String
+  ) -> some View {
+    if let viewModel = viewModel.viewModels[id] {
+      MangaDetailsView(viewModel: viewModel)
+    }
+
+    EmptyView().onAppear {
+      print("MangaSearchView Error -> View model not found for \(id)")
     }
   }
 

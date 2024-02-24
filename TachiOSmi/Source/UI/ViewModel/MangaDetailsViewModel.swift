@@ -44,7 +44,7 @@ final class MangaDetailsViewModel: ObservableObject {
       .receive(on: DispatchQueue.main)
       .sink { [weak self] state in
         switch state {
-        case .loading:
+        case .loading, .starting:
           self?.isLoading = true
 
         default:
