@@ -11,6 +11,8 @@ struct MangaDetailsView: View {
 
   @ObservedObject var viewModel: MangaDetailsViewModel
 
+  @State private var showAlert = false
+
   var body: some View {
     ScrollView {
       VStack(alignment: .leading) {
@@ -61,6 +63,19 @@ struct MangaDetailsView: View {
     }
     .refreshable { viewModel.forceRefresh() }
     .task { await viewModel.setupData() }
+    .onReceive(viewModel.$error) { error in
+      if error != nil {
+        showAlert.toggle()
+      }
+    }
+    .alert(
+      "Error",
+      isPresented: $showAlert,
+      presenting: viewModel.error,
+      actions: { _ in }
+    ) { error in
+      Text(error.localizedDescription)
+    }
   }
 
   @ViewBuilder

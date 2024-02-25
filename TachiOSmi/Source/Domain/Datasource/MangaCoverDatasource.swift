@@ -48,7 +48,7 @@ final class MangaCoverDatasource {
   }
 
   func setupInitialValue() async {
-    guard let manga = mangaCrud.getManga(mangaId, moc: viewMoc) else {
+    guard let manga = try? mangaCrud.getManga(mangaId, moc: viewMoc) else {
       print("MangaCoverDatasource -> Manga not found \(mangaId)")
 
       return
@@ -86,7 +86,7 @@ final class MangaCoverDatasource {
     image.value = UIImage(data: result)
 
     await PersistenceController.shared.container.performBackgroundTask { moc in
-      guard let manga = self.mangaCrud.getManga(self.mangaId, moc: moc) else {
+      guard let manga = try? self.mangaCrud.getManga(self.mangaId, moc: moc) else {
         print("MangaCoverDatasource Error -> Manga not found \(self.mangaId)")
 
         return
@@ -101,7 +101,7 @@ final class MangaCoverDatasource {
   }
 
   private func makeMangaIndexRequest() async -> String? {
-    let json: [String: Any] = await httpClient.makeGetRequest(
+    let json = try! await httpClient.makeJsonGetRequest(
       url: "https://api.mangadex.org/manga/\(mangaId)",
       parameters: ["includes[]": "cover_art"]
     )
@@ -128,7 +128,7 @@ final class MangaCoverDatasource {
   private func makeCoverRequest(
     coverFileName: String
   ) async -> Data? {
-    return await httpClient.makeGetRequest(
+    return try? await httpClient.makeDataGetRequest(
       url: "https://uploads.mangadex.org/covers/\(mangaId)/\(coverFileName).256.jpg"
     )
   }

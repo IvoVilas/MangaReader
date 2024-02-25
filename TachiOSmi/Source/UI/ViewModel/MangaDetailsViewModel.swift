@@ -19,6 +19,7 @@ final class MangaDetailsViewModel: ObservableObject {
   @Published var chapters: [ChapterModel]
   @Published var isLoading: Bool
   @Published var isImageLoading: Bool
+  @Published var error: DatasourceError?
 
   private var observers = Set<AnyCancellable>()
 
@@ -38,6 +39,11 @@ final class MangaDetailsViewModel: ObservableObject {
     chaptersDatasource.chaptersPublisher
       .receive(on: DispatchQueue.main)
       .sink { [weak self] in self?.chapters = $0 }
+      .store(in: &observers)
+
+    chaptersDatasource.errorPublisher
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in self?.error = $0 }
       .store(in: &observers)
 
     chaptersDatasource.statePublisher

@@ -11,5 +11,4 @@ enum DatasourceState {
   case starting
   case loading
   case normal
-  case cancelled
 }

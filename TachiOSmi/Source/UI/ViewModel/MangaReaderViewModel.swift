@@ -43,10 +43,14 @@ final class MangaReaderViewModel: ObservableObject {
     pages = []
   }
 
+  @MainActor
   func makePagesRequest() async {
     print("MangaReaderViewModel -> Starting chapter download")
+    pages = []
 
-    let json: [String : Any] = await httpClient.makeGetRequest(url: "https://api.mangadex.org/at-home/server/\(chapterId)")
+    let json = try! await httpClient.makeJsonGetRequest(
+      url: "https://api.mangadex.org/at-home/server/\(chapterId)"
+    )
 
     guard
       let baseUrl = json["baseUrl"] as? String,
@@ -55,7 +59,7 @@ final class MangaReaderViewModel: ObservableObject {
       let data = chapterJson["data"] as? [String]
     else {
       print("MangaReaderViewModel Error -> Error parsing response")
-      
+
       return
     }
 
@@ -64,14 +68,12 @@ final class MangaReaderViewModel: ObservableObject {
       print("Pages not found")
     }
 
-    Task { @MainActor in
-      pages = data.enumerated().map { index, data in
-        if let url = URL(string: "\(baseUrl)/data/\(hash)/\(data)") {
-          return .remote(url)
-        }
-
-        return .notFound(index)
+    pages = data.enumerated().map { index, data in
+      if let url = URL(string: "\(baseUrl)/data/\(hash)/\(data)") {
+        return .remote(url)
       }
+
+      return .notFound(index)
     }
 
     print("MangaReaderViewModel -> Ending chapter download")

@@ -15,6 +15,7 @@ final class MangaSearchViewModel: ObservableObject {
   @Published var results: [MangaModel]
   @Published var input: String
   @Published var isLoading: Bool
+  @Published var error: DatasourceError?
 
   private let datasource: MangaSearchDatasource
   private let moc: NSManagedObjectContext
@@ -31,10 +32,16 @@ final class MangaSearchViewModel: ObservableObject {
     results   = []
     input     = ""
     isLoading = false
+    error     = nil
 
     datasource.mangasPublisher
       .receive(on: DispatchQueue.main)
       .sink { [weak self] in self?.results = $0 }
+      .store(in: &observers)
+
+    datasource.errorPublisher
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in self?.error = $0 }
       .store(in: &observers)
 
     datasource.statePublisher
@@ -53,7 +60,7 @@ final class MangaSearchViewModel: ObservableObject {
 
   func doSearch() {
     Task {
-      await self.datasource.refresh(self.input)
+      await datasource.refresh(input)
     }
   }
 

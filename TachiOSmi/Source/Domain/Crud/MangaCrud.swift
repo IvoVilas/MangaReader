@@ -16,7 +16,7 @@ extension MangaCrud {
   func getManga(
     _ id: String,
     moc: NSManagedObjectContext
-  ) -> MangaMO? {
+  ) throws -> MangaMO? {
     let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Manga")
 
     fetchRequest.predicate  = NSPredicate(format: "id == %@", id)
@@ -27,58 +27,48 @@ extension MangaCrud {
 
       return results?.first
     } catch {
-      print("MangaCrud Error -> Error during db request \(error)")
+      throw CrudError.requestError(error)
     }
-
-    return nil
   }
 
   func getAllMangas(
     moc: NSManagedObjectContext
-  ) -> [MangaMO] {
+  ) throws -> [MangaMO] {
     let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Manga")
 
     do {
       guard let results = try moc.fetch(fetchRequest) as? [MangaMO] else {
-        print("MangaCrud Error -> Error during db request")
-
-        return []
+        throw CrudError.wrongRequestType
       }
 
       return results
     } catch {
-      print("MangaCrud Error -> Error during db request \(error)")
+      throw CrudError.requestError(error)
     }
-
-    return []
   }
 
   func getAllMangasWithChapters(
     moc: NSManagedObjectContext
-  ) -> [MangaMO] {
+  ) throws -> [MangaMO] {
     let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Manga")
 
     fetchRequest.predicate = NSPredicate(format: "%K.@count > 0", #keyPath(MangaMO.chapters))
 
     do {
       guard let results = try moc.fetch(fetchRequest) as? [MangaMO] else {
-        print("MangaCrud Error -> Error during db request")
-
-        return []
+        throw CrudError.wrongRequestType
       }
 
       return results
     } catch {
-      print("MangaCrud Error -> Error during db request \(error)")
+      throw CrudError.requestError(error)
     }
-
-    return []
   }
 
   func getAllMangasIdsWithoutCovers(
     fromIds ids: [String] = [],
     moc: NSManagedObjectContext
-  ) -> [String] {
+  ) throws -> [String] {
     let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Manga")
     let predicate: NSPredicate
 
@@ -93,24 +83,20 @@ extension MangaCrud {
 
     do {
       guard let results = try moc.fetch(fetchRequest) as? [MangaMO] else {
-        print("MangaCrud Error -> Error during db request")
-
-        return []
+        throw CrudError.wrongRequestType
       }
 
       return results.map { $0.id }
     } catch {
-      print("MangaCrud Error -> Error during db request \(error)")
+      throw CrudError.requestError(error)
     }
-
-    return []
   }
 
   func getMangaCover(
     _ id: String,
     moc: NSManagedObjectContext
-  ) -> Data? {
-    guard let manga = getManga(id, moc: moc) else {
+  ) throws -> Data? {
+    guard let manga = try getManga(id, moc: moc) else {
       return nil
     }
 
@@ -128,10 +114,8 @@ extension MangaCrud {
     about: String?,
     status: MangaStatus,
     moc: NSManagedObjectContext
-  ) -> MangaMO? {
-    var manga: MangaMO?
-
-    if let local = getManga(id, moc: moc) {
+  ) throws -> MangaMO {
+    if let local = try getManga(id, moc: moc) {
       updateManga(
         local,
         title: title,
@@ -140,22 +124,16 @@ extension MangaCrud {
         moc: moc
       )
 
-      manga = local
-    } else {
-      manga = createEntity(
-        id: id,
-        title: title,
-        about: about,
-        status: status,
-        moc: moc
-      )
+      return local
     }
 
-    if moc.saveIfNeeded(rollbackOnError: true).isSuccess {
-      return manga
-    }
-
-    return nil
+    return try createEntity(
+      id: id,
+      title: title,
+      about: about,
+      status: status,
+      moc: moc
+    )
   }
 
 }
@@ -169,8 +147,8 @@ extension MangaCrud {
     about: String?,
     status: MangaStatus,
     moc: NSManagedObjectContext
-  ) -> MangaMO? {
-    let manga = MangaMO(
+  ) throws -> MangaMO {
+    guard let manga = MangaMO(
       id: id,
       title: title,
       about: about,
@@ -178,13 +156,9 @@ extension MangaCrud {
       lastUpdateAt: nil,
       coverArt: nil,
       moc: moc
-    )
+    ) else { throw CrudError.failedEntityCreation }
 
-    if moc.saveIfNeeded(rollbackOnError: true).isSuccess {
-      return manga
-    }
-
-    return nil
+    return manga
   }
 
 }
@@ -222,11 +196,9 @@ extension MangaCrud {
     _ id: String,
     date: Date?,
     moc: NSManagedObjectContext
-  ) {
-    guard let manga = getManga(id, moc: moc) else {
-      print("MangaCrud Error -> Manga not found \(id)")
-
-      return
+  ) throws {
+    guard let manga = try getManga(id, moc: moc) else {
+      throw CrudError.mangaNotFound(id: id)
     }
 
     manga.lastUpdateAt = date

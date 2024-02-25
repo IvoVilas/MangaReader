@@ -9,19 +9,15 @@ import Foundation
 
 final class HttpClient {
 
-  func makeGetRequest(
+  func makeJsonGetRequest(
     url: String,
     parameters: [String: Any] = [:]
-  ) async -> [String: Any] {
+  ) async throws -> [String: Any] {
     var urlParameters = URLComponents(string: url)
 
     urlParameters?.queryItems = parameters.map { URLQueryItem(name: $0.key, value: String(describing: $0.value)) }
 
-    guard let url = urlParameters?.url else {
-      print ("HttpClient -> Error creating url")
-
-      return [:]
-    }
+    guard let url = urlParameters?.url else { throw HttpError.invalidUrl }
 
     var request = URLRequest(url: url)
     request.httpMethod = "GET"
@@ -30,41 +26,34 @@ final class HttpClient {
     do {
       let (data, response) = try await URLSession.shared.data(for: request)
 
-      guard let response = response as? HTTPURLResponse else {
-        print("HttpClient -> Response parse error")
-
-        return [:]
-      }
-
-      guard response.statusCode == 200 else {
-        print("HttpClient -> Received response with code \(response.statusCode)")
-
-        return [:]
+      guard
+        let response = response as? HTTPURLResponse,
+        response.statusCode == 200
+      else {
+        throw HttpError.responseNotOk
       }
 
       guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-        print("HttpClient -> Error creating response json")
-
-        return [:]
+        throw HttpError.invalidResponse
       }
 
       return json
+    } catch let error as URLError {
+      if error.code == URLError.cancelled {
+        throw CancellationError()
+      } else {
+        throw HttpError.requestError(error)
+      }
     } catch {
-      print("HttpClient -> Error during request \(error)")
+      throw HttpError.requestError(error)
     }
-
-    return [:]
   }
 
-  func makeGetRequest(
+  func makeDataGetRequest(
     url: String,
     parameters: [String: Any] = [:]
-  ) async -> Data? {
-    guard let url = URL(string: url) else {
-      print ("HttpClient -> Error creating url")
-
-      return nil
-    }
+  ) async throws -> Data? {
+    guard let url = URL(string: url) else { throw HttpError.invalidUrl }
 
     var request = URLRequest(url: url)
     request.httpMethod = "GET"
@@ -73,24 +62,23 @@ final class HttpClient {
     do {
       let (data, response) = try await URLSession.shared.data(for: request)
 
-      guard let response = response as? HTTPURLResponse else {
-        print("HttpClient -> Response parse error")
-
-        return nil
-      }
-
-      guard response.statusCode == 200 else {
-        print("HttpClient -> Received response with code \(response.statusCode)")
-
-        return nil
+      guard
+        let response = response as? HTTPURLResponse,
+        response.statusCode == 200
+      else {
+        throw HttpError.responseNotOk
       }
 
       return data
+    } catch let error as URLError {
+      if error.code == URLError.cancelled {
+        throw CancellationError()
+      } else {
+        throw HttpError.requestError(error)
+      }
     } catch {
-      print("HttpClient -> Error during request \(error)")
+      throw HttpError.requestError(error)
     }
-
-    return nil
   }
 
 }

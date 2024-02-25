@@ -13,6 +13,7 @@ struct MangaSearchView: View {
   @ObservedObject var viewModel: MangaSearchViewModel
 
   @FocusState private var inputFieldIsFocused: Bool
+  @State private var showAlert = false
 
   var body: some View {
     NavigationStack {
@@ -60,6 +61,19 @@ struct MangaSearchView: View {
           }
           .navigationDestination(for: MangaModel.self) { manga in
             MangaDetailsView(viewModel: viewModel.buildMangaDetailsViewModel(manga))
+          }
+          .onReceive(viewModel.$error) { error in
+            if error != nil {
+              showAlert.toggle()
+            }
+          }
+          .alert(
+            "Error",
+            isPresented: $showAlert,
+            presenting: viewModel.error,
+            actions: { _ in }
+          ) { error in
+            Text(error.localizedDescription)
           }
         }
       }

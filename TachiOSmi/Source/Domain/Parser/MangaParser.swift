@@ -34,15 +34,15 @@ final class MangaParser {
 
   func parseMangaSearchResponse(
     _ data: [[String: Any]]
-  ) -> [MangaParsedData] {
-    return data.compactMap {
-      parseMangaSearchResponse($0)
+  ) throws -> [MangaParsedData] {
+    return try data.compactMap {
+      try parseMangaSearchResponse($0)
     }
   }
 
   func parseMangaSearchResponse(
     _ data: [String: Any]
-  ) -> MangaParsedData? {
+  ) throws -> MangaParsedData? {
     var id: String?
     var title: String?
     var description: String?
@@ -55,7 +55,7 @@ final class MangaParser {
     // Get title, description and status
     if let attributesJson = data["attributes"] as? [String: Any] {
       if let titlesJson = attributesJson["title"] as? [String: Any] {
-        title = titlesJson["en"] as? String
+        title = getBestTitle(from: titlesJson)
       }
 
       if let descriptionsJson = attributesJson["description"] as? [String: Any] {
@@ -86,9 +86,12 @@ final class MangaParser {
       let status,
       let coverFileName
     else {
-      print("MangaParser Error -> Manga parameter was not parsed")
+      if id == nil { throw ParserError.parameterNotFound("id") }
+      if title == nil { throw ParserError.parameterNotFound("title") }
+      if status == nil { throw ParserError.parameterNotFound("status") }
+      if coverFileName == nil { throw ParserError.parameterNotFound("coverFileName") }
 
-      return nil
+      throw ParserError.parsingError
     }
 
     return MangaParsedData(
@@ -98,6 +101,30 @@ final class MangaParser {
       status: status,
       coverFileName: coverFileName
     )
+  }
+
+}
+
+extension MangaParser {
+
+  private func getBestTitle(
+    from titles: [String: Any]
+  ) -> String? {
+    let priorities = ["en", "ja-ro", "ko-ro", "zh-ro"]
+
+    for language in priorities {
+      if let title = titles[language] as? String {
+        return title
+      }
+    }
+
+    for value in titles.values {
+      if let title = value as? String {
+        return title
+      }
+    }
+
+    return nil
   }
 
 }

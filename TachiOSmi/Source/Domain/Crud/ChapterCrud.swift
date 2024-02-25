@@ -61,9 +61,7 @@ final class ChapterCrud {
     publishAt: Date,
     manga: MangaMO,
     moc: NSManagedObjectContext
-  ) -> ChapterMO? {
-    var chapter: ChapterMO?
-
+  ) throws -> ChapterMO {
     if let local = getChapter(withId: id, moc: moc) {
       updateChapter(
         local,
@@ -73,9 +71,9 @@ final class ChapterCrud {
         publishAt: publishAt
       )
 
-      chapter = local
+      return local
     } else {
-      chapter = createEntity(
+      return try createEntity(
         id: id,
         chapterNumber: chapterNumber,
         title: title,
@@ -85,12 +83,6 @@ final class ChapterCrud {
         moc: moc
       )
     }
-
-    if moc.saveIfNeeded(rollbackOnError: true).isSuccess {
-      return chapter
-    }
-
-    return nil
   }
 
   func createEntity(
@@ -101,8 +93,8 @@ final class ChapterCrud {
     publishAt: Date,
     manga: MangaMO,
     moc: NSManagedObjectContext
-  ) -> ChapterMO? {
-    return ChapterMO(
+  ) throws -> ChapterMO {
+    guard let chapter = ChapterMO(
       id: id,
       chapter: chapterNumber,
       title: title,
@@ -110,7 +102,9 @@ final class ChapterCrud {
       publishAt: publishAt,
       manga: manga,
       moc: moc
-    )
+    ) else { throw CrudError.failedEntityCreation }
+
+    return chapter
   }
 
   func updateChapter(
