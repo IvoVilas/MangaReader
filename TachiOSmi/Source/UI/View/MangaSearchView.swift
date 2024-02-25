@@ -17,7 +17,7 @@ struct MangaSearchView: View {
 
   var body: some View {
     NavigationStack {
-      VStack() {
+      VStack {
         Text("Manga Search")
           .font(.largeTitle)
 
@@ -48,17 +48,19 @@ struct MangaSearchView: View {
             .progressViewStyle(.circular)
             .opacity(viewModel.isLoading ? 1 : 0)
 
-          ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-              ForEach(viewModel.results) { manga in
-                NavigationLink(value: manga) {
-                  makeResultView(manga: manga)
+          List(viewModel.results) { result in
+            NavigationLink(value: result) {
+              makeResultView(manga: result)
+                .onAppear {
+                  if result.id == viewModel.results.last?.id {
+                    viewModel.loadNext()
+                  }
                 }
-              }
             }
-            .padding(.leading, 24)
-            .padding(.trailing, 24)
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
           }
+          .scrollContentBackground(.hidden)
           .navigationDestination(for: MangaModel.self) { manga in
             MangaDetailsView(viewModel: viewModel.buildMangaDetailsViewModel(manga))
           }

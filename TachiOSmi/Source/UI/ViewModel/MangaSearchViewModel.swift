@@ -60,7 +60,13 @@ final class MangaSearchViewModel: ObservableObject {
 
   func doSearch() {
     Task {
-      await datasource.refresh(input)
+      await datasource.searchManga(input)
+    }
+  }
+
+  func loadNext() {
+    Task {
+      await datasource.loadNextPage(input)
     }
   }
 

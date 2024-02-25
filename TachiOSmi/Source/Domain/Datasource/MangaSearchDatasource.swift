@@ -21,6 +21,8 @@ final class MangaSearchDatasource {
   private let state: CurrentValueSubject<DatasourceState, Never>
   private let error: CurrentValueSubject<DatasourceError?, Never>
 
+  private var currentPage: Int? = nil
+
   var mangasPublisher: AnyPublisher<[MangaModel], Never> {
     mangas.eraseToAnyPublisher()
   }
@@ -71,23 +73,7 @@ final class MangaSearchDatasource {
     state.value = .normal
   }
 
-  /**
-   Refreshes the datasource
-
-   - Parameters:
-   - searchValue: The filter applied when searching
-
-   ## You should know
-   - This method is meant to be called on a background thread for increased performance.
-   - It is not garanted that the published changes are stored in the database.
-
-   ## How it works:
-   1. We make each api page request and append it's result to the publisher
-   2. For each manga we receive we will try to fetch de cover from the database and if not present, request it from the ap
-   3. We will then update the publisher value with the covers
-   4. At last, we update the database using the values currently published
-   */
-  func refresh(
+  func searchManga(
     _ searchValue: String
   ) async {
     if let fetchTask {
@@ -99,14 +85,28 @@ final class MangaSearchDatasource {
     state.value  = .loading
     mangas.value = []
     error.value  = nil
+    currentPage  = 0
 
     fetchTask = Task { [weak self] in
       guard let self else { return }
+      print("MangaSearchDatasource -> Search task started")
 
       do {
-        try await makeRefresh(searchValue)
+        let results = try await fetchSearchResults(searchValue, page: 0)
+
+        self.mangas.value = results
+
+        try Task.checkCancellation()
+        try await PersistenceController.shared.container.performBackgroundTask { moc in
+          try self.updateDatabase(
+            with: results,
+            moc: moc
+          )
+        }
+
+        print("MangaSearchDatasource -> Search task ended")
       } catch is CancellationError {
-        print("MangaSearchDatasource -> Fetch task cancelled")
+        print("MangaSearchDatasource -> Search task cancelled")
       } catch let error as ParserError {
         self.error.value = .errorParsingResponse(error.localizedDescription)
       } catch let error as HttpError {
@@ -122,48 +122,76 @@ final class MangaSearchDatasource {
     }
   }
 
-  private func makeRefresh(
+  func loadNextPage(
     _ searchValue: String
-  ) async throws {
-    print("MangaSearchDatasource -> Fetch task started")
+  ) async {
+    fetchTask = Task { [weak self] in
+      guard let self, var currentPage else {
+        print("MangaSearchDatasource -> There are no more results available")
 
-    var results    = [MangaModel]()
-    let limit      = 10
-    var offset     = 0
-    let max        = searchValue == "" ? 30 : 100
+        return
+      }
 
-    // TODO: Implement user pagination
-    // TODO: TaskGroup
-    while true && offset < max {
-      try Task.checkCancellation()
+      error.value = nil
+      currentPage += 1
 
-      let result = try await makeSearchRequest(
-          searchValue,
-          limit: limit,
-          offset: offset
-        )
+      print("MangaSearchDatasource -> Loading page \(currentPage)")
 
-      if result.isEmpty { break }
+      do {
+        let results = try await fetchSearchResults(searchValue, page: currentPage)
 
-      offset += limit
+        guard !results.isEmpty else {
+          print("MangaSearchDatasource -> There are no more results available")
 
-      results.append(contentsOf: result)
+          self.currentPage = nil
 
-      mangas.value = results
+          return
+        }
+
+        self.currentPage = currentPage
+        mangas.value.append(contentsOf: results)
+
+        try Task.checkCancellation()
+        try await PersistenceController.shared.container.performBackgroundTask { moc in
+          try self.updateDatabase(
+            with: results,
+            moc: moc
+          )
+        }
+
+        print("MangaSearchDatasource -> Finished loading page \(currentPage)")
+      } catch is CancellationError {
+        print("MangaSearchDatasource -> Loading page \(currentPage) task cancelled")
+      } catch let error as ParserError {
+        self.error.value = .errorParsingResponse(error.localizedDescription)
+      } catch let error as HttpError {
+        self.error.value = .networkError(error.localizedDescription)
+      } catch let error as CrudError {
+        self.error.value = .databaseError(error.localizedDescription)
+      } catch {
+        self.error.value = .unexpectedError(error.localizedDescription)
+      }
+
+      self.fetchTask = nil
     }
+  }
 
-    state.value = .normal
-
+  private func fetchSearchResults(
+    _ searchValue: String,
+    page: Int
+  ) async throws -> [MangaModel] {
     try Task.checkCancellation()
 
-    try await PersistenceController.shared.container.performBackgroundTask { moc in
-      try self.updateDatabase(
-        with: results,
-        moc: moc
-      )
-    }
+    let limit  = 10
+    let offset = page * limit
 
-    print("MangaSearchDatasource -> Fetch task ended")
+    let results = try await makeSearchRequest(
+      searchValue,
+      limit: limit,
+      offset: offset
+    )
+
+    return results
   }
 
   private func updateResult(
