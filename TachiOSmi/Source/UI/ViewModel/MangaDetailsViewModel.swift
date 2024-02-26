@@ -43,29 +43,6 @@ final class MangaDetailsViewModel: ObservableObject {
     isLoading      = false
     isImageLoading = false
 
-    chaptersDatasource.chaptersPublisher
-      .receive(on: DispatchQueue.main)
-      .sink { [weak self] in self?.chapters = $0 }
-      .store(in: &observers)
-
-    chaptersDatasource.errorPublisher
-      .receive(on: DispatchQueue.main)
-      .sink { [weak self] in self?.error = $0 }
-      .store(in: &observers)
-
-    chaptersDatasource.statePublisher
-      .receive(on: DispatchQueue.main)
-      .sink { [weak self] state in
-        switch state {
-        case .loading, .starting:
-          self?.isLoading = true
-
-        default:
-          self?.isLoading = false
-        }
-      }
-      .store(in: &observers)
-
     detailsDatasource.coverPublisher
       .receive(on: DispatchQueue.main)
       .sink { [weak self] in self?.cover = $0 }
@@ -96,18 +73,33 @@ final class MangaDetailsViewModel: ObservableObject {
       .sink { [weak self] in self?.tags = $0 }
       .store(in: &observers)
 
-    detailsDatasource.statePublisher
+    chaptersDatasource.chaptersPublisher
       .receive(on: DispatchQueue.main)
-      .sink { [weak self] state in
-        switch state {
-        case .loading:
-          self?.isLoading = true
-
-        default:
-          self?.isLoading = false
-        }
-      }
+      .sink { [weak self] in self?.chapters = $0 }
       .store(in: &observers)
+
+    Publishers.CombineLatest(
+      detailsDatasource.statePublisher,
+      chaptersDatasource.statePublisher
+    )
+    .receive(on: DispatchQueue.main)
+    .sink { [weak self] in self?.isLoading = $0.0.isLoading || $0.1.isLoading }
+    .store(in: &observers)
+
+    Publishers.CombineLatest(
+      detailsDatasource.errorPublisher,
+      chaptersDatasource.errorPublisher
+    )
+    .receive(on: DispatchQueue.main)
+    .map {
+      if let error = $0 { return error }
+
+      if let error = $1 { return error }
+
+      return nil
+    }
+    .sink { [weak self] in self?.error = $0 }
+    .store(in: &observers)
   }
 
 }
@@ -115,24 +107,14 @@ final class MangaDetailsViewModel: ObservableObject {
 extension MangaDetailsViewModel {
 
   func setupData() async {
-    switch chaptersDatasource.stateValue {
-    case .starting:
-      await withTaskGroup(of: Void.self) { taskGroup in
-        taskGroup.addTask { await self.chaptersDatasource.refresh() }
-        taskGroup.addTask { await self.detailsDatasource.setupData() }
-      }
-
-    default:
-      break
-    }
+    await detailsDatasource.setupData()
+    await chaptersDatasource.refresh()
   }
 
   func forceRefresh() {
     Task {
-      await withTaskGroup(of: Void.self) { taskGroup in
-        taskGroup.addTask { await self.chaptersDatasource.refresh(isForceRefresh: true) }
-        taskGroup.addTask { await self.detailsDatasource.refresh() }
-      }
+      await detailsDatasource.refresh()
+      await chaptersDatasource.refresh()
     }
   }
 

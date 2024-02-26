@@ -11,11 +11,11 @@ final class HttpClient {
 
   func makeJsonGetRequest(
     url: String,
-    parameters: [String: Any] = [:]
+    parameters: [(String, Any)] = []
   ) async throws -> [String: Any] {
     var urlParameters = URLComponents(string: url)
 
-    urlParameters?.queryItems = parameters.map { URLQueryItem(name: $0.key, value: String(describing: $0.value)) }
+    urlParameters?.queryItems = parameters.map { URLQueryItem(name: $0.0, value: String(describing: $0.1)) }
 
     guard let url = urlParameters?.url else { throw HttpError.invalidUrl }
 

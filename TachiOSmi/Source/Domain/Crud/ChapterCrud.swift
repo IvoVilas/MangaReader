@@ -11,9 +11,9 @@ import CoreData
 final class ChapterCrud {
 
   func getChapter(
-    withId id: String,
+    _ id: String,
     moc: NSManagedObjectContext
-  ) -> ChapterMO? {
+  ) throws -> ChapterMO? {
     let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Chapter")
 
     fetchRequest.predicate  = NSPredicate(format: "id == %@", id)
@@ -24,33 +24,27 @@ final class ChapterCrud {
 
       return results?.first
     } catch {
-      print("ChapterCrud Error -> Error during db request \(error)")
+      throw CrudError.requestError(error)
     }
-
-    return nil
   }
 
   func getAllChapters(
     mangaId: String,
     moc: NSManagedObjectContext
-  ) -> [ChapterMO] {
+  ) throws -> [ChapterMO] {
     let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Chapter")
 
     fetchRequest.predicate = NSPredicate(format: "manga.id == %@", mangaId)
 
     do {
       guard let results = try moc.fetch(fetchRequest) as? [ChapterMO] else {
-        print("ChapterCrud Error -> Error during db request")
-
-        return []
+        throw CrudError.wrongRequestType
       }
 
       return results
     } catch {
-      print("ChapterCrud Error -> Error during db request \(error)")
+      throw CrudError.requestError(error)
     }
-
-    return []
   }
 
   func createOrUpdateChapter(
@@ -62,7 +56,7 @@ final class ChapterCrud {
     manga: MangaMO,
     moc: NSManagedObjectContext
   ) throws -> ChapterMO {
-    if let local = getChapter(withId: id, moc: moc) {
+    if let local = try getChapter(id, moc: moc) {
       updateChapter(
         local,
         chapterNumber: chapterNumber,

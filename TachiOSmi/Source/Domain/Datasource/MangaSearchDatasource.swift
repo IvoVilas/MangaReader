@@ -228,6 +228,7 @@ final class MangaSearchDatasource {
         title: manga.title,
         about: manga.description,
         status: manga.status,
+        cover: manga.cover?.pngData(),
         moc: moc
       )
     }
@@ -250,12 +251,13 @@ extension MangaSearchDatasource {
     let data: [String: Any] = try await httpClient.makeJsonGetRequest(
       url: "https://api.mangadex.org/manga",
       parameters: [
-        "title": searchValue,
-        "order[followedCount]": "desc",
-        "order[relevance]": "desc",
-        "includes[]": "cover_art",
-        "limit": limit,
-        "offset": offset
+        ("title", searchValue),
+        ("order[followedCount]", "desc"),
+        ("order[relevance]", "desc"),
+        ("includes[]", "cover_art"),
+        ("includes[]", "author"),
+        ("limit", limit),
+        ("offset", offset)
       ]
     )
 

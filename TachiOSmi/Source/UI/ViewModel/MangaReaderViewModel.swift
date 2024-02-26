@@ -63,17 +63,17 @@ final class MangaReaderViewModel: ObservableObject {
       return
     }
 
-    if pages.isEmpty {
-      /// Handle error better
-      print("Pages not found")
-    }
-
     pages = data.enumerated().map { index, data in
       if let url = URL(string: "\(baseUrl)/data/\(hash)/\(data)") {
         return .remote(url)
       }
 
       return .notFound(index)
+    }
+
+    if pages.isEmpty {
+      /// Handle error better
+      print("Pages not found")
     }
 
     print("MangaReaderViewModel -> Ending chapter download")

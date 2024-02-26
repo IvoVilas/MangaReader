@@ -12,10 +12,10 @@ struct AuthorModel: Identifiable, Hashable {
   let id: String
   let name: String
 
-  static func from(_ tag: AuthorMO) -> AuthorModel {
+  static func from(_ author: AuthorMO) -> AuthorModel {
     return AuthorModel(
-      id: tag.id,
-      name: tag.name
+      id: author.id,
+      name: author.name
     )
   }
 

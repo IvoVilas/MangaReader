@@ -44,8 +44,14 @@ struct MangaSearchView: View {
         .padding(16)
       }
       .scrollIndicators(.hidden)
-      .task { viewModel.doSearch() }
       .refreshable { viewModel.doSearch() }
+      .onAppear {
+        Task {
+          if viewModel.results.isEmpty {
+            viewModel.doSearch()
+          }
+        }
+      }
       .navigationDestination(for: MangaModel.self) { manga in
         MangaDetailsView(viewModel: viewModel.buildMangaDetailsViewModel(manga))
       }
@@ -140,17 +146,6 @@ struct MangaSearchHeaderView: View {
   MangaSearchView(
     viewModel: MangaSearchView.buildPreviewViewModel()
   )
-}
-
-#Preview {
-  VStack {
-    MangaSearchHeaderView(
-      viewModel: MangaSearchView.buildPreviewViewModel()
-    )
-    .background(.white)
-  }
-  .frame(maxHeight: .infinity)
-  .background(.gray)
 }
 
 extension MangaSearchView {

@@ -14,6 +14,7 @@ struct ChapterModel: Identifiable, Hashable {
   let number: Double?
   let numberOfPages: Int
   let publishAt: Date
+  let isRead: Bool = false
 
   var description: String {
     let description: String

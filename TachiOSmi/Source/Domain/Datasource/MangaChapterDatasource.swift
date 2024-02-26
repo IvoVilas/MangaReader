@@ -89,11 +89,12 @@ final class MangaChapterDatasource {
     error.value    = nil
 
     fetchTask = Task { [weak self] in
+      print("MangaChapterDatasource -> Started chapter fetch task")
       guard let self else { return }
 
-      self.chapters.value = await self.fetchLocalChapters()
-
       do {
+        self.chapters.value = try await self.fetchLocalChapters()
+
         if isForceRefresh {
           try await self.chapterRefresh()
         } else {
@@ -113,11 +114,13 @@ final class MangaChapterDatasource {
 
       self.state.value = .normal
       self.fetchTask   = nil
+
+      print("MangaChapterDatasource -> Ended chapter fetch task")
     }
   }
 
-  private func fetchLocalChapters() async -> [ChapterModel] {
-    return self.chapterCrud
+  private func fetchLocalChapters() async throws -> [ChapterModel] {
+    return try chapterCrud
       .getAllChapters(mangaId: mangaId, moc: viewMoc)
       .map { ChapterModel.from($0) }
       .sorted(by: MangaChapterDatasource.sortByNumber)
@@ -224,11 +227,11 @@ extension MangaChapterDatasource {
     let json = try await httpClient.makeJsonGetRequest(
       url: "https://api.mangadex.org/manga/\(mangaId)/feed",
       parameters: [
-        "translatedLanguage[]": "en",
-        "order[chapter]": "desc",
-        "order[createdAt]": "desc",
-        "limit": limit,
-        "offset": offset
+        ("translatedLanguage[]", "en"),
+        ("order[chapter]", "desc"),
+        ("order[createdAt]", "desc"),
+        ("limit", limit),
+        ("offset", offset)
       ]
     )
 

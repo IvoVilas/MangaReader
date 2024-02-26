@@ -8,7 +8,19 @@
 import Foundation
 
 enum DatasourceState {
+  
   case starting
   case loading
   case normal
+
+  var isLoading: Bool {
+    switch self {
+    case .loading, .starting:
+      return true
+
+    case .normal:
+      return false
+    }
+  }
+
 }

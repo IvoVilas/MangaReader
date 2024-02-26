@@ -113,6 +113,7 @@ extension MangaCrud {
     title: String,
     about: String?,
     status: MangaStatus,
+    cover: Data?,
     moc: NSManagedObjectContext
   ) throws -> MangaMO {
     if let local = try getManga(id, moc: moc) {
@@ -121,6 +122,7 @@ extension MangaCrud {
         title: title,
         about: about,
         status: status,
+        cover: cover,
         moc: moc
       )
 
@@ -132,6 +134,7 @@ extension MangaCrud {
       title: title,
       about: about,
       status: status,
+      cover: cover,
       moc: moc
     )
   }
@@ -146,6 +149,7 @@ extension MangaCrud {
     title: String,
     about: String?,
     status: MangaStatus,
+    cover: Data?,
     moc: NSManagedObjectContext
   ) throws -> MangaMO {
     guard let manga = MangaMO(
@@ -154,7 +158,7 @@ extension MangaCrud {
       about: about,
       statusId: status.id,
       lastUpdateAt: nil,
-      coverArt: nil,
+      coverArt: cover,
       moc: moc
     ) else { throw CrudError.failedEntityCreation }
 
@@ -176,6 +180,23 @@ extension MangaCrud {
     manga.title    = title
     manga.about    = about
     manga.statusId = status.id
+  }
+
+  func updateManga(
+    _ manga: MangaMO,
+    title: String,
+    about: String?,
+    status: MangaStatus,
+    cover: Data?,
+    moc: NSManagedObjectContext
+  ) {
+    manga.title    = title
+    manga.about    = about
+    manga.statusId = status.id
+
+    if let cover {
+      updateCoverArt(manga, data: cover)
+    }
   }
 
   func updateCoverArt(

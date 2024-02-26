@@ -17,6 +17,8 @@ final class MangaDetailsDatasource {
   private let httpClient: HttpClient
   private let mangaParser: MangaParser
   private let mangaCrud: MangaCrud
+  private let authorCrud: AuthorCrud
+  private let tagCrud: TagCrud
   private let viewMoc: NSManagedObjectContext
 
   private let cover: CurrentValueSubject<UIImage?, Never>
@@ -69,6 +71,8 @@ final class MangaDetailsDatasource {
     httpClient: HttpClient,
     mangaParser: MangaParser,
     mangaCrud: MangaCrud,
+    authorCrud: AuthorCrud,
+    tagCrud: TagCrud,
     viewMoc: NSManagedObjectContext = PersistenceController.shared.container.viewContext
   ) {
     mangaId = manga.id
@@ -76,6 +80,8 @@ final class MangaDetailsDatasource {
     self.httpClient  = httpClient
     self.mangaParser = mangaParser
     self.mangaCrud   = mangaCrud
+    self.authorCrud  = authorCrud
+    self.tagCrud     = tagCrud
     self.viewMoc     = viewMoc
 
     cover       = CurrentValueSubject(manga.cover)
@@ -90,21 +96,59 @@ final class MangaDetailsDatasource {
 
   func setupData() async {
     do {
+      state.value = .loading
+      print("MangaDetailsDatasource -> Start manga details fetch")
       if let manga = try mangaCrud.getManga(mangaId, moc: viewMoc) {
+        print("MangaDetailsDatasource -> Found local manga details")
         update(with: .from(manga))
+
+        state.value = .normal
 
         return
       }
 
-      state.value = .loading
+      print("MangaDetailsDatasource -> Will fetch manga details from remote")
 
       let parsedData = try await makeMangaIndexRequest()
 
       update(with: parsedData.convertToModel())
 
-      // TODO: Store on database
-      if let cover = try await getCover(fileName: parsedData.coverFileName) {
+      let cover = try await getCover(fileName: parsedData.coverFileName)
+
+      if let cover {
         self.cover.value = cover
+      }
+
+      let manga = try self.mangaCrud.createOrUpdateManga(
+        id: parsedData.id,
+        title: parsedData.title,
+        about: parsedData.description,
+        status: parsedData.status, 
+        cover: cover?.pngData(),
+        moc: viewMoc
+      )
+
+      // For now, we are only storing one author
+      if let author = parsedData.authors.first {
+        _ = try self.authorCrud.createOrUpdateAuthor(
+          id: author.id,
+          name: author.name,
+          manga: manga,
+          moc: viewMoc
+        )
+      }
+
+      for tag in parsedData.tags {
+        _ = try self.tagCrud.createOrUpdateTag(
+          id: tag.id,
+          title: tag.title,
+          manga: manga,
+          moc: viewMoc
+        )
+      }
+
+      if !viewMoc.saveIfNeeded(rollbackOnError: true).isSuccess {
+        throw CrudError.saveError
       }
     } catch let error as ParserError {
       print("MangaDetailsDatasource -> Error during parsing operation: \(error.localizedDescription)")
@@ -117,22 +161,55 @@ final class MangaDetailsDatasource {
     }
 
     state.value = .normal
+
+    print("MangaDetailsDatasource -> Ended manga details fetch")
   }
 
   func refresh() async {
     do {
+      print("MangaDetailsDatasource -> Start manga details fetch")
       state.value = .loading
 
       let parsedData = try await makeMangaIndexRequest()
 
       update(with: parsedData.convertToModel())
 
-      // TODO: Store on database
       let coverData = try await makeCoverRequest(fileName: parsedData.coverFileName)
 
       if let cover = UIImage(data: coverData) {
         self.cover.value = cover
       }
+
+      let manga = try self.mangaCrud.createOrUpdateManga(
+        id: parsedData.id,
+        title: parsedData.title,
+        about: parsedData.description,
+        status: parsedData.status,
+        cover: coverData,
+        moc: viewMoc
+      )
+
+      for author in manga.authors {
+        _ = try self.authorCrud.createOrUpdateAuthor(
+          id: author.id,
+          name: author.name,
+          manga: manga,
+          moc: viewMoc
+        )
+      }
+
+      for tag in manga.tags {
+        _ = try self.tagCrud.createOrUpdateTag(
+          id: tag.id,
+          title: tag.title,
+          manga: manga,
+          moc: viewMoc
+        )
+      }
+
+      if !viewMoc.saveIfNeeded(rollbackOnError: true).isSuccess {
+        throw CrudError.saveError
+      }
     } catch let error as ParserError {
       print("MangaDetailsDatasource -> Error during parsing operation: \(error.localizedDescription)")
     } catch let error as HttpError {
@@ -144,6 +221,7 @@ final class MangaDetailsDatasource {
     }
 
     state.value = .normal
+    print("MangaDetailsDatasource -> Ended manga details fetch")
   }
 
   private func update(
@@ -159,11 +237,14 @@ final class MangaDetailsDatasource {
 }
 
 extension MangaDetailsDatasource {
-  
+
   private func makeMangaIndexRequest() async throws -> MangaParser.MangaParsedData  {
     let json = try! await httpClient.makeJsonGetRequest(
       url: "https://api.mangadex.org/manga/\(mangaId)",
-      parameters: ["includes[]": "author"]
+      parameters: [
+        ("includes[]", "author"),
+        ("includes[]", "cover_art")
+      ]
     )
 
     guard let data = json["data"] as? [String: Any] else {

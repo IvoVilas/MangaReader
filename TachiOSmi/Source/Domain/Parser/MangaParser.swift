@@ -29,7 +29,7 @@ final class MangaParser {
         description: description,
         status: status,
         cover: cover,
-        tags: tags,
+        tags: tags.sorted { $0.title < $1.title },
         authors: authors
       )
     }
@@ -157,7 +157,7 @@ extension MangaParser {
         let id = relationshipJson["id"] as? String
 
         if let attributesJson = relationshipJson["attributes"] as? [String: Any] {
-          let name = attributesJson["fileName"] as? String
+          let name = attributesJson["name"] as? String
 
           guard
             let id,

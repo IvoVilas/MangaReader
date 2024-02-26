@@ -78,75 +78,23 @@ extension MangaSearchViewModel {
     _ manga: MangaModel
   ) -> MangaDetailsViewModel {
     return MangaDetailsViewModel(
-      chaptersDatasource: GlobalMangaChapterDatasource.getDatasourceFor(manga.id, moc: moc),
-      detailsDatasource: GlobalMangaDetailsDatasource.getDatasourceFor(manga, moc: moc)
+      chaptersDatasource: MangaChapterDatasource(
+        mangaId: manga.id,
+        httpClient: AppEnv.env.httpClient,
+        chapterParser: AppEnv.env.chapterParser,
+        mangaCrud: AppEnv.env.mangaCrud,
+        chapterCrud: AppEnv.env.chapterCrud,
+        systemDateTime: AppEnv.env.systemDateTime
+      ),
+      detailsDatasource: MangaDetailsDatasource(
+        manga: manga,
+        httpClient: AppEnv.env.httpClient,
+        mangaParser: AppEnv.env.mangaParser,
+        mangaCrud: AppEnv.env.mangaCrud,
+        authorCrud: AppEnv.env.authorCrud,
+        tagCrud: AppEnv.env.tagCrud
+      )
     )
-  }
-
-}
-
-struct GlobalMangaChapterDatasource {
-
-  static var datasources = [String: MangaChapterDatasource]()
-
-  static func getDatasourceFor(
-    _ id: String,
-    moc: NSManagedObjectContext
-  ) -> MangaChapterDatasource {
-    if let datasource = datasources[id] {
-
-      return datasource
-    }
-
-    let datasource = MangaChapterDatasource(
-      mangaId: id,
-      httpClient: AppEnv.env.httpClient,
-      chapterParser: AppEnv.env.chapterParser,
-      mangaCrud: AppEnv.env.mangaCrud,
-      chapterCrud: AppEnv.env.chapterCrud,
-      systemDateTime: AppEnv.env.systemDateTime
-    )
-
-    // TODO
-    if datasources.count >= 50 {
-      datasources.removeAll()
-    }
-
-    datasources[id] = datasource
-
-    return datasource
-  }
-
-}
-
-struct GlobalMangaDetailsDatasource {
-
-  static var datasources = [String: MangaDetailsDatasource]()
-
-  static func getDatasourceFor(
-    _ manga: MangaModel,
-    moc: NSManagedObjectContext
-  ) -> MangaDetailsDatasource {
-    if let datasource = datasources[manga.id] {
-
-      return datasource
-    }
-
-    let datasource = MangaDetailsDatasource(
-      manga: manga,
-      httpClient: AppEnv.env.httpClient,
-      mangaParser: AppEnv.env.mangaParser,
-      mangaCrud: AppEnv.env.mangaCrud
-    )
-
-    // TODO
-    if datasources.count >= 50 {
-      datasources.removeAll()
-    }
-
-    datasources[manga.id] = datasource
-
-    return datasource
   }
 
 }

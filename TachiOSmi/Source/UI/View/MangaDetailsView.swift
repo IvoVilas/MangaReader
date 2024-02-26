@@ -10,59 +10,51 @@ import SwiftUI
 struct MangaDetailsView: View {
 
   @ObservedObject var viewModel: MangaDetailsViewModel
-
   @State private var showAlert = false
 
   var body: some View {
     ScrollView {
-      VStack(alignment: .leading) {
-        HStack(alignment: .top, spacing: 16) {
-          makeImageView(
-            viewModel.cover,
-            isLoading: viewModel.isImageLoading
-          )
-
-          VStack(spacing: 0) {
-            Spacer().frame(height: 64)
-
-            Text(viewModel.title)
-              .font(.title2)
-          }
-          .frame(maxWidth: .infinity)
-        }
-        .frame(maxWidth: .infinity)
-
-        Spacer().frame(height: 24)
-
-        Text("\(viewModel.chapters.count) chapters")
-
-        Spacer().frame(height: 24)
-
+      VStack(alignment: .leading, spacing: 0) {
         ZStack(alignment: .top) {
+          makeHeaderView()
+
           ProgressView()
             .progressViewStyle(.circular)
+            .tint(.white)
             .opacity(viewModel.isLoading ? 1 : 0)
+            .offset(y: 75)
+        }
 
-          VStack(alignment: .leading, spacing: 24) {
-            ForEach(viewModel.chapters) { chapter in
-              NavigationLink(value: chapter) {
-                makeChapterView(chapter)
-              }
+        Spacer().frame(height: 16)
+
+        Text("\(viewModel.chapters.count) chapters")
+          .font(.headline)
+          .foregroundStyle(.white)
+          .padding(.horizontal, 24)
+
+        Spacer().frame(height: 24)
+
+        VStack(alignment: .leading, spacing: 24) {
+          ForEach(viewModel.chapters) { chapter in
+            NavigationLink(value: chapter) {
+              makeChapterView(chapter)
             }
           }
-          .navigationDestination(for: ChapterModel.self) { chapter in
-            MangaReaderView(
-              viewModel: viewModel.buildChapterReaderViewModel(for: chapter.id)
-            )
-          }
         }
-        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 24)
       }
-      .padding(.leading, 24)
-      .padding(.trailing, 24)
+    }
+    .ignoresSafeArea(.all, edges: .top)
+    .background(.black)
+    .onAppear {
+      Task { await viewModel.setupData() }
     }
     .refreshable { viewModel.forceRefresh() }
-    .task { await viewModel.setupData() }
+    .navigationDestination(for: ChapterModel.self) { chapter in
+      MangaReaderView(
+        viewModel: viewModel.buildChapterReaderViewModel(for: chapter.id)
+      )
+    }
     .onReceive(viewModel.$error) { error in
       if error != nil {
         showAlert.toggle()
@@ -84,30 +76,122 @@ struct MangaDetailsView: View {
   ) -> some View {
     VStack(alignment: .leading, spacing: 8) {
       Text(chapter.description)
-        .font(.headline)
+        .font(.subheadline)
+        .foregroundStyle(chapter.isRead ? .gray : .white)
 
       Text(chapter.createdAtDescription)
-        .font(.caption)
+        .font(.caption2)
+        .foregroundStyle(chapter.isRead ? .gray : .white)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
   }
 
   @ViewBuilder
-  private func makeImageView(
-    _ image: UIImage?,
-    isLoading: Bool
-  ) -> some View {
-    ZStack {
-      Image(uiImage: image ?? UIImage(resource: .coverNotFound))
-        .resizable()
-        .aspectRatio(contentMode: .fit)
-        .frame(height: 200)
+  func makeHeaderView() -> some View {
+    VStack(alignment: .leading, spacing: 0) {
+      ZStack(alignment: .top) {
+        Image(uiImage: viewModel.cover ?? .coverNotFound)
+          .resizable()
+          .scaledToFill()
+          .frame(maxWidth: .infinity)
+          .frame(height: 300)
+          .clipped()
+          .opacity(0.4)
+          .overlay {
+            LinearGradient(
+              gradient: Gradient(colors: [.clear, .black]),
+              startPoint: .top,
+              endPoint: .bottom
+            )
+          }
 
-      ProgressView()
-        .progressViewStyle(.circular)
-        .frame(width: 150, height: 200, alignment: .center)
-        .border(.gray, width: 1)
-        .opacity(isLoading ? 1 : 0)
+        HStack(spacing: 16) {
+          Image(uiImage: viewModel.cover ?? .coverNotFound)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: 100, height: 200)
+
+          VStack(alignment: .leading, spacing: 8) {
+            Text(viewModel.title)
+              .foregroundStyle(.white)
+              .font(.headline)
+
+            if let author = viewModel.authors.first {
+              HStack(spacing: 4) {
+                Image(systemName: "person")
+                  .resizable()
+                  .frame(width: 15, height: 15)
+                  .foregroundStyle(.white)
+
+                Text(author.name)
+                  .foregroundStyle(.white)
+                  .font(.footnote)
+              }
+            }
+
+            HStack(spacing: 4) {
+              Image(systemName: getStatusIcon(viewModel.status))
+                .resizable()
+                .frame(width: 15, height: 15)
+                .foregroundStyle(.white)
+
+              Text(viewModel.status.value.localizedCapitalized)
+                .foregroundStyle(.white)
+                .font(.footnote)
+            }
+          }
+
+          Spacer()
+        }
+        .offset(y: 100)
+        .padding(.horizontal, 24)
+      }
+
+      Text(viewModel.description ?? "")
+        .font(.bold(.footnote)())
+        .foregroundStyle(.white)
+        .lineLimit(3)
+        .opacity(viewModel.description != nil ? 1 : 0)
+        .padding(.horizontal, 24)
+
+      Spacer().frame(height: 16)
+
+      ScrollView(.horizontal) {
+        HStack(spacing: 8) {
+          ForEach(viewModel.tags) { tag in
+            Text(tag.title)
+              .font(.footnote)
+              .lineLimit(1)
+              .foregroundStyle(.white)
+              .padding(.vertical, 4)
+              .padding(.horizontal, 8)
+              .background(
+                RoundedRectangle(cornerRadius: 4)
+                  .stroke(.white, lineWidth: 1)
+              )
+          }
+        }.padding(.horizontal, 24)
+      }
+      .scrollIndicators(.hidden)
+    }
+  }
+
+  func getStatusIcon(_ status: MangaStatus) -> String {
+    switch status {
+    case .completed:
+      return "checkmark.circle"
+
+    case .ongoing:
+      return "clock"
+
+    case .cancelled:
+      return "xmark.circle"
+
+    case .hiatus:
+      return "clock.badge.xmark"
+
+    case .unknown:
+      return "questionmark.circle"
     }
   }
 
@@ -129,11 +213,20 @@ extension MangaDetailsView {
     let manga       = MangaModel(
       id: "c52b2ce3-7f95-469c-96b0-479524fb7a1a",
       title: "Jujutsu Kaisen",
-      description: "This is our Jujutsu Kaisen",
+      description: "Yuuji is a genius at track and field. But he has zero interest running around in circles, he's happy as a clam in the Occult Research Club. Although he's only in the club for kicks, things get serious when a real spirit shows up at school! Life's about to get really strange in Sugisawa Town #3 High School!",
       status: .ongoing,
       cover: UIImage.jujutsuCover,
-      tags: [],
-      authors: []
+      tags: [
+        TagModel(id: "1", title: "Action"),
+        TagModel(id: "2", title: "Drama"),
+        TagModel(id: "3", title: "Horror"),
+        TagModel(id: "4", title: "School life"),
+        TagModel(id: "5", title: "Shounen"),
+        TagModel(id: "6", title: "Supernatural"),
+        TagModel(id: "7", title: "Manga"),
+        TagModel(id: "8", title: "Ghosts")
+      ],
+      authors: [AuthorModel(id: "1", name: "Akutami Gege")]
     )
 
     let chapterParser = ChapterParser(
@@ -157,6 +250,8 @@ extension MangaDetailsView {
         httpClient: httpClient,
         mangaParser: MangaParser(),
         mangaCrud: mangaCrud,
+        authorCrud: AuthorCrud(),
+        tagCrud: TagCrud(),
         viewMoc: moc
       )
     )

@@ -31,7 +31,7 @@ struct MangaModel: Identifiable, Hashable {
       description: manga.about,
       status: .safeInit(from: manga.statusId),
       cover: cover,
-      tags: manga.tags.map { .from($0) },
+      tags: manga.tags.map { .from($0) }.sorted { $0.title < $1.title },
       authors: manga.authors.map { .from($0) }
     )
   }
