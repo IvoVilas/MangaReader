@@ -14,7 +14,7 @@ struct MangaModel: Identifiable, Hashable {
   let title: String
   let description: String?
   let status: MangaStatus
-  let cover: UIImage?
+  var cover: UIImage?
   let tags: [TagModel]
 
   static func from(_ manga: MangaMO) -> MangaModel {

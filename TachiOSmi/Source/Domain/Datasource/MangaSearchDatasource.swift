@@ -55,22 +55,6 @@ final class MangaSearchDatasource {
     mangas = CurrentValueSubject([])
     state  = CurrentValueSubject(.starting)
     error  = CurrentValueSubject(nil)
-
-    setupInitalValues()
-  }
-
-  func setupInitalValues() {
-    do {
-      mangas.value = try mangaCrud
-        .getAllMangasWithChapters(moc: viewMoc)
-        .map { .from($0) }
-    } catch let error as CrudError {
-      self.error.value = .databaseError(error.localizedDescription)
-    } catch {
-      self.error.value = .unexpectedError(error.localizedDescription)
-    }
-
-    state.value = .normal
   }
 
   func searchManga(
@@ -94,16 +78,26 @@ final class MangaSearchDatasource {
       do {
         let results = try await fetchSearchResults(searchValue, page: 0)
 
-        self.mangas.value = results
+        mangas.value.append(contentsOf: results.map { $0.convertToModel() })
 
         try Task.checkCancellation()
-        try await PersistenceController.shared.container.performBackgroundTask { moc in
-          try self.updateDatabase(
-            with: results,
-            moc: moc
-          )
-        }
+        Task {
+          let updatedInfo = try await withThrowingTaskGroup(of: (String, UIImage?).self, returning: [(String, UIImage?)].self) { taskGroup in
+            for data in results {
+              taskGroup.addTask {
+                let cover = try await self.getCover(for: data.id, fileName: data.coverFileName)
 
+                return (data.id, cover)
+              }
+            }
+
+            return try await taskGroup.reduce(into: [(String, UIImage?)]()) { partialResult, manga in
+              partialResult.append(manga)
+            }
+          }
+
+          self.addCoversTo(updatedInfo)
+        }
         print("MangaSearchDatasource -> Search task ended")
       } catch is CancellationError {
         print("MangaSearchDatasource -> Search task cancelled")
@@ -125,6 +119,10 @@ final class MangaSearchDatasource {
   func loadNextPage(
     _ searchValue: String
   ) async {
+    if let fetchTask {
+      await fetchTask.value
+    }
+
     fetchTask = Task { [weak self] in
       guard let self, var currentPage else {
         print("MangaSearchDatasource -> There are no more results available")
@@ -149,14 +147,25 @@ final class MangaSearchDatasource {
         }
 
         self.currentPage = currentPage
-        mangas.value.append(contentsOf: results)
+        mangas.value.append(contentsOf: results.map { $0.convertToModel() })
 
         try Task.checkCancellation()
-        try await PersistenceController.shared.container.performBackgroundTask { moc in
-          try self.updateDatabase(
-            with: results,
-            moc: moc
-          )
+        Task {
+          let updatedInfo = try await withThrowingTaskGroup(of: (String, UIImage?).self, returning: [(String, UIImage?)].self) { taskGroup in
+            for data in results {
+              taskGroup.addTask {
+                let cover = try await self.getCover(for: data.id, fileName: data.coverFileName)
+
+                return (data.id, cover)
+              }
+            }
+
+            return try await taskGroup.reduce(into: [(String, UIImage?)]()) { partialResult, manga in
+              partialResult.append(manga)
+            }
+          }
+
+          self.addCoversTo(updatedInfo)
         }
 
         print("MangaSearchDatasource -> Finished loading page \(currentPage)")
@@ -179,10 +188,10 @@ final class MangaSearchDatasource {
   private func fetchSearchResults(
     _ searchValue: String,
     page: Int
-  ) async throws -> [MangaModel] {
+  ) async throws -> [MangaParser.MangaParsedData] {
     try Task.checkCancellation()
 
-    let limit  = 10
+    let limit  = 15
     let offset = page * limit
 
     let results = try await makeSearchRequest(
@@ -194,28 +203,19 @@ final class MangaSearchDatasource {
     return results
   }
 
-  private func updateResult(
+  private func addCoversTo(
+    _ info: [(String, UIImage?)]
+  ) {
+    info.forEach { addCoverTo($0.0, cover: $0.1) }
+  }
+
+  private func addCoverTo(
     _ id: String,
-    withCover cover: UIImage?
-  ) -> MangaModel? {
+    cover: UIImage?
+  ) {
     if let i = mangas.value.firstIndex(where: { $0.id == id }) {
-      let manga = mangas.value[i]
-
-      let updated = MangaModel(
-        id: manga.id,
-        title: manga.title,
-        description: manga.description,
-        status: manga.status,
-        cover: cover,
-        tags: manga.tags
-      )
-
-      mangas.value[i] = updated
-
-      return updated
+      mangas.value[i].cover = cover
     }
-
-    return nil
   }
 
   private func updateDatabase(
@@ -246,7 +246,7 @@ extension MangaSearchDatasource {
     _ searchValue: String,
     limit: Int,
     offset: Int
-  ) async throws -> [MangaModel] {
+  ) async throws -> [MangaParser.MangaParsedData] {
     let data: [String: Any] = try await httpClient.makeJsonGetRequest(
       url: "https://api.mangadex.org/manga",
       parameters: [
@@ -263,21 +263,7 @@ extension MangaSearchDatasource {
       throw ParserError.parameterNotFound("data")
     }
 
-    let parsedData = try mangaParser.parseMangaSearchResponse(dataJson)
-
-    return try await withThrowingTaskGroup(of: MangaModel.self, returning: [MangaModel].self) { taskGroup in
-      for data in parsedData {
-        taskGroup.addTask {
-          let cover = try await self.getCover(for: data.id, fileName: data.coverFileName)
-
-          return data.convertToModel(cover: cover)
-        }
-      }
-
-      return try await taskGroup.reduce(into: [MangaModel]()) { partialResult, manga in
-        partialResult.append(manga)
-      }
-    }
+    return try mangaParser.parseMangaSearchResponse(dataJson)
   }
 
 }
