@@ -18,7 +18,7 @@ struct MangaDetailsView: View {
       VStack(alignment: .leading) {
         HStack(alignment: .top, spacing: 16) {
           makeImageView(
-            viewModel.image,
+            viewModel.cover,
             isLoading: viewModel.isImageLoading
           )
 
@@ -126,7 +126,15 @@ extension MangaDetailsView {
     let chapterCrud = ChapterCrud()
     let httpClient  = HttpClient()
     let moc         = PersistenceController.preview.container.viewContext
-    let mangaId     = "c52b2ce3-7f95-469c-96b0-479524fb7a1a"
+    let manga       = MangaModel(
+      id: "c52b2ce3-7f95-469c-96b0-479524fb7a1a",
+      title: "Jujutsu Kaisen",
+      description: "This is our Jujutsu Kaisen",
+      status: .ongoing,
+      cover: UIImage.jujutsuCover,
+      tags: [],
+      authors: []
+    )
 
     let chapterParser = ChapterParser(
       mangaCrud: mangaCrud,
@@ -136,7 +144,7 @@ extension MangaDetailsView {
 
     return MangaDetailsViewModel(
       chaptersDatasource: MangaChapterDatasource(
-        mangaId: mangaId,
+        mangaId: manga.id,
         httpClient: httpClient,
         chapterParser: chapterParser,
         mangaCrud: mangaCrud,
@@ -144,8 +152,8 @@ extension MangaDetailsView {
         systemDateTime: SystemDateTime(),
         viewMoc: moc
       ),
-      coverDatasource: MangaCoverDatasource(
-        mangaId: mangaId,
+      detailsDatasource: MangaDetailsDatasource(
+        manga: manga,
         httpClient: httpClient,
         mangaParser: MangaParser(),
         mangaCrud: mangaCrud,

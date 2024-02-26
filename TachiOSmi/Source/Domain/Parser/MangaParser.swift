@@ -16,6 +16,8 @@ final class MangaParser {
     let title: String
     let description: String?
     let status: MangaStatus
+    let tags: [TagModel]
+    let authors: [AuthorModel]
     let coverFileName: String
 
     func convertToModel(
@@ -27,7 +29,8 @@ final class MangaParser {
         description: description,
         status: status,
         cover: cover,
-        tags: []
+        tags: tags,
+        authors: authors
       )
     }
   }
@@ -36,23 +39,27 @@ final class MangaParser {
     _ data: [[String: Any]]
   ) throws -> [MangaParsedData] {
     return try data.compactMap {
-      try parseMangaSearchResponse($0)
+      try parseMangaIndexResponse($0)
     }
   }
 
-  func parseMangaSearchResponse(
+
+  func parseMangaIndexResponse(
     _ data: [String: Any]
-  ) throws -> MangaParsedData? {
+  ) throws -> MangaParsedData {
     var id: String?
     var title: String?
     var description: String?
     var status: MangaStatus?
     var coverFileName: String?
 
+    var tags    = [TagModel]()
+    var authors = [AuthorModel]()
+
     // Get id
     id = data["id"] as? String
 
-    // Get title, description and status
+    // Get title, description, status and tags
     if let attributesJson = data["attributes"] as? [String: Any] {
       if let titlesJson = attributesJson["title"] as? [String: Any] {
         title = getBestTitle(from: titlesJson)
@@ -65,11 +72,17 @@ final class MangaParser {
       if let statusValue = attributesJson["status"] as? String {
         status = .safeInit(from: statusValue)
       }
+
+      if let tagsJson = attributesJson["tags"] as? [[String: Any]] {
+        tags = parseTags(from: tagsJson)
+      }
     }
 
-    // Get coverFileName
-    if let relationships = data["relationships"] as? [[String: Any]] {
-      for relationshipJson in relationships {
+    // Get authors and coverFileName
+    if let relationshipsJson = data["relationships"] as? [[String: Any]] {
+      authors = parseAuthors(from: relationshipsJson)
+
+      for relationshipJson in relationshipsJson {
         if relationshipJson["type"] as? String == "cover_art" {
           if let attributesJson = relationshipJson["attributes"] as? [String: Any] {
             coverFileName = attributesJson["fileName"] as? String
@@ -99,6 +112,8 @@ final class MangaParser {
       title: title,
       description: description,
       status: status,
+      tags: tags,
+      authors: authors,
       coverFileName: coverFileName
     )
   }
@@ -106,6 +121,60 @@ final class MangaParser {
 }
 
 extension MangaParser {
+
+  private func parseTags(
+    from tagsJson: [[String: Any]]
+  ) -> [TagModel] {
+    return tagsJson.compactMap { tagJson -> TagModel? in
+      let id = tagJson["id"] as? String
+
+      if let tagAttributes = tagJson["attributes"] as? [String: Any] {
+        if let nameJson = tagAttributes["name"] as? [String: Any] {
+          let title = getBestTitle(from: nameJson)
+
+          guard
+            let id,
+            let title
+          else {
+            print("MangaParser -> Tag info missing") // Dont want to throw, only miss tag
+
+            return nil
+          }
+
+          return TagModel(id: id, title: title)
+        }
+      }
+
+      return nil
+    }
+  }
+
+  private func parseAuthors(
+    from relationshipsJson: [[String: Any]]
+  ) -> [AuthorModel] {
+    return relationshipsJson.compactMap { relationshipJson -> AuthorModel? in
+      if relationshipJson["type"] as? String == "author" {
+        let id = relationshipJson["id"] as? String
+
+        if let attributesJson = relationshipJson["attributes"] as? [String: Any] {
+          let name = attributesJson["fileName"] as? String
+
+          guard
+            let id,
+            let name
+          else {
+            print("MangaParser -> Author info missing") // Dont want to throw, only miss author
+
+            return nil
+          }
+
+          return AuthorModel(id: id, name: name)
+        }
+      }
+
+      return nil
+    }
+  }
 
   private func getBestTitle(
     from titles: [String: Any]

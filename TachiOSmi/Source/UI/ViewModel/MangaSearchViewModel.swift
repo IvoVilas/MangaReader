@@ -77,11 +77,9 @@ extension MangaSearchViewModel {
   func buildMangaDetailsViewModel(
     _ manga: MangaModel
   ) -> MangaDetailsViewModel {
-    let id = manga.id
-
     return MangaDetailsViewModel(
-      chaptersDatasource: GlobalMangaChapterDatasource.getDatasourceFor(id, moc: moc),
-      coverDatasource: GlobalMangaCoverDatasource.getDatasourceFor(id, moc: moc)
+      chaptersDatasource: GlobalMangaChapterDatasource.getDatasourceFor(manga.id, moc: moc),
+      detailsDatasource: GlobalMangaDetailsDatasource.getDatasourceFor(manga, moc: moc)
     )
   }
 
@@ -121,25 +119,24 @@ struct GlobalMangaChapterDatasource {
 
 }
 
-struct GlobalMangaCoverDatasource {
+struct GlobalMangaDetailsDatasource {
 
-  static var datasources = [String: MangaCoverDatasource]()
+  static var datasources = [String: MangaDetailsDatasource]()
 
   static func getDatasourceFor(
-    _ id: String,
+    _ manga: MangaModel,
     moc: NSManagedObjectContext
-  ) -> MangaCoverDatasource {
-    if let datasource = datasources[id] {
+  ) -> MangaDetailsDatasource {
+    if let datasource = datasources[manga.id] {
 
       return datasource
     }
 
-    let datasource = MangaCoverDatasource(
-      mangaId: id,
+    let datasource = MangaDetailsDatasource(
+      manga: manga,
       httpClient: AppEnv.env.httpClient,
       mangaParser: AppEnv.env.mangaParser,
-      mangaCrud: AppEnv.env.mangaCrud,
-      viewMoc: moc
+      mangaCrud: AppEnv.env.mangaCrud
     )
 
     // TODO
@@ -147,7 +144,7 @@ struct GlobalMangaCoverDatasource {
       datasources.removeAll()
     }
 
-    datasources[id] = datasource
+    datasources[manga.id] = datasource
 
     return datasource
   }

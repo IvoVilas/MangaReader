@@ -52,7 +52,7 @@ final class HttpClient {
   func makeDataGetRequest(
     url: String,
     parameters: [String: Any] = [:]
-  ) async throws -> Data? {
+  ) async throws -> Data {
     guard let url = URL(string: url) else { throw HttpError.invalidUrl }
 
     var request = URLRequest(url: url)

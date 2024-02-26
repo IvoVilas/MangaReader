@@ -12,10 +12,14 @@ import Combine
 final class MangaDetailsViewModel: ObservableObject {
 
   private let chaptersDatasource: MangaChapterDatasource
-  private let coverDatasource: MangaCoverDatasource
+  private let detailsDatasource: MangaDetailsDatasource
 
-  @Published var image: UIImage?
+  @Published var cover: UIImage?
   @Published var title: String
+  @Published var description: String?
+  @Published var status: MangaStatus
+  @Published var authors: [AuthorModel]
+  @Published var tags: [TagModel]
   @Published var chapters: [ChapterModel]
   @Published var isLoading: Bool
   @Published var isImageLoading: Bool
@@ -25,16 +29,19 @@ final class MangaDetailsViewModel: ObservableObject {
 
   init(
     chaptersDatasource: MangaChapterDatasource,
-    coverDatasource: MangaCoverDatasource
+    detailsDatasource: MangaDetailsDatasource
   ) {
     self.chaptersDatasource = chaptersDatasource
-    self.coverDatasource    = coverDatasource
+    self.detailsDatasource  = detailsDatasource
 
+    cover          = nil
+    title          = ""
+    status         = .unknown
+    authors        = []
+    tags           = []
     chapters       = []
     isLoading      = false
     isImageLoading = false
-    image          = nil
-    title          = "Jujutsu Kaisen"
 
     chaptersDatasource.chaptersPublisher
       .receive(on: DispatchQueue.main)
@@ -59,12 +66,37 @@ final class MangaDetailsViewModel: ObservableObject {
       }
       .store(in: &observers)
 
-    coverDatasource.imagePublisher
+    detailsDatasource.coverPublisher
       .receive(on: DispatchQueue.main)
-      .sink { [weak self] in self?.image = $0 }
+      .sink { [weak self] in self?.cover = $0 }
       .store(in: &observers)
 
-    coverDatasource.statePublisher
+    detailsDatasource.titlePublisher
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in self?.title = $0 }
+      .store(in: &observers)
+
+    detailsDatasource.descriptionPublisher
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in self?.description = $0 }
+      .store(in: &observers)
+
+    detailsDatasource.statusPublisher
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in self?.status = $0 }
+      .store(in: &observers)
+
+    detailsDatasource.authorsPublisher
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in self?.authors = $0 }
+      .store(in: &observers)
+
+    detailsDatasource.tagsPublisher
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in self?.tags = $0 }
+      .store(in: &observers)
+
+    detailsDatasource.statePublisher
       .receive(on: DispatchQueue.main)
       .sink { [weak self] state in
         switch state {
@@ -87,7 +119,7 @@ extension MangaDetailsViewModel {
     case .starting:
       await withTaskGroup(of: Void.self) { taskGroup in
         taskGroup.addTask { await self.chaptersDatasource.refresh() }
-        taskGroup.addTask { await self.coverDatasource.setupInitialValue() }
+        taskGroup.addTask { await self.detailsDatasource.setupData() }
       }
 
     default:
@@ -99,7 +131,7 @@ extension MangaDetailsViewModel {
     Task {
       await withTaskGroup(of: Void.self) { taskGroup in
         taskGroup.addTask { await self.chaptersDatasource.refresh(isForceRefresh: true) }
-        taskGroup.addTask { await self.coverDatasource.refresh() }
+        taskGroup.addTask { await self.detailsDatasource.refresh() }
       }
     }
   }

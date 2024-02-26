@@ -16,6 +16,7 @@ struct MangaModel: Identifiable, Hashable {
   let status: MangaStatus
   var cover: UIImage?
   let tags: [TagModel]
+  let authors: [AuthorModel]
 
   static func from(_ manga: MangaMO) -> MangaModel {
     var cover: UIImage?
@@ -30,24 +31,8 @@ struct MangaModel: Identifiable, Hashable {
       description: manga.about,
       status: .safeInit(from: manga.statusId),
       cover: cover,
-      tags: manga.tags.map { .from($0) }
-    )
-  }
-
-  static func from(_ manga: MangaMO, coverData: Data?) -> MangaModel {
-    var cover: UIImage?
-
-    if let coverData {
-      cover = UIImage(data: coverData)
-    }
-
-    return MangaModel(
-      id: manga.id,
-      title: manga.title,
-      description: manga.about,
-      status: .safeInit(from: manga.statusId),
-      cover: cover,
-      tags: manga.tags.map { .from($0) }
+      tags: manga.tags.map { .from($0) },
+      authors: manga.authors.map { .from($0) }
     )
   }
 
