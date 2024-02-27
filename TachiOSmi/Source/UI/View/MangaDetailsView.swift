@@ -12,6 +12,18 @@ struct MangaDetailsView: View {
   @ObservedObject var viewModel: MangaDetailsViewModel
   @State private var showAlert = false
 
+  init(
+    viewModel: MangaDetailsViewModel
+  ) {
+    self.viewModel = viewModel
+
+    let appearance = UINavigationBarAppearance()
+    appearance.configureWithTransparentBackground()
+    UINavigationBar.appearance().standardAppearance = appearance
+    UINavigationBar.appearance().compactAppearance = appearance
+    UINavigationBar.appearance().scrollEdgeAppearance = appearance
+  }
+
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 0) {
@@ -52,7 +64,7 @@ struct MangaDetailsView: View {
     .refreshable { viewModel.forceRefresh() }
     .navigationDestination(for: ChapterModel.self) { chapter in
       MangaReaderView(
-        viewModel: viewModel.buildChapterReaderViewModel(for: chapter.id)
+        viewModel: viewModel.buildReaderViewModel(chapter)
       )
     }
     .onReceive(viewModel.$error) { error in

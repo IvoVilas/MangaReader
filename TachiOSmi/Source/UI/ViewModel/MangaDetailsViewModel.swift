@@ -118,12 +118,14 @@ extension MangaDetailsViewModel {
     }
   }
 
-  func buildChapterReaderViewModel(
-    for id: String
+  func buildReaderViewModel(
+    _ chapter: ChapterModel
   ) -> MangaReaderViewModel {
     return MangaReaderViewModel(
-      chapterId: id,
-      httpClient: AppEnv.env.httpClient
+      datasource: ChapterPagesDatasource(
+        chapter: chapter,
+        httpClient: AppEnv.env.httpClient
+      )
     )
   }
 

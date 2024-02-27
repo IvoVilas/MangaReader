@@ -11,72 +11,42 @@ import Combine
 
 final class MangaReaderViewModel: ObservableObject {
 
-  enum Page: Identifiable {
-    case remote(URL)
-    case notFound(Int)
+  @Published var pages: [PageModel]
+  @Published var isLoading: Bool
+  @Published var error: DatasourceError?
 
-    var id: String {
-      switch self {
-      case .remote(let url):
-        return url.absoluteString
-
-      case .notFound(let pos):
-        return "\(pos)"
-      }
-    }
-  }
-
-  @Published var pages: [Page]
-
-  private let chapterId: String
-  private let httpClient: HttpClient
+  private let datasource: ChapterPagesDatasource
 
   private var observers = Set<AnyCancellable>()
 
   init(
-    chapterId: String,
-    httpClient: HttpClient
+    datasource: ChapterPagesDatasource
   ) {
-    self.chapterId  = chapterId
-    self.httpClient = httpClient
+    self.datasource = datasource
 
-    pages = []
+    pages     = []
+    isLoading = false
+    error     = nil
+
+    datasource.pagesPublisher
+      .receive(on: DispatchQueue.main)
+      .debounce(for: 0.3, scheduler: DispatchQueue.main)
+      .sink { [weak self] in self?.pages = $0 }
+      .store(in: &observers)
+
+    datasource.statePublisher
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in self?.isLoading = $0.isLoading }
+      .store(in: &observers)
+
+    datasource.errorPublisher
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in self?.error = $0 }
+      .store(in: &observers)
   }
 
-  @MainActor
-  func makePagesRequest() async {
-    print("MangaReaderViewModel -> Starting chapter download")
-    pages = []
-
-    let json = try! await httpClient.makeJsonGetRequest(
-      url: "https://api.mangadex.org/at-home/server/\(chapterId)"
-    )
-
-    guard
-      let baseUrl = json["baseUrl"] as? String,
-      let chapterJson = json["chapter"] as? [String: Any],
-      let hash = chapterJson["hash"] as? String,
-      let data = chapterJson["data"] as? [String]
-    else {
-      print("MangaReaderViewModel Error -> Error parsing response")
-
-      return
-    }
-
-    pages = data.enumerated().map { index, data in
-      if let url = URL(string: "\(baseUrl)/data/\(hash)/\(data)") {
-        return .remote(url)
-      }
-
-      return .notFound(index)
-    }
-
-    if pages.isEmpty {
-      /// Handle error better
-      print("Pages not found")
-    }
-
-    print("MangaReaderViewModel -> Ending chapter download")
+  func fetchPages() async {
+    await datasource.refresh()
   }
 
 }

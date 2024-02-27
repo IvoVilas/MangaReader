@@ -11,6 +11,7 @@ import Combine
 struct MangaReaderView: View {
 
   @ObservedObject var viewModel: MangaReaderViewModel
+  @State private var isHorizontal = true
 
   var body: some View {
     GeometryReader { geo in
@@ -20,31 +21,65 @@ struct MangaReaderView: View {
           .tint(.white)
           .opacity(viewModel.pages.count == 0 ? 1 : 0)
 
-        ScrollView(.horizontal) {
-          HStack(spacing: 0) {
-            ForEach(viewModel.pages) { page in
-              makePage(page)
-                .frame(width: geo.size.width)
-                .frame(maxWidth: geo.size.width, maxHeight: .infinity, alignment: .center)
-            }
-          }
-        }
-        .scrollTargetBehavior(.paging)
-        .task { await viewModel.makePagesRequest() }
+        makeScrollView(geo)
+          .task(priority: .background) { await viewModel.fetchPages() }
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
     .background(.black)
     .environment(\.layoutDirection, .rightToLeft)
+    .toolbar {
+      ToolbarItem(placement: .topBarTrailing) {
+        Button {
+          isHorizontal.toggle()
+        } label: {
+          Image(systemName: isHorizontal ? "arrow.left" : "arrow.down")
+            .tint(.white)
+        }
+      }
+    }
+  }
+
+  @ViewBuilder
+  private func makeScrollView(
+    _ proxy: GeometryProxy
+  ) -> some View {
+    if isHorizontal {
+      ScrollView(.horizontal) {
+        HStack(spacing: 0) {
+          ForEach(viewModel.pages) { page in
+            makePage(page)
+              .frame(width: proxy.size.width)
+          }
+        }
+      }
+      .scrollTargetBehavior(.paging)
+    } else {
+      ScrollView {
+        VStack(spacing: 0) {
+          ForEach(viewModel.pages) { page in
+            makePage(page)
+              .frame(width: proxy.size.width)
+          }
+        }
+      }
+    }
   }
 
   @ViewBuilder
   private func makePage(
-    _ page: MangaReaderViewModel.Page
+    _ page: PageModel
   ) -> some View {
     switch page {
-    case .remote(let url):
-      ImageView(url: url)
+    case .remote(_, let data):
+      Image(uiImage: UIImage(data: data) ?? .coverNotFound)
+        .resizable()
+        .aspectRatio(contentMode: .fit)
+
+    case .loading:
+      ProgressView()
+        .progressViewStyle(.circular)
+        .tint(.white)
 
     case .notFound:
       Image(uiImage: .coverNotFound)
@@ -55,29 +90,19 @@ struct MangaReaderView: View {
 
 }
 
-struct ImageView: View {
-
-  @State var url: URL
-
-  var body: some View {
-    AsyncImage(url: url) { image in
-      image
-        .resizable()
-        .aspectRatio(contentMode: .fit)
-    } placeholder: {
-      ProgressView()
-        .progressViewStyle(.circular)
-        .tint(.white)
-    }
-  }
-
-}
-
 #Preview {
   MangaReaderView(
     viewModel: MangaReaderViewModel(
-      chapterId: "97e84c86-e3cd-416d-998d-3b4c732e317d",
-      httpClient: HttpClient()
+      datasource: ChapterPagesDatasource(
+        chapter: ChapterModel(
+          id: "556c3feb-8c62-43de-b872-4657730d31a1",
+          title: "Blood and Oil ②",
+          number: 203,
+          numberOfPages: 21,
+          publishAt: SystemDateTime().builder.makeDate(day: 6, month: 11, year: 2022)
+        ),
+        httpClient: HttpClient()
+      )
     )
   )
 }

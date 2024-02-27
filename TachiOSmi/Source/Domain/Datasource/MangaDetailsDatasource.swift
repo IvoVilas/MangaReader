@@ -119,36 +119,38 @@ final class MangaDetailsDatasource {
         self.cover.value = cover
       }
 
-      let manga = try self.mangaCrud.createOrUpdateManga(
-        id: parsedData.id,
-        title: parsedData.title,
-        about: parsedData.description,
-        status: parsedData.status, 
-        cover: cover?.pngData(),
-        moc: viewMoc
-      )
-
-      // For now, we are only storing one author
-      if let author = parsedData.authors.first {
-        _ = try self.authorCrud.createOrUpdateAuthor(
-          id: author.id,
-          name: author.name,
-          manga: manga,
-          moc: viewMoc
+      try await viewMoc.perform {
+        let manga = try self.mangaCrud.createOrUpdateManga(
+          id: parsedData.id,
+          title: parsedData.title,
+          about: parsedData.description,
+          status: parsedData.status,
+          cover: cover?.pngData(),
+          moc: self.viewMoc
         )
-      }
 
-      for tag in parsedData.tags {
-        _ = try self.tagCrud.createOrUpdateTag(
-          id: tag.id,
-          title: tag.title,
-          manga: manga,
-          moc: viewMoc
-        )
-      }
+        // For now, we only store one author
+        if let author = parsedData.authors.first {
+          _ = try self.authorCrud.createOrUpdateAuthor(
+            id: author.id,
+            name: author.name,
+            manga: manga,
+            moc: self.viewMoc
+          )
+        }
 
-      if !viewMoc.saveIfNeeded(rollbackOnError: true).isSuccess {
-        throw CrudError.saveError
+        for tag in manga.tags {
+          _ = try self.tagCrud.createOrUpdateTag(
+            id: tag.id,
+            title: tag.title,
+            manga: manga,
+            moc: self.viewMoc
+          )
+        }
+
+        if !self.viewMoc.saveIfNeeded(rollbackOnError: true).isSuccess {
+          throw CrudError.saveError
+        }
       }
     } catch let error as ParserError {
       print("MangaDetailsDatasource -> Error during parsing operation: \(error.localizedDescription)")
@@ -180,35 +182,38 @@ final class MangaDetailsDatasource {
         self.cover.value = cover
       }
 
-      let manga = try self.mangaCrud.createOrUpdateManga(
-        id: parsedData.id,
-        title: parsedData.title,
-        about: parsedData.description,
-        status: parsedData.status,
-        cover: coverData,
-        moc: viewMoc
-      )
-
-      for author in manga.authors {
-        _ = try self.authorCrud.createOrUpdateAuthor(
-          id: author.id,
-          name: author.name,
-          manga: manga,
-          moc: viewMoc
+      try await viewMoc.perform {
+        let manga = try self.mangaCrud.createOrUpdateManga(
+          id: parsedData.id,
+          title: parsedData.title,
+          about: parsedData.description,
+          status: parsedData.status,
+          cover: coverData,
+          moc: self.viewMoc
         )
-      }
 
-      for tag in manga.tags {
-        _ = try self.tagCrud.createOrUpdateTag(
-          id: tag.id,
-          title: tag.title,
-          manga: manga,
-          moc: viewMoc
-        )
-      }
+        // For now, we only store one author
+        if let author = parsedData.authors.first {
+          _ = try self.authorCrud.createOrUpdateAuthor(
+            id: author.id,
+            name: author.name,
+            manga: manga,
+            moc: self.viewMoc
+          )
+        }
 
-      if !viewMoc.saveIfNeeded(rollbackOnError: true).isSuccess {
-        throw CrudError.saveError
+        for tag in parsedData.tags {
+          _ = try self.tagCrud.createOrUpdateTag(
+            id: tag.id,
+            title: tag.title,
+            manga: manga,
+            moc: self.viewMoc
+          )
+        }
+
+        if !self.viewMoc.saveIfNeeded(rollbackOnError: true).isSuccess {
+          throw CrudError.saveError
+        }
       }
     } catch let error as ParserError {
       print("MangaDetailsDatasource -> Error during parsing operation: \(error.localizedDescription)")
