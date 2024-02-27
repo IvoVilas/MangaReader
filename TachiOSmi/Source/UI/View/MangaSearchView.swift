@@ -70,10 +70,10 @@ struct MangaSearchView: View {
   }
 
   @ViewBuilder
-  func makeResultView(
+  private func makeResultView(
     manga: MangaModel
   ) -> some View {
-    Image(uiImage: manga.cover ?? UIImage(resource: .coverNotFound))
+    Image(uiImage: getCoverImage(manga))
       .resizable()
       .aspectRatio(contentMode: .fill)
       .overlay {
@@ -93,6 +93,16 @@ struct MangaSearchView: View {
             .padding(.bottom, 8)
         }
       }
+  }
+
+  private func getCoverImage(
+    _ manga: MangaModel
+  ) -> UIImage {
+    if let data = manga.cover, let cover = UIImage(data: data) {
+      return cover
+    }
+
+    return UIImage.coverNotFound
   }
 
 }
@@ -159,6 +169,7 @@ extension MangaSearchView {
         httpClient: HttpClient(),
         mangaParser: MangaParser(),
         mangaCrud: MangaCrud(),
+        coverCrud: CoverCrud(),
         viewMoc: moc
       ),
       moc: moc

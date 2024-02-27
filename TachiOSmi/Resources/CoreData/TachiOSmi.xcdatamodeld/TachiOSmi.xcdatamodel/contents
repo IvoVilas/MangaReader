@@ -12,29 +12,20 @@
         <attribute name="publishAt" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="title" optional="YES" attributeType="String"/>
         <relationship name="manga" maxCount="1" deletionRule="Nullify" destinationEntity="Manga" inverseName="chapters" inverseEntity="Manga"/>
-        <relationship name="pages" optional="YES" maxCount="1" deletionRule="Cascade" destinationEntity="ChapterPages" inverseName="chapter" inverseEntity="ChapterPages"/>
     </entity>
-    <entity name="ChapterPages" representedClassName=".ChapterPagesMO" syncable="YES">
-        <attribute name="baseUrl" attributeType="String"/>
-        <attribute name="chapterHash" attributeType="String"/>
-        <relationship name="chapter" maxCount="1" deletionRule="Nullify" destinationEntity="Chapter" inverseName="pages" inverseEntity="Chapter"/>
-        <relationship name="pages" toMany="YES" deletionRule="Cascade" destinationEntity="Page" inverseName="chapterPages" inverseEntity="Page"/>
+    <entity name="Cover" representedClassName=".CoverMO" syncable="YES">
+        <attribute name="data" attributeType="Binary"/>
+        <attribute name="mangaId" attributeType="String"/>
     </entity>
     <entity name="Manga" representedClassName=".MangaMO" syncable="YES">
-        <attribute name="about" optional="YES" attributeType="String"/>
-        <attribute name="coverArt" optional="YES" attributeType="Binary"/>
         <attribute name="id" attributeType="String"/>
         <attribute name="lastUpdateAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="statusId" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="synopsis" optional="YES" attributeType="String"/>
         <attribute name="title" attributeType="String"/>
         <relationship name="authors" toMany="YES" deletionRule="Nullify" destinationEntity="Author" inverseName="mangas" inverseEntity="Author"/>
         <relationship name="chapters" toMany="YES" deletionRule="Cascade" destinationEntity="Chapter" inverseName="manga" inverseEntity="Chapter"/>
         <relationship name="tags" toMany="YES" deletionRule="Nullify" destinationEntity="Tag" inverseName="mangas" inverseEntity="Tag"/>
-    </entity>
-    <entity name="Page" representedClassName=".PageMO" syncable="YES">
-        <attribute name="data" attributeType="String"/>
-        <attribute name="position" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
-        <relationship name="chapterPages" maxCount="1" deletionRule="Nullify" destinationEntity="ChapterPages" inverseName="pages" inverseEntity="ChapterPages"/>
     </entity>
     <entity name="Tag" representedClassName=".TagMO" syncable="YES">
         <attribute name="id" attributeType="String"/>

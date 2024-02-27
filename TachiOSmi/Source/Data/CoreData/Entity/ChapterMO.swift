@@ -17,7 +17,6 @@ class ChapterMO: NSManagedObject {
   @NSManaged var publishAt: Date
 
   // Relationships
-  @NSManaged var pages: ChapterPagesMO?
   @NSManaged var manga: MangaMO
 
   convenience init?(

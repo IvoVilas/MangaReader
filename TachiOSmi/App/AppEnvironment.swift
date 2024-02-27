@@ -26,6 +26,7 @@ final class AppEnvironment {
   let chapterCrud: ChapterCrud
   let authorCrud: AuthorCrud
   let tagCrud: TagCrud
+  let coverCrud: CoverCrud
 
   // Parser
   let mangaParser: MangaParser
@@ -50,6 +51,7 @@ final class AppEnvironment {
     chapterCrud = ChapterCrud()
     authorCrud  = AuthorCrud()
     tagCrud     = TagCrud()
+    coverCrud   = CoverCrud()
 
     mangaParser   = MangaParser()
     chapterParser = ChapterParser(
@@ -61,7 +63,8 @@ final class AppEnvironment {
     mangaSearchDatasource = MangaSearchDatasource(
       httpClient: httpClient,
       mangaParser: mangaParser,
-      mangaCrud: mangaCrud
+      mangaCrud: mangaCrud,
+      coverCrud: coverCrud
     )
 
     systemDateTime = SystemDateTime()

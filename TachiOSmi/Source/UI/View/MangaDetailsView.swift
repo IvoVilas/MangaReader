@@ -227,7 +227,7 @@ extension MangaDetailsView {
       title: "Jujutsu Kaisen",
       description: "Yuuji is a genius at track and field. But he has zero interest running around in circles, he's happy as a clam in the Occult Research Club. Although he's only in the club for kicks, things get serious when a real spirit shows up at school! Life's about to get really strange in Sugisawa Town #3 High School!",
       status: .ongoing,
-      cover: UIImage.jujutsuCover,
+      cover: UIImage.jujutsuCover.jpegData(compressionQuality: 1),
       tags: [
         TagModel(id: "1", title: "Action"),
         TagModel(id: "2", title: "Drama"),
@@ -262,6 +262,7 @@ extension MangaDetailsView {
         httpClient: httpClient,
         mangaParser: MangaParser(),
         mangaCrud: mangaCrud,
+        coverCrud: CoverCrud(),
         authorCrud: AuthorCrud(),
         tagCrud: TagCrud(),
         viewMoc: moc

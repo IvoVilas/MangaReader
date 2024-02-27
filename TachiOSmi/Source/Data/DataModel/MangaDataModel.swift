@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import UIKit
 
 struct MangaModel: Identifiable, Hashable {
 
@@ -14,21 +13,30 @@ struct MangaModel: Identifiable, Hashable {
   let title: String
   let description: String?
   let status: MangaStatus
-  var cover: UIImage?
+  var cover: Data?
   let tags: [TagModel]
   let authors: [AuthorModel]
 
   static func from(_ manga: MangaMO) -> MangaModel {
-    var cover: UIImage?
-
-    if let coverData = manga.coverArt {
-      cover = UIImage(data: coverData)
-    }
-
     return MangaModel(
       id: manga.id,
       title: manga.title,
-      description: manga.about,
+      description: manga.synopsis,
+      status: .safeInit(from: manga.statusId),
+      cover: nil,
+      tags: manga.tags.map { .from($0) }.sorted { $0.title < $1.title },
+      authors: manga.authors.map { .from($0) }
+    )
+  }
+
+  static func from(
+    _ manga: MangaMO,
+    cover: Data?
+  ) -> MangaModel {
+    return MangaModel(
+      id: manga.id,
+      title: manga.title,
+      description: manga.synopsis,
       status: .safeInit(from: manga.statusId),
       cover: cover,
       tags: manga.tags.map { .from($0) }.sorted { $0.title < $1.title },

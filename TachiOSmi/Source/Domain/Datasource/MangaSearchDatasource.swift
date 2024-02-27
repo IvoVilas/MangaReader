@@ -15,6 +15,7 @@ final class MangaSearchDatasource {
   private let httpClient: HttpClient
   private let mangaParser: MangaParser
   private let mangaCrud: MangaCrud
+  private let coverCrud: CoverCrud
   private let viewMoc: NSManagedObjectContext
 
   private let mangas: CurrentValueSubject<[MangaModel], Never>
@@ -45,11 +46,13 @@ final class MangaSearchDatasource {
     httpClient: HttpClient,
     mangaParser: MangaParser,
     mangaCrud: MangaCrud,
+    coverCrud: CoverCrud,
     viewMoc: NSManagedObjectContext = PersistenceController.shared.container.viewContext
   ) {
     self.httpClient  = httpClient
     self.mangaParser = mangaParser
     self.mangaCrud   = mangaCrud
+    self.coverCrud   = coverCrud
     self.viewMoc     = viewMoc
 
     mangas = CurrentValueSubject([])
@@ -80,24 +83,11 @@ final class MangaSearchDatasource {
 
         mangas.value.append(contentsOf: results.map { $0.convertToModel() })
 
-        try Task.checkCancellation()
-        Task {
-          let updatedInfo = try await withThrowingTaskGroup(of: (String, UIImage?).self, returning: [(String, UIImage?)].self) { taskGroup in
-            for data in results {
-              taskGroup.addTask {
-                let cover = try await self.getCover(for: data.id, fileName: data.coverFileName)
+        let updatedInfo = await self.getCovers(for: results)
 
-                return (data.id, cover)
-              }
-            }
+        self.addCoversTo(updatedInfo)
+        try await self.storeCovers(updatedInfo)
 
-            return try await taskGroup.reduce(into: [(String, UIImage?)]()) { partialResult, manga in
-              partialResult.append(manga)
-            }
-          }
-
-          self.addCoversTo(updatedInfo)
-        }
         print("MangaSearchDatasource -> Search task ended")
       } catch {
         catchError(error)
@@ -141,24 +131,10 @@ final class MangaSearchDatasource {
         self.currentPage = currentPage
         mangas.value.append(contentsOf: results.map { $0.convertToModel() })
 
-        try Task.checkCancellation()
-        Task {
-          let updatedInfo = try await withThrowingTaskGroup(of: (String, UIImage?).self, returning: [(String, UIImage?)].self) { taskGroup in
-            for data in results {
-              taskGroup.addTask {
-                let cover = try await self.getCover(for: data.id, fileName: data.coverFileName)
+        let updatedInfo = await self.getCovers(for: results)
 
-                return (data.id, cover)
-              }
-            }
-
-            return try await taskGroup.reduce(into: [(String, UIImage?)]()) { partialResult, manga in
-              partialResult.append(manga)
-            }
-          }
-
-          self.addCoversTo(updatedInfo)
-        }
+        self.addCoversTo(updatedInfo)
+        try await self.storeCovers(updatedInfo)
 
         print("MangaSearchDatasource -> Finished loading page \(currentPage)")
       } catch {
@@ -181,7 +157,7 @@ final class MangaSearchDatasource {
       self.error.value = .networkError(error.localizedDescription)
 
     case let error as CrudError:
-      self.error.value = .databaseError(error.localizedDescription)
+      print("MangaSearchDatasource -> Error during database operation: \(error.localizedDescription)")
 
     default:
       self.error.value = .unexpectedError(error.localizedDescription)
@@ -192,8 +168,6 @@ final class MangaSearchDatasource {
     _ searchValue: String,
     page: Int
   ) async throws -> [MangaParser.MangaParsedData] {
-    try Task.checkCancellation()
-
     let limit  = 15
     let offset = page * limit
 
@@ -207,37 +181,37 @@ final class MangaSearchDatasource {
   }
 
   private func addCoversTo(
-    _ info: [(String, UIImage?)]
+    _ info: [(String, Data?)]
   ) {
     info.forEach { addCoverTo($0.0, cover: $0.1) }
   }
 
   private func addCoverTo(
     _ id: String,
-    cover: UIImage?
+    cover: Data?
   ) {
     if let i = mangas.value.firstIndex(where: { $0.id == id }) {
       mangas.value[i].cover = cover
     }
   }
 
-  private func updateDatabase(
-    with mangas: [MangaModel],
-    moc: NSManagedObjectContext
-  ) throws {
-    for manga in mangas {
-      _ = try mangaCrud.createOrUpdateManga(
-        id: manga.id,
-        title: manga.title,
-        about: manga.description,
-        status: manga.status,
-        cover: manga.cover?.pngData(),
-        moc: moc
-      )
-    }
+  private func storeCovers(
+    _ coverInfo: [(String, Data?)]
+  ) async throws {
+    try await viewMoc.perform {
+      for (id, data) in coverInfo {
+        guard let data else { continue }
 
-    if !moc.saveIfNeeded(rollbackOnError: true).isSuccess {
-      throw CrudError.saveError
+        _ = try self.coverCrud.createOrUpdateEntity(
+          mangaId: id,
+          data: data,
+          moc: self.viewMoc
+        )
+      }
+
+      if !self.viewMoc.saveIfNeeded(rollbackOnError: true).isSuccess {
+        throw CrudError.saveError
+      }
     }
   }
 
@@ -276,27 +250,51 @@ extension MangaSearchDatasource {
 // MARK: Cover
 extension MangaSearchDatasource {
 
+  private func getCovers(
+    for mangas: [MangaParser.MangaParsedData]
+  ) async -> [(String, Data?)] {
+    await withTaskGroup(of: (String, Data?).self, returning: [(String, Data?)].self) { taskGroup in
+      for data in mangas {
+        taskGroup.addTask {
+          let id = data.id
+
+          let cover = await self.getCover(for: id, fileName: data.coverFileName)
+
+          return (id, cover)
+        }
+      }
+
+      return await taskGroup.reduce(into: [(String, Data?)]()) { partialResult, cover in
+        partialResult.append(cover)
+      }
+    }
+  }
+
   private func getCover(
     for id: String,
     fileName: String
-  ) async throws -> UIImage? {
-    if let localCoverData = try mangaCrud.getMangaCover(id, moc: viewMoc) {
-      return UIImage(data: localCoverData)
-    }
+  ) async -> Data? {
+    do {
+      if let localCoverData = try coverCrud.getCoverData(for: id, moc: viewMoc) {
+        return localCoverData
+      }
 
-    if let remoteCoverData = try await makeCoverRequest(id: id, coverFileName: fileName) {
-      return UIImage(data: remoteCoverData)
-    }
+      let remoteCoverData = try await makeCoverRequest(id: id, fileName: fileName)
 
-    return nil
+      return remoteCoverData
+    } catch {
+      print("MangaSearchDatasource -> Error during cover fetch: \(error)")
+
+      return nil
+    }
   }
 
   private func makeCoverRequest(
     id: String,
-    coverFileName: String
-  ) async throws -> Data? {
+    fileName: String
+  ) async throws -> Data {
     return try await httpClient.makeDataGetRequest(
-      url: "https://uploads.mangadex.org/covers/\(id)/\(coverFileName).256.jpg"
+      url: "https://uploads.mangadex.org/covers/\(id)/\(fileName).256.jpg"
     )
   }
 

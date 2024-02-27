@@ -114,12 +114,4 @@ final class ChapterCrud {
     chapter.publishAt     = publishAt
   }
 
-  func updatePages(
-    _ chapter: ChapterMO,
-    pages: ChapterPagesMO?
-  ) {
-    chapter.pages = pages
-  }
-
-
 }

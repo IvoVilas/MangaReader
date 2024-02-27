@@ -14,8 +14,8 @@ final class MangaDetailsViewModel: ObservableObject {
   private let chaptersDatasource: MangaChapterDatasource
   private let detailsDatasource: MangaDetailsDatasource
 
-  @Published var cover: UIImage?
   @Published var title: String
+  @Published var cover: UIImage?
   @Published var description: String?
   @Published var status: MangaStatus
   @Published var authors: [AuthorModel]
@@ -43,11 +43,6 @@ final class MangaDetailsViewModel: ObservableObject {
     isLoading      = false
     isImageLoading = false
 
-    detailsDatasource.coverPublisher
-      .receive(on: DispatchQueue.main)
-      .sink { [weak self] in self?.cover = $0 }
-      .store(in: &observers)
-
     detailsDatasource.titlePublisher
       .receive(on: DispatchQueue.main)
       .sink { [weak self] in self?.title = $0 }
@@ -71,6 +66,12 @@ final class MangaDetailsViewModel: ObservableObject {
     detailsDatasource.tagsPublisher
       .receive(on: DispatchQueue.main)
       .sink { [weak self] in self?.tags = $0 }
+      .store(in: &observers)
+
+    detailsDatasource.coverPublisher
+      .receive(on: DispatchQueue.main)
+      .compactMap { $0 }
+      .sink { [weak self] in self?.cover = UIImage(data: $0) }
       .store(in: &observers)
 
     chaptersDatasource.chaptersPublisher

@@ -91,6 +91,7 @@ extension MangaSearchViewModel {
         httpClient: AppEnv.env.httpClient,
         mangaParser: AppEnv.env.mangaParser,
         mangaCrud: AppEnv.env.mangaCrud,
+        coverCrud: AppEnv.env.coverCrud,
         authorCrud: AppEnv.env.authorCrud,
         tagCrud: AppEnv.env.tagCrud
       )

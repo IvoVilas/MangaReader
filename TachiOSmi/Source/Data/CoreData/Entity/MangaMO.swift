@@ -12,10 +12,9 @@ class MangaMO: NSManagedObject {
 
   @NSManaged var id: String
   @NSManaged var title: String
-  @NSManaged var about: String?
+  @NSManaged var synopsis: String?
   @NSManaged var statusId: Int16
   @NSManaged var lastUpdateAt: Date?
-  @NSManaged var coverArt: Data?
 
   // Relationships
   @NSManaged var chapters: Set<ChapterMO>
@@ -25,10 +24,9 @@ class MangaMO: NSManagedObject {
   convenience init?(
     id: String,
     title: String,
-    about: String?,
+    synopsis: String?,
     statusId: Int16,
     lastUpdateAt: Date?,
-    coverArt: Data?,
     moc: NSManagedObjectContext
   ) {
     guard let entity = NSEntityDescription.entity(forEntityName: "Manga", in: moc) else {
@@ -39,10 +37,9 @@ class MangaMO: NSManagedObject {
 
     self.id           = id
     self.title        = title
-    self.about        = about
+    self.synopsis     = synopsis
     self.statusId     = statusId
     self.lastUpdateAt = lastUpdateAt
-    self.coverArt     = coverArt
 
     self.chapters = Set<ChapterMO>()
     self.tags     = Set<TagMO>()

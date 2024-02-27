@@ -20,15 +20,13 @@ final class MangaParser {
     let authors: [AuthorModel]
     let coverFileName: String
 
-    func convertToModel(
-      cover: UIImage? = nil
-    ) -> MangaModel {
+    func convertToModel() -> MangaModel {
       return MangaModel(
         id: id,
         title: title,
         description: description,
         status: status,
-        cover: cover,
+        cover: nil,
         tags: tags.sorted { $0.title < $1.title },
         authors: authors
       )

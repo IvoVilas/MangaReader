@@ -92,17 +92,6 @@ extension MangaCrud {
     }
   }
 
-  func getMangaCover(
-    _ id: String,
-    moc: NSManagedObjectContext
-  ) throws -> Data? {
-    guard let manga = try getManga(id, moc: moc) else {
-      return nil
-    }
-
-    return manga.coverArt
-  }
-
 }
 
 // MARK: - Create or Update
@@ -111,18 +100,16 @@ extension MangaCrud {
   func createOrUpdateManga(
     id: String,
     title: String,
-    about: String?,
+    synopsis: String?,
     status: MangaStatus,
-    cover: Data?,
     moc: NSManagedObjectContext
   ) throws -> MangaMO {
     if let local = try getManga(id, moc: moc) {
       updateManga(
         local,
         title: title,
-        about: about,
+        synopsis: synopsis,
         status: status,
-        cover: cover,
         moc: moc
       )
 
@@ -132,9 +119,8 @@ extension MangaCrud {
     return try createEntity(
       id: id,
       title: title,
-      about: about,
+      synopsis: synopsis,
       status: status,
-      cover: cover,
       moc: moc
     )
   }
@@ -147,18 +133,16 @@ extension MangaCrud {
   func createEntity(
     id: String,
     title: String,
-    about: String?,
+    synopsis: String?,
     status: MangaStatus,
-    cover: Data?,
     moc: NSManagedObjectContext
   ) throws -> MangaMO {
     guard let manga = MangaMO(
       id: id,
       title: title,
-      about: about,
+      synopsis: synopsis,
       statusId: status.id,
       lastUpdateAt: nil,
-      coverArt: cover,
       moc: moc
     ) else { throw CrudError.failedEntityCreation }
 
@@ -173,37 +157,14 @@ extension MangaCrud {
   func updateManga(
     _ manga: MangaMO,
     title: String,
-    about: String?,
+    synopsis: String?,
     status: MangaStatus,
     moc: NSManagedObjectContext
   ) {
     manga.title    = title
-    manga.about    = about
-    manga.statusId = status.id
-  }
-
-  func updateManga(
-    _ manga: MangaMO,
-    title: String,
-    about: String?,
-    status: MangaStatus,
-    cover: Data?,
-    moc: NSManagedObjectContext
-  ) {
-    manga.title    = title
-    manga.about    = about
     manga.statusId = status.id
 
-    if let cover {
-      updateCoverArt(manga, data: cover)
-    }
-  }
-
-  func updateCoverArt(
-    _ manga: MangaMO,
-    data: Data?
-  ) {
-    manga.coverArt = data
+    if let synopsis { manga.synopsis = synopsis }
   }
 
   func updateLastUpdateAt(

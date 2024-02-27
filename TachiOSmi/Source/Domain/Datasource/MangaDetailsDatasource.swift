@@ -17,11 +17,12 @@ final class MangaDetailsDatasource {
   private let httpClient: HttpClient
   private let mangaParser: MangaParser
   private let mangaCrud: MangaCrud
+  private let coverCrud: CoverCrud
   private let authorCrud: AuthorCrud
   private let tagCrud: TagCrud
   private let viewMoc: NSManagedObjectContext
 
-  private let cover: CurrentValueSubject<UIImage?, Never>
+  private let cover: CurrentValueSubject<Data?, Never>
   private let title: CurrentValueSubject<String, Never>
   private let description: CurrentValueSubject<String?, Never>
   private let status: CurrentValueSubject<MangaStatus, Never>
@@ -30,7 +31,7 @@ final class MangaDetailsDatasource {
   private let state: CurrentValueSubject<DatasourceState, Never>
   private let error: CurrentValueSubject<DatasourceError?, Never>
 
-  var coverPublisher: AnyPublisher<UIImage?, Never> {
+  var coverPublisher: AnyPublisher<Data?, Never> {
     cover.eraseToAnyPublisher()
   }
 
@@ -67,6 +68,7 @@ final class MangaDetailsDatasource {
     httpClient: HttpClient,
     mangaParser: MangaParser,
     mangaCrud: MangaCrud,
+    coverCrud: CoverCrud,
     authorCrud: AuthorCrud,
     tagCrud: TagCrud,
     viewMoc: NSManagedObjectContext = PersistenceController.shared.container.viewContext
@@ -76,6 +78,7 @@ final class MangaDetailsDatasource {
     self.httpClient  = httpClient
     self.mangaParser = mangaParser
     self.mangaCrud   = mangaCrud
+    self.coverCrud   = coverCrud
     self.authorCrud  = authorCrud
     self.tagCrud     = tagCrud
     self.viewMoc     = viewMoc
@@ -111,17 +114,20 @@ final class MangaDetailsDatasource {
 
       let cover = try await getCover(fileName: parsedData.coverFileName)
 
-      if let cover {
-        self.cover.value = cover
-      }
+      self.cover.value = cover
 
       try await viewMoc.perform {
         let manga = try self.mangaCrud.createOrUpdateManga(
           id: parsedData.id,
           title: parsedData.title,
-          about: parsedData.description,
+          synopsis: parsedData.description,
           status: parsedData.status,
-          cover: cover?.jpegData(compressionQuality: 1),
+          moc: self.viewMoc
+        )
+
+        _ = try self.coverCrud.createEntity(
+          mangaId: manga.id,
+          data: cover,
           moc: self.viewMoc
         )
 
@@ -172,19 +178,16 @@ final class MangaDetailsDatasource {
 
       update(with: parsedData.convertToModel())
 
-      let coverData = try await makeCoverRequest(fileName: parsedData.coverFileName)
+      let cover = try await makeCoverRequest(fileName: parsedData.coverFileName)
 
-      if let cover = UIImage(data: coverData) {
-        self.cover.value = cover
-      }
+      self.cover.value = cover
 
       try await viewMoc.perform {
         let manga = try self.mangaCrud.createOrUpdateManga(
           id: parsedData.id,
           title: parsedData.title,
-          about: parsedData.description,
+          synopsis: parsedData.description,
           status: parsedData.status,
-          cover: coverData,
           moc: self.viewMoc
         )
 
@@ -257,14 +260,14 @@ extension MangaDetailsDatasource {
 
   private func getCover(
     fileName: String
-  ) async throws -> UIImage? {
-    if let localCoverData = try mangaCrud.getMangaCover(mangaId, moc: viewMoc) {
-      return UIImage(data: localCoverData)
+  ) async throws -> Data {
+    if let localCoverData = try coverCrud.getCoverData(for: mangaId, moc: viewMoc) {
+      return localCoverData
     }
 
     let remoteCoverData = try await makeCoverRequest(fileName: fileName)
 
-    return UIImage(data: remoteCoverData)
+    return remoteCoverData
   }
 
   private func makeCoverRequest(
