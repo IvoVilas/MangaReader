@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import UIKit
 
 final class ChapterPagesDatasource {
 
@@ -102,7 +103,7 @@ final class ChapterPagesDatasource {
 
     await MainActor.run { [pages, erro] in
       self.error.value = erro
-      self.pages.value.append(contentsOf: pages)
+      self.updateOrAppend(pages)
     }
   }
 
@@ -116,6 +117,22 @@ final class ChapterPagesDatasource {
     await MainActor.run { chapterPages = remote }
 
     return remote
+  }
+
+  private func updateOrAppend(
+    _ pages: [PageModel]
+  ) {
+    var oldPages = self.pages.value
+
+    for page in pages {
+      if let i = oldPages.firstIndex(where: { $0.id == page.id }) {
+        oldPages[i] = page
+      } else {
+        oldPages.append(page)
+      }
+    }
+
+    self.pages.value = oldPages
   }
 
 }
@@ -163,7 +180,12 @@ extension ChapterPagesDatasource {
     let endIndex  = min(dataArray.count, offset + limit)
     let pagedData = dataArray[offset ..< endIndex]
 
-    await MainActor.run { currentPage += 1 }
+    await MainActor.run {
+      currentPage += 1
+      self.pages.value.append(
+        contentsOf: pagedData.indices.map { .loading($0) }
+      )
+    }
 
     let results = await withTaskGroup(of: PageModel.self, returning: [PageModel].self) { taskGroup in
       for (index, data) in pagedData.enumerated() {
@@ -171,7 +193,13 @@ extension ChapterPagesDatasource {
           do {
             let pageData = try await self.httpClient.makeDataGetRequest(url: "\(chapterPages.url)/\(data)")
 
-            return .remote(offset + index, pageData)
+            if let flippedData = self.flipData(pageData) {
+              return .remote(offset + index, flippedData)
+            } else {
+              print("MangaReaderViewModel -> Failed to flip page data")
+
+              return .notFound(offset + index)
+            }
           } catch {
             print("MangaReaderViewModel -> Page \(offset + index) failed download: \(error)")
 
@@ -188,6 +216,47 @@ extension ChapterPagesDatasource {
     print("MangaReaderViewModel -> Ending chapter download")
 
     return results
+  }
+
+  // TODO: There has to be a better way to do this
+  // Context: Using LazyHStack with right to left layout direction does not work
+  // For some reason, the stack is drawn showing the last page instead of the first
+  // The biggest nail since the crucifixion of Jesus Christ:
+  // On the view side we mirror the view when using rightToLeftLayout
+  // Here we also flip the data horizontally
+  // That way the LazyHStack is drawn correctly and the pages are also
+  private func flipData(_ data: Data) -> Data? {
+    guard let image = UIImage(data: data) else { return nil }
+
+    if let imageCG = image.cgImage {
+      let width  = imageCG.width
+      let height = imageCG.height
+      let bitsPerComponent = imageCG.bitsPerComponent
+      let bytesPerRow = imageCG.bytesPerRow
+
+      if 
+        let space = imageCG.colorSpace,
+        let context = CGContext(
+        data: nil,
+        width: width,
+        height: height,
+        bitsPerComponent: bitsPerComponent,
+        bytesPerRow: bytesPerRow,
+        space: space,
+        bitmapInfo: imageCG.bitmapInfo.rawValue
+      ) {
+        context.translateBy(x: CGFloat(width), y: 0)
+        context.scaleBy(x: -1.0, y: 1.0)
+
+        context.draw(imageCG, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        if let flippedImage = context.makeImage() {
+          return UIImage(cgImage: flippedImage).jpegData(compressionQuality: 1)
+        }
+      }
+    }
+
+    return nil
   }
 
 }

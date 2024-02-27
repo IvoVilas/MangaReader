@@ -99,16 +99,8 @@ final class MangaSearchDatasource {
           self.addCoversTo(updatedInfo)
         }
         print("MangaSearchDatasource -> Search task ended")
-      } catch is CancellationError {
-        print("MangaSearchDatasource -> Search task cancelled")
-      } catch let error as ParserError {
-        self.error.value = .errorParsingResponse(error.localizedDescription)
-      } catch let error as HttpError {
-        self.error.value = .networkError(error.localizedDescription)
-      } catch let error as CrudError {
-        self.error.value = .databaseError(error.localizedDescription)
       } catch {
-        self.error.value = .unexpectedError(error.localizedDescription)
+        catchError(error)
       }
 
       self.state.value = .normal
@@ -169,19 +161,30 @@ final class MangaSearchDatasource {
         }
 
         print("MangaSearchDatasource -> Finished loading page \(currentPage)")
-      } catch is CancellationError {
-        print("MangaSearchDatasource -> Loading page \(currentPage) task cancelled")
-      } catch let error as ParserError {
-        self.error.value = .errorParsingResponse(error.localizedDescription)
-      } catch let error as HttpError {
-        self.error.value = .networkError(error.localizedDescription)
-      } catch let error as CrudError {
-        self.error.value = .databaseError(error.localizedDescription)
       } catch {
-        self.error.value = .unexpectedError(error.localizedDescription)
+        catchError(error)
       }
 
       self.fetchTask = nil
+    }
+  }
+
+  private func catchError(_ error: Error) {
+    switch error {
+    case is CancellationError:
+      print("MangaSearchDatasource -> Task cancelled")
+
+    case let error as ParserError:
+      self.error.value = .errorParsingResponse(error.localizedDescription)
+
+    case let error as HttpError:
+      self.error.value = .networkError(error.localizedDescription)
+
+    case let error as CrudError:
+      self.error.value = .databaseError(error.localizedDescription)
+
+    default:
+      self.error.value = .unexpectedError(error.localizedDescription)
     }
   }
 

@@ -30,8 +30,6 @@ final class MangaDetailsDatasource {
   private let state: CurrentValueSubject<DatasourceState, Never>
   private let error: CurrentValueSubject<DatasourceError?, Never>
 
-  private var currentPage: Int? = nil
-
   var coverPublisher: AnyPublisher<UIImage?, Never> {
     cover.eraseToAnyPublisher()
   }
@@ -63,8 +61,6 @@ final class MangaDetailsDatasource {
   var errorPublisher: AnyPublisher<DatasourceError?, Never> {
     error.eraseToAnyPublisher()
   }
-
-  private var fetchTask: Task<Void, Never>?
 
   init(
     manga: MangaModel,
@@ -125,7 +121,7 @@ final class MangaDetailsDatasource {
           title: parsedData.title,
           about: parsedData.description,
           status: parsedData.status,
-          cover: cover?.pngData(),
+          cover: cover?.jpegData(compressionQuality: 1),
           moc: self.viewMoc
         )
 

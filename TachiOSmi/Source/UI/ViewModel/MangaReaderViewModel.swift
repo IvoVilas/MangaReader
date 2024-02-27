@@ -29,8 +29,7 @@ final class MangaReaderViewModel: ObservableObject {
     error     = nil
 
     datasource.pagesPublisher
-      .receive(on: DispatchQueue.main)
-      .debounce(for: 1, scheduler: DispatchQueue.main)
+      .debounce(for: 0.3, scheduler: DispatchQueue.main)
       .sink { [weak self] in self?.pages = $0 }
       .store(in: &observers)
 
@@ -49,8 +48,24 @@ final class MangaReaderViewModel: ObservableObject {
     await datasource.refresh()
   }
 
-  func loadNext() async {
-    await datasource.loadNextPages()
+  func loadNextIfNeeded(_ pageId: String) {
+    let count = pages.count
+
+    guard count - 3 >= 0 else {
+      if pageId == pages.last?.id {
+        Task(priority: .background) {
+          await datasource.loadNextPages()
+        }
+      }
+
+      return
+    }
+
+    if pageId == pages[count - 3].id {
+      Task(priority: .background) {
+        await datasource.loadNextPages()
+      }
+    }
   }
 
 }

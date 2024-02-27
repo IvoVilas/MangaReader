@@ -239,7 +239,9 @@ extension MangaChapterDatasource {
       throw ParserError.parameterNotFound("data")
     }
 
-    return chapterParser.parseChapterData(mangaId: mangaId, data: dataJson)
+    return chapterParser
+      .parseChapterData(mangaId: mangaId, data: dataJson)
+      .filter { $0.numberOfPages > 0 }
   }
 
 }

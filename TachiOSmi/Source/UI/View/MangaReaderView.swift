@@ -26,6 +26,11 @@ struct MangaReaderView: View {
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
+    // This flips the view horizontal when layout direction is right to left
+    // (view arrives flipped from the datasource)
+    .flipsForRightToLeftLayoutDirection(true)
+    // This changes layout direction so that HStack grows from right to left
+    .environment(\.layoutDirection, .rightToLeft)
     .background(.black)
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
@@ -48,10 +53,8 @@ struct MangaReaderView: View {
         LazyHStack(spacing: 0) {
           ForEach(viewModel.pages) { page in
             makePage(page, proxy: proxy)
-              .task(priority: .background) {
-                if page.id == viewModel.pages.last?.id {
-                  await viewModel.loadNext()
-                }
+              .onAppear {
+                viewModel.loadNextIfNeeded(page.id)
               }
           }
         }
@@ -62,10 +65,8 @@ struct MangaReaderView: View {
         LazyVStack(spacing: 0) {
           ForEach(viewModel.pages) { page in
             makePage(page, proxy: proxy)
-              .task(priority: .background) {
-                if page.id == viewModel.pages.last?.id {
-                  await viewModel.loadNext()
-                }
+              .onAppear {
+                viewModel.loadNextIfNeeded(page.id)
               }
           }
         }
