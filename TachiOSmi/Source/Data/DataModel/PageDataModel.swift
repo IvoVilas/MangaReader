@@ -24,4 +24,18 @@ enum PageModel: Identifiable {
       return "\(pos)"
     }
   }
+
+  var rawId: Int {
+    switch self {
+    case .remote(let pos, _):
+      return pos
+
+    case .loading(let pos):
+      return pos
+
+    case .notFound(let pos):
+      return pos
+    }
+  }
+
 }

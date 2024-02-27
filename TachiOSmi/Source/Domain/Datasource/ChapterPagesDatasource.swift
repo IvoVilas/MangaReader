@@ -18,7 +18,9 @@ final class ChapterPagesDatasource {
   private let error: CurrentValueSubject<DatasourceError?, Never>
 
   var pagesPublisher: AnyPublisher<[PageModel], Never> {
-    pages.eraseToAnyPublisher()
+    pages
+      .map { $0.sorted { $0.rawId < $1.rawId } }
+      .eraseToAnyPublisher()
   }
 
   var statePublisher: AnyPublisher<DatasourceState, Never> {
@@ -29,7 +31,8 @@ final class ChapterPagesDatasource {
     error.eraseToAnyPublisher()
   }
 
-  private var observers = Set<AnyCancellable>()
+  @MainActor private var currentPage = 0
+  @MainActor private var chapterPages: ChapterPagesModel?
 
   init(
     chapter: ChapterModel,
@@ -43,27 +46,84 @@ final class ChapterPagesDatasource {
     error = CurrentValueSubject(nil)
   }
 
+  // TODO: Falta colocar loading temporario enquanto páginas não carregam
   func refresh() async {
-    pages.value = (0..<chapter.numberOfPages).map { .loading($0) }
-    state.value = .loading
-
-    do {
-      try await makePagesRequest()
-    } catch let error as ParserError {
-      self.error.value = .errorParsingResponse(error.localizedDescription)
-    } catch let error as HttpError {
-      self.error.value = .networkError(error.localizedDescription)
-    } catch let error as CrudError {
-      self.error.value = .databaseError(error.localizedDescription)
-    } catch {
-      self.error.value = .unexpectedError(error.localizedDescription)
+    await MainActor.run {
+      self.currentPage = 0
+      self.pages.value = []
+      self.state.value = .loading
     }
 
-    state.value = .normal
+    var erro: DatasourceError?
+    var pages = [PageModel]()
+
+    do {
+      let chapterPages = try await getChapterPages()
+
+      pages = try await makePagesRequest(using: chapterPages)
+    } catch let error as ParserError {
+      erro = .errorParsingResponse(error.localizedDescription)
+    } catch let error as HttpError {
+      erro = .networkError(error.localizedDescription)
+    } catch let error as CrudError {
+      erro = .databaseError(error.localizedDescription)
+    } catch {
+      erro = .unexpectedError(error.localizedDescription)
+    }
+
+    await MainActor.run { [pages, erro] in
+      self.state.value = .normal
+      self.error.value = erro
+      self.pages.value = pages
+    }
   }
 
-  private func makePagesRequest() async throws {
-    print("MangaReaderViewModel -> Starting chapter download")
+  func loadNextPages() async {
+    var erro: DatasourceError?
+    var pages = [PageModel]()
+
+    do {
+      let chapterPages = try await getChapterPages()
+
+      pages = try await makePagesRequest(using: chapterPages)
+
+      if pages.isEmpty {
+        return
+      }
+    } catch let error as ParserError {
+      erro = .errorParsingResponse(error.localizedDescription)
+    } catch let error as HttpError {
+      erro = .networkError(error.localizedDescription)
+    } catch let error as CrudError {
+      erro = .databaseError(error.localizedDescription)
+    } catch {
+      erro = .unexpectedError(error.localizedDescription)
+    }
+
+    await MainActor.run { [pages, erro] in
+      self.error.value = erro
+      self.pages.value.append(contentsOf: pages)
+    }
+  }
+
+  private func getChapterPages() async throws -> ChapterPagesModel {
+    if let local = await chapterPages {
+      return local
+    }
+
+    let remote = try await makeChapterPagesRequest()
+
+    await MainActor.run { chapterPages = remote }
+
+    return remote
+  }
+
+}
+
+extension ChapterPagesDatasource {
+
+  private func makeChapterPagesRequest() async throws -> ChapterPagesModel {
+    print("MangaReaderViewModel -> Starting chapter page download info")
 
     let json = try await httpClient.makeJsonGetRequest(
       url: "https://api.mangadex.org/at-home/server/\(chapter.id)"
@@ -75,38 +135,59 @@ final class ChapterPagesDatasource {
       let hash = chapterJson["hash"] as? String,
       let dataArray = chapterJson["data"] as? [String]
     else {
-      pages.value = []
-
       throw ParserError.parsingError
     }
 
-    if dataArray.count != pages.value.count {
-      print("MangaReaderViewModel -> Number of pages did not match expected")
+    print("MangaReaderViewModel -> Ended chapter page download info")
 
-      pages.value = (0..<dataArray.count).map { .loading($0) }
+    return ChapterPagesModel(
+      baseUrl: baseUrl,
+      hash: hash,
+      data: dataArray
+    )
+  }
+
+  private func makePagesRequest(
+    using chapterPages: ChapterPagesModel
+  ) async throws -> [PageModel] {
+    print("MangaReaderViewModel -> Starting chapter download")
+
+    let limit     = 10
+    let offset    = await limit * currentPage
+    let dataArray = chapterPages.data
+
+    if offset >= dataArray.count {
+      return []
     }
 
-    _ = await withTaskGroup(of: Void.self) { taskGroup in
-      for (index, data) in dataArray.enumerated() {
+    let endIndex  = min(dataArray.count, offset + limit)
+    let pagedData = dataArray[offset ..< endIndex]
+
+    await MainActor.run { currentPage += 1 }
+
+    let results = await withTaskGroup(of: PageModel.self, returning: [PageModel].self) { taskGroup in
+      for (index, data) in pagedData.enumerated() {
         taskGroup.addTask {
           do {
-            let data = try await self.httpClient.makeDataGetRequest(url: "\(baseUrl)/data/\(hash)/\(data)")
+            let pageData = try await self.httpClient.makeDataGetRequest(url: "\(chapterPages.url)/\(data)")
 
-            await MainActor.run {
-              self.pages.value[index] = .remote(index, data)
-            }
+            return .remote(offset + index, pageData)
           } catch {
-            await MainActor.run {
-              self.pages.value[index] = .notFound(index)
-            }
+            print("MangaReaderViewModel -> Page \(offset + index) failed download: \(error)")
+
+            return .notFound(offset + index)
           }
         }
+      }
 
-        await taskGroup.waitForAll()
+      return await taskGroup.reduce(into: [PageModel]()) { partialResult, page in
+        partialResult.append(page)
       }
     }
 
     print("MangaReaderViewModel -> Ending chapter download")
+
+    return results
   }
 
 }

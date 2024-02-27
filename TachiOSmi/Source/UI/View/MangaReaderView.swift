@@ -27,7 +27,6 @@ struct MangaReaderView: View {
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
     .background(.black)
-    .environment(\.layoutDirection, .rightToLeft)
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
         Button {
@@ -46,20 +45,28 @@ struct MangaReaderView: View {
   ) -> some View {
     if isHorizontal {
       ScrollView(.horizontal) {
-        HStack(spacing: 0) {
+        LazyHStack(spacing: 0) {
           ForEach(viewModel.pages) { page in
-            makePage(page)
-              .frame(width: proxy.size.width)
+            makePage(page, proxy: proxy)
+              .task(priority: .background) {
+                if page.id == viewModel.pages.last?.id {
+                  await viewModel.loadNext()
+                }
+              }
           }
         }
       }
       .scrollTargetBehavior(.paging)
     } else {
       ScrollView {
-        VStack(spacing: 0) {
+        LazyVStack(spacing: 0) {
           ForEach(viewModel.pages) { page in
-            makePage(page)
-              .frame(width: proxy.size.width)
+            makePage(page, proxy: proxy)
+              .task(priority: .background) {
+                if page.id == viewModel.pages.last?.id {
+                  await viewModel.loadNext()
+                }
+              }
           }
         }
       }
@@ -68,23 +75,27 @@ struct MangaReaderView: View {
 
   @ViewBuilder
   private func makePage(
-    _ page: PageModel
+    _ page: PageModel,
+    proxy: GeometryProxy
   ) -> some View {
     switch page {
     case .remote(_, let data):
       Image(uiImage: UIImage(data: data) ?? .coverNotFound)
         .resizable()
         .aspectRatio(contentMode: .fit)
+        .frame(width: proxy.size.width)
 
     case .loading:
       ProgressView()
         .progressViewStyle(.circular)
         .tint(.white)
+        .frame(width: proxy.size.width, height: proxy.size.height)
 
     case .notFound:
       Image(uiImage: .coverNotFound)
         .resizable()
         .aspectRatio(contentMode: .fit)
+        .frame(width: proxy.size.width)
     }
   }
 

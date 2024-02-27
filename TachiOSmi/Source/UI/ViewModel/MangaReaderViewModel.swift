@@ -30,7 +30,7 @@ final class MangaReaderViewModel: ObservableObject {
 
     datasource.pagesPublisher
       .receive(on: DispatchQueue.main)
-      .debounce(for: 0.3, scheduler: DispatchQueue.main)
+      .debounce(for: 1, scheduler: DispatchQueue.main)
       .sink { [weak self] in self?.pages = $0 }
       .store(in: &observers)
 
@@ -47,6 +47,10 @@ final class MangaReaderViewModel: ObservableObject {
 
   func fetchPages() async {
     await datasource.refresh()
+  }
+
+  func loadNext() async {
+    await datasource.loadNextPages()
   }
 
 }
