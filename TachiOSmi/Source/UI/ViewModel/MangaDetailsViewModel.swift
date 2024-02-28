@@ -120,17 +120,15 @@ extension MangaDetailsViewModel {
     await chaptersDatasource.refresh()
   }
 
-  func forceRefresh() {
-    Task {
-      await detailsDatasource.refresh()
-      await chaptersDatasource.refresh()
-    }
+  func forceRefresh() async {
+    await detailsDatasource.refresh()
+    await chaptersDatasource.refresh()
   }
 
   func buildReaderViewModel(
     _ chapter: ChapterModel
-  ) -> MangaReaderViewModel {
-    return MangaReaderViewModel(
+  ) -> ChapterReaderViewModel {
+    return ChapterReaderViewModel(
       datasource: ChapterPagesDatasource(
         chapter: chapter,
         httpClient: AppEnv.env.httpClient

@@ -59,9 +59,11 @@ struct MangaDetailsView: View {
     .ignoresSafeArea(.all, edges: .top)
     .background(.black)
     .onAppear {
-      Task { await viewModel.setupData() }
+      Task(priority: .medium) { await viewModel.setupData() }
     }
-    .refreshable { viewModel.forceRefresh() }
+    .refreshable {
+      Task(priority: .medium) { await viewModel.forceRefresh() }
+    }
     .navigationDestination(for: ChapterModel.self) { chapter in
       ChapterReaderView(
         viewModel: viewModel.buildReaderViewModel(chapter)

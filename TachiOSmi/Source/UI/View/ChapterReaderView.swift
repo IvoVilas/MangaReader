@@ -14,7 +14,7 @@ import Combine
 // Basically, I do a double flip to make it work
 struct ChapterReaderView: View {
 
-  @ObservedObject var viewModel: MangaReaderViewModel
+  @ObservedObject var viewModel: ChapterReaderViewModel
   @State private var isHorizontal = true
   @State private var toast: Toast?
 
@@ -67,7 +67,7 @@ struct ChapterReaderView: View {
               .flipsForRightToLeftLayoutDirection(true)
               .environment(\.layoutDirection, .rightToLeft)
               .onAppear {
-                Task(priority: .background) {
+                Task(priority: .medium) {
                   await viewModel.loadNextIfNeeded(page.id)
                 }
               }
@@ -84,7 +84,7 @@ struct ChapterReaderView: View {
               .flipsForRightToLeftLayoutDirection(true)
               .environment(\.layoutDirection, .rightToLeft)
               .onAppear {
-                Task(priority: .background) {
+                Task(priority: .medium) {
                   await viewModel.loadNextIfNeeded(page.id)
                 }
               }
@@ -102,7 +102,7 @@ struct ChapterReaderView: View {
   ) -> some View {
       switch page {
       case .remote(_, let data):
-        Image(uiImage: UIImage(data: data) ?? .coverNotFound)
+        Image(uiImage: UIImage(data: data) ?? .imageNotFound)
           .resizable()
           .aspectRatio(contentMode: .fit)
           .frame(width: proxy.size.width)
@@ -115,7 +115,7 @@ struct ChapterReaderView: View {
 
       case .notFound:
         ZStack(alignment: .bottom) {
-          Image(uiImage: .coverNotFound)
+          Image(uiImage: .imageNotFound)
             .resizable()
             .aspectRatio(contentMode: .fit)
 
@@ -148,7 +148,7 @@ struct ChapterReaderView: View {
 
 #Preview {
   ChapterReaderView(
-    viewModel: MangaReaderViewModel(
+    viewModel: ChapterReaderViewModel(
       datasource: ChapterPagesDatasource(
         chapter: ChapterModel(
           id: "556c3feb-8c62-43de-b872-4657730d31a1",

@@ -52,21 +52,19 @@ final class MangaSearchViewModel: ObservableObject {
       .store(in: &observers)
   }
 
-  func doSearch() {
-    Task {
-      await datasource.searchManga(input)
-    }
-  }
-
-  func loadNext() {
-    Task {
-      await datasource.loadNextPage(input)
-    }
-  }
-
 }
 
 extension MangaSearchViewModel {
+
+  func doSearch() async {
+    await datasource.searchManga(input)
+  }
+
+  func loadNextIfNeeded(_ id: String) async {
+    if id == results.last?.id {
+      await datasource.loadNextPage(input)
+    }
+  }
 
   func buildMangaDetailsViewModel(
     _ manga: MangaModel

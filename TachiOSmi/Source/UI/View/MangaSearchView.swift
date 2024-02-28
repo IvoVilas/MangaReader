@@ -33,9 +33,9 @@ struct MangaSearchView: View {
           ForEach(viewModel.results) { result in
             NavigationLink(value: result) {
               makeResultView(manga: result)
-                .task {
-                  if result.id == viewModel.results.last?.id {
-                    viewModel.loadNext()
+                .onAppear {
+                  Task(priority: .medium) {
+                    await viewModel.loadNextIfNeeded(result.id)
                   }
                 }
             }
@@ -44,11 +44,15 @@ struct MangaSearchView: View {
         .padding(16)
       }
       .scrollIndicators(.hidden)
-      .refreshable { viewModel.doSearch() }
+      .refreshable {
+        Task(priority: .medium) {
+          await viewModel.doSearch()
+        }
+      }
       .onAppear {
-        Task {
+        Task(priority: .medium) {
           if viewModel.results.isEmpty {
-            viewModel.doSearch()
+            await viewModel.doSearch()
           }
         }
       }
@@ -128,7 +132,11 @@ struct MangaSearchHeaderView: View {
       .textInputAutocapitalization(.sentences)
       .autocorrectionDisabled(true)
       .padding(.vertical, 8)
-      .onSubmit { viewModel.doSearch() }
+      .onSubmit {
+        Task(priority: .medium) {
+          await viewModel.doSearch()
+        }
+      }
       .submitLabel(.search)
 
       Button {
