@@ -21,6 +21,7 @@ final class MangaDetailsViewModel: ObservableObject {
   @Published var authors: [AuthorModel]
   @Published var tags: [TagModel]
   @Published var chapters: [ChapterModel]
+  @Published var chapterCount: Int
   @Published var isLoading: Bool
   @Published var isImageLoading: Bool
   @Published var error: DatasourceError?
@@ -40,6 +41,7 @@ final class MangaDetailsViewModel: ObservableObject {
     authors        = []
     tags           = []
     chapters       = []
+    chapterCount   = 0
     isLoading      = false
     isImageLoading = false
 
@@ -85,6 +87,12 @@ final class MangaDetailsViewModel: ObservableObject {
       .sink { [weak self] in self?.chapters = $0 }
       .store(in: &observers)
 
+    chaptersDatasource.countPublisher
+      .removeDuplicates()
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in self?.chapterCount = $0 }
+      .store(in: &observers)
+
     Publishers.CombineLatest(
       detailsDatasource.statePublisher,
       chaptersDatasource.statePublisher
@@ -116,13 +124,25 @@ final class MangaDetailsViewModel: ObservableObject {
 extension MangaDetailsViewModel {
 
   func setupData() async {
-    await detailsDatasource.setupData()
-    await chaptersDatasource.refresh()
+    if chapters.isEmpty {
+      await detailsDatasource.setupData()
+      await chaptersDatasource.setupData()
+    }
   }
 
   func forceRefresh() async {
     await detailsDatasource.refresh()
     await chaptersDatasource.refresh()
+  }
+
+  func loadNextChaptersIfNeeded(_ id: String) async {
+    if await !chaptersDatasource.hasMorePages {
+      return
+    }
+
+    if id == chapters.last?.id {
+      await chaptersDatasource.loadNextPage()
+    }
   }
 
   func buildReaderViewModel(

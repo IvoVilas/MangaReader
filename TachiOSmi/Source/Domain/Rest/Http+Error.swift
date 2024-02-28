@@ -10,7 +10,7 @@ import Foundation
 enum HttpError: Error {
   case invalidUrl
   case invalidResponse
-  case responseNotOk
+  case responseNotOk(Int)
   case requestError(Error)
 
   var localizedDescription: String {
@@ -21,8 +21,8 @@ enum HttpError: Error {
     case .invalidResponse:
       return "Could not parse response"
 
-    case .responseNotOk:
-      return "Response code is not 200"
+    case .responseNotOk(let code):
+      return "Got response code \(code). You may need to wait before trying again"
 
     case .requestError(let error):
       return "Request error: \(error.localizedDescription)"

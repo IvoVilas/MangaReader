@@ -21,11 +21,16 @@ final class MangaChapterDatasource {
   private let viewMoc: NSManagedObjectContext
 
   private let chapters: CurrentValueSubject<[ChapterModel], Never>
+  private let count: CurrentValueSubject<Int, Never>
   private let state: CurrentValueSubject<DatasourceState, Never>
   private let error: CurrentValueSubject<DatasourceError?, Never>
 
   var chaptersPublisher: AnyPublisher<[ChapterModel], Never> {
     chapters.eraseToAnyPublisher()
+  }
+
+  var countPublisher: AnyPublisher<Int, Never> {
+    count.eraseToAnyPublisher()
   }
 
   var statePublisher: AnyPublisher<DatasourceState, Never> {
@@ -38,6 +43,12 @@ final class MangaChapterDatasource {
 
   var stateValue: DatasourceState {
     state.value
+  }
+
+  @MainActor var hasMorePages = true
+  @MainActor private var currentPage = 0
+  @MainActor private var results = [ChapterModel]() {
+    didSet { count.valueOnMain = results.count }
   }
 
   private var fetchTask: Task<Void, Never>?
@@ -71,43 +82,113 @@ final class MangaChapterDatasource {
     self.viewMoc        = viewMoc
 
     chapters = CurrentValueSubject([])
+    count    = CurrentValueSubject(0)
     state    = CurrentValueSubject(.starting)
     error    = CurrentValueSubject(nil)
   }
 
-  func refresh(
-    isForceRefresh: Bool = false
-  ) async {
+  func setupData() async {
     if let fetchTask {
       fetchTask.cancel()
 
       await fetchTask.value
     }
 
-    state.value    = .loading
-    chapters.value = []
-    error.value    = nil
+    await MainActor.run {
+      state.valueOnMain = .loading
+      chapters.valueOnMain = []
+      error.valueOnMain = nil
+      hasMorePages = true
+      currentPage = 0
+      results = []
+    }
 
     fetchTask = Task { [weak self] in
-      print("MangaChapterDatasource -> Started chapter fetch task")
       guard let self else { return }
 
+      var results = [ChapterModel]()
+      var erro: DatasourceError?
+
       do {
-        self.chapters.value = try await self.fetchLocalChapters()
+        results = try await self.fetchLocalChapters()
 
-        if isForceRefresh {
-          try await self.chapterRefresh()
-        } else {
-          try await self.chapterRefreshIfNeeded()
+        if results.isEmpty {
+          results = try await self.fetchChapters()
         }
-      } catch {
-        catchError(error)
+
+        await MainActor.run { [results] in
+          self.results = results
+          self.sendNextChapters()
+        }
+
+        let newResults = try await fetchRemoteChaptersIfNeeded()
+
+        if !newResults.isEmpty {
+          await MainActor.run { [newResults] in
+            self.results = newResults
+            self.sendAllLoadedChapters()
+          }
+
+          try await updateDatabase(
+            chapters: newResults,
+            updatedAt: self.systemDateTime.now
+          )
+        }
+      } catch { erro = catchError(error) }
+
+      await MainActor.run { [erro] in
+        self.state.valueOnMain = .normal
+        self.error.valueOnMain = erro
+        self.fetchTask = nil
       }
+    }
+  }
 
-      self.state.value = .normal
-      self.fetchTask   = nil
+  func refresh() async {
+    if let fetchTask {
+      fetchTask.cancel()
 
-      print("MangaChapterDatasource -> Ended chapter fetch task")
+      await fetchTask.value
+    }
+
+    await MainActor.run {
+      state.valueOnMain = .loading
+      error.valueOnMain = nil
+    }
+
+    fetchTask = Task { [weak self] in
+      guard let self else { return }
+
+      var results = [ChapterModel]()
+      var erro: DatasourceError?
+
+      do {
+        try await Task.sleep(nanoseconds: 5_000_000_000)
+
+        results = try await self.fetchChapters()
+
+        await MainActor.run { [results] in
+          self.results = results
+          self.sendAllLoadedChapters()      
+        }
+
+        try await updateDatabase(
+          chapters: results,
+          updatedAt: self.systemDateTime.now
+        )
+      } catch { erro = catchError(error) }
+
+      await MainActor.run { [erro] in
+        self.state.valueOnMain = .normal
+        self.error.valueOnMain = erro
+        self.fetchTask = nil
+      }
+    }
+  }
+
+  func loadNextPage() async {
+    await MainActor.run {
+      sendNextChapters()
     }
   }
 
@@ -118,41 +199,50 @@ final class MangaChapterDatasource {
       .sorted(by: MangaChapterDatasource.sortByNumber)
   }
 
-  private func chapterRefreshIfNeeded() async throws {
-    try Task.checkCancellation()
-
+  private func fetchRemoteChaptersIfNeeded() async throws -> [ChapterModel] {
     guard let manga = try mangaCrud.getManga(mangaId, moc: viewMoc) else {
       throw CrudError.mangaNotFound(id: mangaId)
     }
 
     guard let lastUpdateAt = manga.lastUpdateAt else {
-      try await chapterRefresh()
-
-      return
+      return try await fetchChapters()
     }
 
     if systemDateTime.comparator.isDate(
       lastUpdateAt,
       lessThanOrEqual: systemDateTime.calculator.removeDays(5, to: systemDateTime.now)
     ) {
-      try await chapterRefresh()
+      return try await fetchChapters()
     }
+
+    return []
   }
 
-  private func chapterRefresh() async throws {
-    print("MangaChapterDatasource -> Fetch task started")
-    try Task.checkCancellation()
+  @MainActor
+  private func sendNextChapters() {
+    let limit = 30
+    let i = currentPage * limit
+    let j = min(i + limit, results.count)
 
-    let results = try await fetchChapters()
+    if i > j {
+      hasMorePages = false
 
-    chapters.value = results
+      return
+    }
 
-    try await self.updateDatabase(
-      chapters: results,
-      updatedAt: Date()
-    )
+    chapters.valueOnMain.append(contentsOf: results[i..<j])
 
-    print("MangaChapterDatasource -> Fetch task ended")
+    currentPage += 1
+  }
+
+  @MainActor 
+  func sendAllLoadedChapters() {
+    let limit = 30
+    let i = min(currentPage * limit, results.count)
+
+    hasMorePages = i < results.count
+
+    chapters.valueOnMain = Array(results[0..<i])
   }
 
 }
@@ -194,23 +284,25 @@ extension MangaChapterDatasource {
 // MARK: Error
 extension MangaChapterDatasource {
 
-  private func catchError(_ error: Error) {
+  private func catchError(_ error: Error) -> DatasourceError? {
     switch error {
     case is CancellationError:
       print("MangaChapterDatasource -> Task cancelled")
 
     case let error as ParserError:
-      self.error.value = .errorParsingResponse(error.localizedDescription)
+      return .errorParsingResponse(error.localizedDescription)
 
     case let error as HttpError:
-      self.error.value = .networkError(error.localizedDescription)
+      return .networkError(error.localizedDescription)
 
     case let error as CrudError:
-      self.error.value = .databaseError(error.localizedDescription)
+      return .databaseError(error.localizedDescription)
 
     default:
-      self.error.value = .unexpectedError(error.localizedDescription)
+      return .unexpectedError(error.localizedDescription)
     }
+
+    return nil
   }
 
 }

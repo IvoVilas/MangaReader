@@ -30,7 +30,9 @@ final class HttpClient {
         let response = response as? HTTPURLResponse,
         response.statusCode == 200
       else {
-        throw HttpError.responseNotOk
+        let code = (response as? HTTPURLResponse)?.statusCode ?? -1
+
+        throw HttpError.responseNotOk(code)
       }
 
       guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
@@ -44,6 +46,8 @@ final class HttpClient {
       } else {
         throw HttpError.requestError(error)
       }
+    } catch let error as HttpError {
+      throw error
     } catch {
       throw HttpError.requestError(error)
     }
@@ -66,7 +70,9 @@ final class HttpClient {
         let response = response as? HTTPURLResponse,
         response.statusCode == 200
       else {
-        throw HttpError.responseNotOk
+        let code = (response as? HTTPURLResponse)?.statusCode ?? -1
+
+        throw HttpError.responseNotOk(code)
       }
 
       return data
@@ -76,6 +82,8 @@ final class HttpClient {
       } else {
         throw HttpError.requestError(error)
       }
+    } catch let error as HttpError {
+      throw error
     } catch {
       throw HttpError.requestError(error)
     }

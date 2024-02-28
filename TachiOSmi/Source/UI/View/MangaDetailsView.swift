@@ -39,17 +39,22 @@ struct MangaDetailsView: View {
 
         Spacer().frame(height: 16)
 
-        Text("\(viewModel.chapters.count) chapters")
+        Text("\(viewModel.chapterCount) chapters")
           .font(.headline)
           .foregroundStyle(.white)
           .padding(.horizontal, 24)
 
         Spacer().frame(height: 24)
 
-        VStack(alignment: .leading, spacing: 24) {
+        LazyVStack(alignment: .leading, spacing: 24) {
           ForEach(viewModel.chapters) { chapter in
             NavigationLink(value: chapter) {
               makeChapterView(chapter)
+                .onAppear {
+                  Task(priority: .userInitiated) {
+                    await viewModel.loadNextChaptersIfNeeded(chapter.id)
+                  }
+                }
             }
           }
         }

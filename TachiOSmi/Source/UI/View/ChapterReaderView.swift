@@ -27,7 +27,11 @@ struct ChapterReaderView: View {
           .opacity(viewModel.pages.count == 0 ? 1 : 0)
 
         makeScrollView(geo)
-          .task(priority: .background) { await viewModel.fetchPages() }
+          .onAppear {
+            Task(priority: .medium) {
+              await viewModel.fetchPages()
+            }
+          }
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
