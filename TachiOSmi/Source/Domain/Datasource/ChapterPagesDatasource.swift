@@ -52,8 +52,8 @@ final class ChapterPagesDatasource {
     await MainActor.run {
       self.currentPage = 0
       self.hasMorePages = true
-      self.pages.value = []
-      self.state.value = .loading
+      self.pages.valueOnMain = []
+      self.state.valueOnMain = .loading
     }
 
     var erro: DatasourceError?
@@ -75,8 +75,8 @@ final class ChapterPagesDatasource {
     }
 
     await MainActor.run { [pages, erro, hasMorePages] in
-      self.error.value = erro
-      self.pages.value = pages
+      self.error.valueOnMain = erro
+      self.pages.valueOnMain = pages
       self.hasMorePages = hasMorePages
     }
   }
@@ -102,7 +102,7 @@ final class ChapterPagesDatasource {
     }
 
     await MainActor.run { [pages, erro, hasMorePages] in
-      self.error.value = erro
+      self.error.valueOnMain = erro
       self.hasMorePages = hasMorePages
       
       self.updateOrAppend(pages)
@@ -112,9 +112,7 @@ final class ChapterPagesDatasource {
   func reloadPages(
     _ pages: [(id: Int, url: String)]
   ) async {
-    await MainActor.run {
-      self.tryToUpdatePages(pages.map { .loading($0.id) })
-    }
+    await self.tryToUpdatePages(pages.map { .loading($0.id) })
 
     await withTaskGroup(of: Void.self) { taskGroup in
       for info in pages {
@@ -136,7 +134,7 @@ final class ChapterPagesDatasource {
           }
 
           await MainActor.run { [page, erro] in
-            self.error.value = erro
+            self.error.valueOnMain = erro
             self.tryToUpdatePage(page)
           }
 
@@ -169,26 +167,22 @@ final class ChapterPagesDatasource {
   private func tryToUpdatePage(
     _ page: PageModel
   ) {
-    if let i = pages.value.firstIndex(where: { $0.id == page.id }) {
-      pages.value[i] = page
+    if let i = pages.valueOnMain.firstIndex(where: { $0.id == page.id }) {
+      pages.valueOnMain[i] = page
     }
   }
 
   @MainActor
   private func updateOrAppend(
-    _ pages: [PageModel]
+    _ info: [PageModel]
   ) {
-    var oldPages = self.pages.value
-
-    for page in pages {
-      if let i = oldPages.firstIndex(where: { $0.id == page.id }) {
-        oldPages[i] = page
+    for page in info {
+      if let i = pages.valueOnMain.firstIndex(where: { $0.id == page.id }) {
+        pages.valueOnMain[i] = page
       } else {
-        oldPages.append(page)
+        pages.valueOnMain.append(page)
       }
     }
-
-    self.pages.value = oldPages
   }
 
 }
@@ -274,7 +268,7 @@ extension ChapterPagesDatasource {
     let pagedData = dataArray[offset ..< endIndex]
 
     await MainActor.run {
-      self.pages.value.append(
+      self.pages.valueOnMain.append(
         contentsOf: pagedData.indices.map { .loading($0) }
       )
     }

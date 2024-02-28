@@ -55,6 +55,7 @@
 		1EF20A332B8E928E00D17A65 /* CoverMO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF20A322B8E928E00D17A65 /* CoverMO.swift */; };
 		1EF20A352B8E931A00D17A65 /* CoverCrud.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF20A342B8E931A00D17A65 /* CoverCrud.swift */; };
 		1EF20A372B8EA18D00D17A65 /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF20A362B8EA18D00D17A65 /* ToastView.swift */; };
+		1EF20A3E2B8ED3C700D17A65 /* Combine+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF20A3D2B8ED3C700D17A65 /* Combine+Extension.swift */; };
 		1EF815F62B82163F00D9759F /* TachiOSmiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF815F52B82163F00D9759F /* TachiOSmiApp.swift */; };
 		1EF815F82B82163F00D9759F /* MangaSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF815F72B82163F00D9759F /* MangaSearchView.swift */; };
 		1EF815FA2B82164300D9759F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1EF815F92B82164300D9759F /* Assets.xcassets */; };
@@ -117,6 +118,7 @@
 		1EF20A322B8E928E00D17A65 /* CoverMO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoverMO.swift; sourceTree = "<group>"; };
 		1EF20A342B8E931A00D17A65 /* CoverCrud.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoverCrud.swift; sourceTree = "<group>"; };
 		1EF20A362B8EA18D00D17A65 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
+		1EF20A3D2B8ED3C700D17A65 /* Combine+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Combine+Extension.swift"; sourceTree = "<group>"; };
 		1EF815F22B82163F00D9759F /* TachiOSmi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TachiOSmi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1EF815F52B82163F00D9759F /* TachiOSmiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TachiOSmiApp.swift; sourceTree = "<group>"; };
 		1EF815F72B82163F00D9759F /* MangaSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaSearchView.swift; sourceTree = "<group>"; };
@@ -147,6 +149,7 @@
 		1E12352F2B85341A0022652F /* Common */ = {
 			isa = PBXGroup;
 			children = (
+				1EF20A3C2B8ED3B500D17A65 /* Combine */,
 				1EF20A382B8EB59C00D17A65 /* CoreData */,
 				1E1235302B8534220022652F /* SystemDateTime */,
 			);
@@ -275,6 +278,14 @@
 				1EE89F692B84D87B000CAA20 /* Moc+Extension.swift */,
 			);
 			path = CoreData;
+			sourceTree = "<group>";
+		};
+		1EF20A3C2B8ED3B500D17A65 /* Combine */ = {
+			isa = PBXGroup;
+			children = (
+				1EF20A3D2B8ED3C700D17A65 /* Combine+Extension.swift */,
+			);
+			path = Combine;
 			sourceTree = "<group>";
 		};
 		1EF815E92B82163F00D9759F = {
@@ -479,6 +490,7 @@
 				1EF8161C2B83453400D9759F /* MangaDataModel.swift in Sources */,
 				1EE89F652B84D237000CAA20 /* MangaParser.swift in Sources */,
 				1EF816162B82A89B00D9759F /* MangaDetailsViewModel.swift in Sources */,
+				1EF20A3E2B8ED3C700D17A65 /* Combine+Extension.swift in Sources */,
 				1EF815FF2B82164300D9759F /* Persistence.swift in Sources */,
 				1EE89F622B84D1A7000CAA20 /* TagCrud.swift in Sources */,
 				1E1235432B8534580022652F /* SystemDateTimeInterval.swift in Sources */,

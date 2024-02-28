@@ -75,7 +75,7 @@ extension MangaReaderViewModel {
   func reloadPages(startingAt page: PageModel) async {
     guard let i = pages.firstIndex(where: { $0.id == page.id }) else { return }
 
-    let j = min(i + 10, pages.count - 1)
+    let j = min(i + 10, pages.count)
     let pages = pages[i..<j].compactMap {
       switch $0 {
       case .notFound(let id, let url):
