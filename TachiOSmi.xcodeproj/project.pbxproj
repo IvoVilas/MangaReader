@@ -51,7 +51,7 @@
 		1EE89F6E2B84DD48000CAA20 /* TagDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EE89F6D2B84DD48000CAA20 /* TagDataModel.swift */; };
 		1EE89F702B84DD65000CAA20 /* AuthorDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EE89F6F2B84DD65000CAA20 /* AuthorDataModel.swift */; };
 		1EF20A2F2B8DF9D500D17A65 /* PageDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF20A2E2B8DF9D500D17A65 /* PageDataModel.swift */; };
-		1EF20A312B8E443500D17A65 /* ChapterPagesDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF20A302B8E443500D17A65 /* ChapterPagesDataModel.swift */; };
+		1EF20A312B8E443500D17A65 /* ChapterDownloadInfoModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF20A302B8E443500D17A65 /* ChapterDownloadInfoModel.swift */; };
 		1EF20A332B8E928E00D17A65 /* CoverMO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF20A322B8E928E00D17A65 /* CoverMO.swift */; };
 		1EF20A352B8E931A00D17A65 /* CoverCrud.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF20A342B8E931A00D17A65 /* CoverCrud.swift */; };
 		1EF20A372B8EA18D00D17A65 /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF20A362B8EA18D00D17A65 /* ToastView.swift */; };
@@ -114,7 +114,7 @@
 		1EE89F6D2B84DD48000CAA20 /* TagDataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagDataModel.swift; sourceTree = "<group>"; };
 		1EE89F6F2B84DD65000CAA20 /* AuthorDataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthorDataModel.swift; sourceTree = "<group>"; };
 		1EF20A2E2B8DF9D500D17A65 /* PageDataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageDataModel.swift; sourceTree = "<group>"; };
-		1EF20A302B8E443500D17A65 /* ChapterPagesDataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterPagesDataModel.swift; sourceTree = "<group>"; };
+		1EF20A302B8E443500D17A65 /* ChapterDownloadInfoModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterDownloadInfoModel.swift; sourceTree = "<group>"; };
 		1EF20A322B8E928E00D17A65 /* CoverMO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoverMO.swift; sourceTree = "<group>"; };
 		1EF20A342B8E931A00D17A65 /* CoverCrud.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoverCrud.swift; sourceTree = "<group>"; };
 		1EF20A362B8EA18D00D17A65 /* ToastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
@@ -388,7 +388,7 @@
 			children = (
 				1EF8161B2B83453400D9759F /* MangaDataModel.swift */,
 				1EF8161D2B83456900D9759F /* ChapterDataModel.swift */,
-				1EF20A302B8E443500D17A65 /* ChapterPagesDataModel.swift */,
+				1EF20A302B8E443500D17A65 /* ChapterDownloadInfoModel.swift */,
 				1EF20A2E2B8DF9D500D17A65 /* PageDataModel.swift */,
 				1EE89F6F2B84DD65000CAA20 /* AuthorDataModel.swift */,
 				1EE89F6D2B84DD48000CAA20 /* TagDataModel.swift */,
@@ -515,7 +515,7 @@
 				1E1235402B8534580022652F /* SystemDateTimeType.swift in Sources */,
 				1EE89F582B84CBBD000CAA20 /* MangaCrud.swift in Sources */,
 				1EE89F492B84C519000CAA20 /* AuthorMO.swift in Sources */,
-				1EF20A312B8E443500D17A65 /* ChapterPagesDataModel.swift in Sources */,
+				1EF20A312B8E443500D17A65 /* ChapterDownloadInfoModel.swift in Sources */,
 				1EF816192B83444A00D9759F /* MangaChapterDatasource.swift in Sources */,
 				1EE89F702B84DD65000CAA20 /* AuthorDataModel.swift in Sources */,
 				1E12352E2B8524B10022652F /* ChapterParser.swift in Sources */,

@@ -8,7 +8,7 @@
 import SwiftUI
 import Combine
 
-// LazyStacks do not work well with layoutDirection rightToLeft
+// LazyStacks does not work well with layoutDirection rightToLeft
 // To make it work I had to also enable flipsForRightToLeftLayoutDirection
 // Twist, pages were flipped, so I also need to flip every single page
 // Basically, I do a double flip to make it work
@@ -19,22 +19,23 @@ struct ChapterReaderView: View {
   @State private var toast: Toast?
 
   var body: some View {
-    GeometryReader { geo in
-      ZStack(alignment: .center) {
-        ProgressView()
-          .progressViewStyle(.circular)
-          .tint(.white)
-          .opacity(viewModel.pages.count == 0 ? 1 : 0)
+    ZStack(alignment: .center) {
+      ProgressView()
+        .progressViewStyle(.circular)
+        .tint(.white)
+        .opacity(viewModel.pages.count == 0 ? 1 : 0)
+        .flipsForRightToLeftLayoutDirection(true)
+        .environment(\.layoutDirection, .rightToLeft)
 
-        makeScrollView(geo)
-          .onAppear {
-            Task(priority: .medium) {
-              await viewModel.fetchPages()
-            }
+      makeScrollView()
+        .onAppear {
+          Task(priority: .medium) {
+            await viewModel.fetchPages()
           }
-      }
-      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        }
     }
+    .ignoresSafeArea()
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     .flipsForRightToLeftLayoutDirection(true)
     .environment(\.layoutDirection, .rightToLeft)
     .background(.black)
@@ -60,14 +61,12 @@ struct ChapterReaderView: View {
   }
 
   @ViewBuilder
-  private func makeScrollView(
-    _ proxy: GeometryProxy
-  ) -> some View {
+  private func makeScrollView() -> some View {
     if isHorizontal {
       ScrollView(.horizontal) {
         LazyHStack(spacing: 0) {
           ForEach(viewModel.pages) { page in
-            makePage(page: page, proxy: proxy)
+            makePage(page: page)
               .flipsForRightToLeftLayoutDirection(true)
               .environment(\.layoutDirection, .rightToLeft)
               .onAppear {
@@ -84,7 +83,7 @@ struct ChapterReaderView: View {
       ScrollView {
         LazyVStack(spacing: 0) {
           ForEach(viewModel.pages) { page in
-            makePage(page: page, proxy: proxy)
+            makePage(page: page)
               .flipsForRightToLeftLayoutDirection(true)
               .environment(\.layoutDirection, .rightToLeft)
               .onAppear {
@@ -101,51 +100,53 @@ struct ChapterReaderView: View {
 
   @ViewBuilder
   private func makePage(
-    page: PageModel,
-    proxy: GeometryProxy
+    page: PageModel
   ) -> some View {
-      switch page {
-      case .remote(_, let data):
-        Image(uiImage: UIImage(data: data) ?? .imageNotFound)
+    switch page {
+    case .remote(_, let data):
+      Image(uiImage: UIImage(data: data) ?? .imageNotFound)
+        .resizable()
+        .aspectRatio(contentMode: .fit)
+        .frame(width: UIScreen.main.bounds.width)
+
+    case .loading:
+      ProgressView()
+        .progressViewStyle(.circular)
+        .tint(.white)
+        .frame(
+          width: UIScreen.main.bounds.width,
+          height: UIScreen.main.bounds.height
+        )
+
+    case .notFound:
+      ZStack(alignment: .bottom) {
+        Image(uiImage: .imageNotFound)
           .resizable()
           .aspectRatio(contentMode: .fit)
-          .frame(width: proxy.size.width)
 
-      case .loading:
-        ProgressView()
-          .progressViewStyle(.circular)
-          .tint(.white)
-          .frame(width: proxy.size.width, height: proxy.size.height)
-
-      case .notFound:
-        ZStack(alignment: .bottom) {
-          Image(uiImage: .imageNotFound)
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-
-          Button {
-            Task(priority: .userInitiated) {
-              await viewModel.reloadPages(startingAt: page)
-            }
-          } label: {
-            HStack(alignment: .center, spacing: 8) {
-              Text("Retry")
-                .font(.body)
-                .foregroundStyle(.white)
-
-              Image(systemName: "arrow.triangle.2.circlepath.icloud")
-                .tint(.white)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(.black)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .padding(.horizontal, 24)
-            .padding(.bottom, 24)
+        Button {
+          Task(priority: .userInitiated) {
+            await viewModel.reloadPages(startingAt: page)
           }
+        } label: {
+          HStack(alignment: .center, spacing: 8) {
+            Text("Retry")
+              .font(.body)
+              .foregroundStyle(.white)
+
+            Image(systemName: "arrow.triangle.2.circlepath.icloud")
+              .tint(.white)
+          }
+          .frame(maxWidth: .infinity)
+          .padding(.vertical, 16)
+          .background(.black)
+          .clipShape(RoundedRectangle(cornerRadius: 12))
+          .padding(.horizontal, 24)
+          .padding(.bottom, 24)
         }
-        .frame(width: proxy.size.width)
       }
+      .frame(width: UIScreen.main.bounds.width)
+    }
   }
 
 }

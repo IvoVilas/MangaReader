@@ -12,8 +12,8 @@ struct MangaDetailsView: View {
   @ObservedObject var viewModel: MangaDetailsViewModel
   @State private var toast: Toast?
 
-  let backgroundColor: Color = .black
-  let foregroundColor: Color = .white
+  private let backgroundColor: Color = .black
+  private let foregroundColor: Color = .white
 
   init(
     viewModel: MangaDetailsViewModel
@@ -140,6 +140,7 @@ struct MangaDetailsView: View {
         .resizable()
         .aspectRatio(contentMode: .fit)
         .frame(width: 100, height: 160)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
 
       VStack(alignment: .leading, spacing: 8) {
         Text(viewModel.title)
@@ -198,10 +199,13 @@ struct MangaDetailsView: View {
               .padding(.horizontal, 8)
               .background(
                 RoundedRectangle(cornerRadius: 4)
+                  .fill(backgroundColor)
                   .stroke(foregroundColor, lineWidth: 1)
               )
           }
-        }.padding(.horizontal, 24)
+          .padding(.vertical, 1)
+        }
+        .padding(.horizontal, 24)
       }
       .scrollIndicators(.hidden)
     }

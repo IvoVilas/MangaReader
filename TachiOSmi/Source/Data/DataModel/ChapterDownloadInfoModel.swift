@@ -1,5 +1,5 @@
 //
-//  ChapterPagesDataModel.swift
+//  ChapterDownloadInfoModel.swift
 //  TachiOSmi
 //
 //  Created by Ivo Vilas on 27/02/2024.
