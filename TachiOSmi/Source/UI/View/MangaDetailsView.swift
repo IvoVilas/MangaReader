@@ -12,6 +12,9 @@ struct MangaDetailsView: View {
   @ObservedObject var viewModel: MangaDetailsViewModel
   @State private var toast: Toast?
 
+  let backgroundColor: Color = .black
+  let foregroundColor: Color = .white
+
   init(
     viewModel: MangaDetailsViewModel
   ) {
@@ -32,16 +35,19 @@ struct MangaDetailsView: View {
 
           ProgressView()
             .progressViewStyle(.circular)
-            .tint(.white)
+            .tint(foregroundColor)
             .opacity(viewModel.isLoading ? 1 : 0)
             .offset(y: 75)
         }
+        Spacer().frame(height: 24)
+
+        makeDescriptionView()
 
         Spacer().frame(height: 16)
 
         Text("\(viewModel.chapterCount) chapters")
           .font(.headline)
-          .foregroundStyle(.white)
+          .foregroundStyle(foregroundColor)
           .padding(.horizontal, 24)
 
         Spacer().frame(height: 24)
@@ -62,7 +68,7 @@ struct MangaDetailsView: View {
       }
     }
     .ignoresSafeArea(.all, edges: .top)
-    .background(.black)
+    .background(backgroundColor)
     .onAppear {
       Task(priority: .medium) { await viewModel.setupData() }
     }
@@ -92,11 +98,11 @@ struct MangaDetailsView: View {
     VStack(alignment: .leading, spacing: 8) {
       Text(chapter.description)
         .font(.subheadline)
-        .foregroundStyle(chapter.isRead ? .gray : .white)
+        .foregroundStyle(chapter.isRead ? .gray : foregroundColor)
 
       Text(chapter.createdAtDescription)
         .font(.caption2)
-        .foregroundStyle(chapter.isRead ? .gray : .white)
+        .foregroundStyle(chapter.isRead ? .gray : foregroundColor)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
   }
@@ -109,62 +115,72 @@ struct MangaDetailsView: View {
           .resizable()
           .scaledToFill()
           .frame(maxWidth: .infinity)
-          .frame(height: 300)
+          .frame(height: 260)
           .clipped()
           .opacity(0.4)
           .overlay {
             LinearGradient(
-              gradient: Gradient(colors: [.clear, .black]),
+              gradient: Gradient(colors: [.clear, backgroundColor]),
               startPoint: .top,
               endPoint: .bottom
             )
           }
 
-        HStack(spacing: 16) {
-          Image(uiImage: viewModel.cover ?? .coverNotFound)
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .frame(width: 100, height: 200)
+        makeInfoView()
+          .offset(y: 100)
+          .padding(.horizontal, 24)
+      }
+    }
+  }
 
-          VStack(alignment: .leading, spacing: 8) {
-            Text(viewModel.title)
-              .foregroundStyle(.white)
-              .font(.headline)
+  @ViewBuilder
+  private func makeInfoView() -> some View {
+    HStack(spacing: 16) {
+      Image(uiImage: viewModel.cover ?? .coverNotFound)
+        .resizable()
+        .aspectRatio(contentMode: .fit)
+        .frame(width: 100, height: 160)
 
-            if let author = viewModel.authors.first {
-              HStack(spacing: 4) {
-                Image(systemName: "person")
-                  .resizable()
-                  .frame(width: 15, height: 15)
-                  .foregroundStyle(.white)
+      VStack(alignment: .leading, spacing: 8) {
+        Text(viewModel.title)
+          .foregroundStyle(foregroundColor)
+          .font(.headline)
 
-                Text(author.name)
-                  .foregroundStyle(.white)
-                  .font(.footnote)
-              }
-            }
+        if let author = viewModel.authors.first {
+          HStack(spacing: 4) {
+            Image(systemName: "person")
+              .resizable()
+              .frame(width: 15, height: 15)
+              .foregroundStyle(foregroundColor)
 
-            HStack(spacing: 4) {
-              Image(systemName: getStatusIcon(viewModel.status))
-                .resizable()
-                .frame(width: 15, height: 15)
-                .foregroundStyle(.white)
-
-              Text(viewModel.status.value.localizedCapitalized)
-                .foregroundStyle(.white)
-                .font(.footnote)
-            }
+            Text(author.name)
+              .foregroundStyle(foregroundColor)
+              .font(.footnote)
           }
-
-          Spacer()
         }
-        .offset(y: 100)
-        .padding(.horizontal, 24)
+
+        HStack(spacing: 4) {
+          Image(systemName: getStatusIcon(viewModel.status))
+            .resizable()
+            .frame(width: 15, height: 15)
+            .foregroundStyle(foregroundColor)
+
+          Text(viewModel.status.value.localizedCapitalized)
+            .foregroundStyle(foregroundColor)
+            .font(.footnote)
+        }
       }
 
+      Spacer()
+    }
+  }
+
+  @ViewBuilder
+  private func makeDescriptionView() -> some View {
+    VStack(spacing: 0) {
       Text(viewModel.description ?? "")
         .font(.bold(.footnote)())
-        .foregroundStyle(.white)
+        .foregroundStyle(foregroundColor)
         .lineLimit(3)
         .opacity(viewModel.description != nil ? 1 : 0)
         .padding(.horizontal, 24)
@@ -177,12 +193,12 @@ struct MangaDetailsView: View {
             Text(tag.title)
               .font(.footnote)
               .lineLimit(1)
-              .foregroundStyle(.white)
+              .foregroundStyle(foregroundColor)
               .padding(.vertical, 4)
               .padding(.horizontal, 8)
               .background(
                 RoundedRectangle(cornerRadius: 4)
-                  .stroke(.white, lineWidth: 1)
+                  .stroke(foregroundColor, lineWidth: 1)
               )
           }
         }.padding(.horizontal, 24)
@@ -191,7 +207,7 @@ struct MangaDetailsView: View {
     }
   }
 
-  func getStatusIcon(_ status: MangaStatus) -> String {
+  private func getStatusIcon(_ status: MangaStatus) -> String {
     switch status {
     case .completed:
       return "checkmark.circle"
