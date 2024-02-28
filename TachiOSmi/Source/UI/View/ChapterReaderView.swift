@@ -8,6 +8,10 @@
 import SwiftUI
 import Combine
 
+// LazyStacks do not work well with layoutDirection rightToLeft
+// To make it work I had to also enable flipsForRightToLeftLayoutDirection
+// Twist, pages were flipped, so I also need to flip every single page
+// Basically, I do a double flip to make it work
 struct ChapterReaderView: View {
 
   @ObservedObject var viewModel: MangaReaderViewModel
@@ -27,10 +31,7 @@ struct ChapterReaderView: View {
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
-    // This flips the view horizontal when layout direction is right to left
-    // (view arrives flipped from the datasource)
     .flipsForRightToLeftLayoutDirection(true)
-    // This changes layout direction so that HStack grows from right to left
     .environment(\.layoutDirection, .rightToLeft)
     .background(.black)
     .toastView(toast: $toast)
@@ -63,6 +64,8 @@ struct ChapterReaderView: View {
         LazyHStack(spacing: 0) {
           ForEach(viewModel.pages) { page in
             makePage(page: page, proxy: proxy)
+              .flipsForRightToLeftLayoutDirection(true)
+              .environment(\.layoutDirection, .rightToLeft)
               .onAppear {
                 Task(priority: .background) {
                   await viewModel.loadNextIfNeeded(page.id)
@@ -71,12 +74,15 @@ struct ChapterReaderView: View {
           }
         }
       }
+      .scrollIndicators(.hidden)
       .scrollTargetBehavior(.paging)
     } else {
       ScrollView {
         LazyVStack(spacing: 0) {
           ForEach(viewModel.pages) { page in
             makePage(page: page, proxy: proxy)
+              .flipsForRightToLeftLayoutDirection(true)
+              .environment(\.layoutDirection, .rightToLeft)
               .onAppear {
                 Task(priority: .background) {
                   await viewModel.loadNextIfNeeded(page.id)
@@ -85,6 +91,7 @@ struct ChapterReaderView: View {
           }
         }
       }
+      .scrollIndicators(.hidden)
     }
   }
 

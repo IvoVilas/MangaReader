@@ -304,58 +304,8 @@ extension ChapterPagesDatasource {
     _ url: String
   ) async throws -> Data {
     var data = try await httpClient.makeDataGetRequest(url: url)
-    data = try flipData(data)
 
     return data
   }
-
-}
-
-// MARK: Data manipulation
-extension ChapterPagesDatasource {
-
-  // TODO: There has to be a better way to do this
-  // Context: Using LazyHStack with right to left layout direction does not work
-  // For some reason, the stack is drawn showing the last page instead of the first
-  // The biggest nail since the crucifixion of Jesus Christ:
-  // On the view side we mirror the view when using rightToLeftLayout
-  // Here we also flip the data horizontally
-  // That way the LazyHStack is drawn correctly and the pages are also
-  private func flipData(_ data: Data) throws -> Data {
-    guard let image = UIImage(data: data) else { throw DatasourceError.unexpectedError("") }
-
-    if let imageCG = image.cgImage {
-      let width  = imageCG.width
-      let height = imageCG.height
-      let bitsPerComponent = imageCG.bitsPerComponent
-      let bytesPerRow = imageCG.bytesPerRow
-
-      if
-        let space = imageCG.colorSpace,
-        let context = CGContext(
-        data: nil,
-        width: width,
-        height: height,
-        bitsPerComponent: bitsPerComponent,
-        bytesPerRow: bytesPerRow,
-        space: space,
-        bitmapInfo: imageCG.bitmapInfo.rawValue
-      ) {
-        context.translateBy(x: CGFloat(width), y: 0)
-        context.scaleBy(x: -1.0, y: 1.0)
-
-        context.draw(imageCG, in: CGRect(x: 0, y: 0, width: width, height: height))
-
-        if let flippedImage = context.makeImage() {
-          if let flippedData = UIImage(cgImage: flippedImage).jpegData(compressionQuality: 1) {
-            return flippedData
-          }
-        }
-      }
-    }
-
-    throw DatasourceError.unexpectedError("")
-  }
-
 
 }
