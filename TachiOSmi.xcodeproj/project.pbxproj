@@ -147,6 +147,7 @@
 		1E12352F2B85341A0022652F /* Common */ = {
 			isa = PBXGroup;
 			children = (
+				1EF20A382B8EB59C00D17A65 /* CoreData */,
 				1E1235302B8534220022652F /* SystemDateTime */,
 			);
 			path = Common;
@@ -210,7 +211,6 @@
 			isa = PBXGroup;
 			children = (
 				1EE89F682B84D85E000CAA20 /* Entity */,
-				1EE89F692B84D87B000CAA20 /* Moc+Extension.swift */,
 			);
 			path = CoreData;
 			sourceTree = "<group>";
@@ -267,6 +267,14 @@
 				1EE89F522B84C59E000CAA20 /* TagMO.swift */,
 			);
 			path = Entity;
+			sourceTree = "<group>";
+		};
+		1EF20A382B8EB59C00D17A65 /* CoreData */ = {
+			isa = PBXGroup;
+			children = (
+				1EE89F692B84D87B000CAA20 /* Moc+Extension.swift */,
+			);
+			path = CoreData;
 			sourceTree = "<group>";
 		};
 		1EF815E92B82163F00D9759F = {

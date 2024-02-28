@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct ChapterPagesModel: Identifiable {
+struct ChapterDownloadInfoModel: Identifiable {
 
   let baseUrl: String
   let hash: String

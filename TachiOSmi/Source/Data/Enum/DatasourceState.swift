@@ -18,7 +18,7 @@ enum DatasourceState {
     case .loading, .starting:
       return true
 
-    case .normal:
+    default:
       return false
     }
   }

@@ -32,14 +32,15 @@ final class ChapterPagesDatasource {
     error.eraseToAnyPublisher()
   }
 
+  @MainActor var hasMorePages = true
   @MainActor private var currentPage = 0
-  @MainActor private var chapterPages: ChapterPagesModel?
+  @MainActor private var chapterInfo: ChapterDownloadInfoModel?
 
   init(
     chapter: ChapterModel,
     httpClient: HttpClient
   ) {
-    self.chapter    = chapter
+    self.chapter = chapter
     self.httpClient = httpClient
 
     pages = CurrentValueSubject([])
@@ -50,68 +51,130 @@ final class ChapterPagesDatasource {
   func refresh() async {
     await MainActor.run {
       self.currentPage = 0
+      self.hasMorePages = true
       self.pages.value = []
       self.state.value = .loading
     }
 
     var erro: DatasourceError?
     var pages = [PageModel]()
+    var hasMorePages = true
 
     do {
-      let chapterPages = try await getChapterPages()
+      let chapterInfo = try await getChapterInfo()
 
-      pages = try await makePagesRequest(using: chapterPages)
-    } catch let error as ParserError {
-      erro = .errorParsingResponse(error.localizedDescription)
-    } catch let error as HttpError {
-      erro = .networkError(error.localizedDescription)
-    } catch let error as CrudError {
-      erro = .databaseError(error.localizedDescription)
-    } catch {
-      erro = .unexpectedError(error.localizedDescription)
-    }
-
-    await MainActor.run { [pages, erro] in
-      self.state.value = .normal
-      self.error.value = erro
-      self.pages.value = pages
-    }
-  }
-
-  func loadNextPages() async {
-    var erro: DatasourceError?
-    var pages = [PageModel]()
-
-    do {
-      let chapterPages = try await getChapterPages()
-
-      pages = try await makePagesRequest(using: chapterPages)
+      pages = try await makePagesRequest(using: chapterInfo)
 
       if pages.isEmpty {
-        return
+        hasMorePages = false
+
+        throw DatasourceError.otherError("No pages found")
       }
     } catch {
       erro = catchError(error)
     }
 
-    await MainActor.run { [pages, erro] in
+    await MainActor.run { [pages, erro, hasMorePages] in
       self.error.value = erro
+      self.pages.value = pages
+      self.hasMorePages = hasMorePages
+    }
+  }
+
+  func loadNextPages() async {
+    var hasMorePages = await hasMorePages
+
+    if !hasMorePages { return }
+
+    var erro: DatasourceError?
+    var pages = [PageModel]()
+
+    do {
+      let chapterInfo = try await getChapterInfo()
+
+      pages = try await makePagesRequest(using: chapterInfo)
+
+      if pages.isEmpty {
+        hasMorePages = false
+      }
+    } catch {
+      erro = catchError(error)
+    }
+
+    await MainActor.run { [pages, erro, hasMorePages] in
+      self.error.value = erro
+      self.hasMorePages = hasMorePages
+      
       self.updateOrAppend(pages)
     }
   }
 
-  private func getChapterPages() async throws -> ChapterPagesModel {
-    if let local = await chapterPages {
+  func reloadPages(
+    _ pages: [(id: Int, url: String)]
+  ) async {
+    await MainActor.run {
+      self.tryToUpdatePages(pages.map { .loading($0.id) })
+    }
+
+    await withTaskGroup(of: Void.self) { taskGroup in
+      for info in pages {
+        taskGroup.addTask {
+          let id = info.id
+          let url = info.url
+
+          var erro: DatasourceError?
+          let page: PageModel
+
+          do {
+            print("ChapterPagesDatasource -> Reloading page \(id)")
+            let data = try await self.makePageRequest(url)
+
+            page = .remote(id, data)
+          } catch {
+            erro = self.catchError(error)
+            page = .notFound(id, url)
+          }
+
+          await MainActor.run { [page, erro] in
+            self.error.value = erro
+            self.tryToUpdatePage(page)
+          }
+
+          print("ChapterPagesDatasource -> Ended page \(id) reload with error: \(String(describing: erro))")
+        }
+      }
+    }
+  }
+
+  private func getChapterInfo() async throws -> ChapterDownloadInfoModel {
+    if let local = await chapterInfo {
       return local
     }
 
-    let remote = try await makeChapterPagesRequest()
+    let remote = try await makeChapterInfoRequest()
 
-    await MainActor.run { chapterPages = remote }
+    await MainActor.run { chapterInfo = remote }
 
     return remote
   }
 
+  @MainActor
+  private func tryToUpdatePages(
+    _ pages: [PageModel]
+  ) {
+    pages.forEach { tryToUpdatePage($0) }
+  }
+
+  @MainActor
+  private func tryToUpdatePage(
+    _ page: PageModel
+  ) {
+    if let i = pages.value.firstIndex(where: { $0.id == page.id }) {
+      pages.value[i] = page
+    }
+  }
+
+  @MainActor
   private func updateOrAppend(
     _ pages: [PageModel]
   ) {
@@ -136,9 +199,7 @@ extension ChapterPagesDatasource {
   private func catchError(_ error: Error) -> DatasourceError? {
     switch error {
     case is CancellationError:
-      print("MangaChapterDatasource -> Task cancelled")
-
-      return nil
+      return .unexpectedError("Task was unexpectedly canceled")
 
     case let error as ParserError:
       return .errorParsingResponse(error.localizedDescription)
@@ -147,11 +208,16 @@ extension ChapterPagesDatasource {
       return .networkError(error.localizedDescription)
 
     case let error as CrudError:
-      return .databaseError(error.localizedDescription)
+      print("ChapterPagesDatasource -> Error during database operaiton: \(error)")
+
+    case let error as DatasourceError:
+      return error
 
     default:
       return .unexpectedError(error.localizedDescription)
     }
+
+    return nil
   }
 
 }
@@ -159,7 +225,7 @@ extension ChapterPagesDatasource {
 // MARK: Network
 extension ChapterPagesDatasource {
 
-  private func makeChapterPagesRequest() async throws -> ChapterPagesModel {
+  private func makeChapterInfoRequest() async throws -> ChapterDownloadInfoModel {
     print("MangaReaderViewModel -> Starting chapter page download info")
 
     let json = try await httpClient.makeJsonGetRequest(
@@ -177,7 +243,7 @@ extension ChapterPagesDatasource {
 
     print("MangaReaderViewModel -> Ended chapter page download info")
 
-    return ChapterPagesModel(
+    return ChapterDownloadInfoModel(
       baseUrl: baseUrl,
       hash: hash,
       data: dataArray
@@ -185,13 +251,20 @@ extension ChapterPagesDatasource {
   }
 
   private func makePagesRequest(
-    using chapterPages: ChapterPagesModel
+    using chapterInfo: ChapterDownloadInfoModel
   ) async throws -> [PageModel] {
     print("MangaReaderViewModel -> Starting chapter download")
+    let currentPage = await MainActor.run(resultType: Int.self) {
+      let currentPage = self.currentPage
+
+      self.currentPage += 1
+
+      return currentPage
+    }
 
     let limit     = 10
-    let offset    = await limit * currentPage
-    let dataArray = chapterPages.data
+    let offset    = limit * currentPage
+    let dataArray = chapterInfo.data
 
     if offset >= dataArray.count {
       return []
@@ -201,7 +274,6 @@ extension ChapterPagesDatasource {
     let pagedData = dataArray[offset ..< endIndex]
 
     await MainActor.run {
-      currentPage += 1
       self.pages.value.append(
         contentsOf: pagedData.indices.map { .loading($0) }
       )
@@ -210,13 +282,12 @@ extension ChapterPagesDatasource {
     let results = await withTaskGroup(of: PageModel.self, returning: [PageModel].self) { taskGroup in
       for (index, data) in pagedData.enumerated() {
         taskGroup.addTask {
-          let url = "\(chapterPages.url)/\(data)"
+          let url = "\(chapterInfo.url)/\(data)"
 
           do {
-            let pageData    = try await self.httpClient.makeDataGetRequest(url: url)
-            let flippedData = try self.flipData(pageData)
+            let data = try await self.makePageRequest(url)
 
-            return .remote(offset + index, flippedData)
+            return .remote(offset + index, data)
           } catch {
             print("MangaReaderViewModel -> Page \(offset + index) failed download: \(error)")
 
@@ -233,6 +304,15 @@ extension ChapterPagesDatasource {
     print("MangaReaderViewModel -> Ending chapter download")
 
     return results
+  }
+
+  private func makePageRequest(
+    _ url: String
+  ) async throws -> Data {
+    var data = try await httpClient.makeDataGetRequest(url: url)
+    data = try flipData(data)
+
+    return data
   }
 
 }

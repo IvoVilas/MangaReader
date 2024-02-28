@@ -12,6 +12,7 @@ enum DatasourceError: Error {
   case networkError(String)
   case databaseError(String)
   case unexpectedError(String)
+  case otherError(String)
 
   var localizedDescription: String {
     switch self {
@@ -26,6 +27,9 @@ enum DatasourceError: Error {
 
     case .unexpectedError(let error):
       return "Unexpected error\n\(error)"
+
+    case .otherError(let error):
+      return error
     }
   }
 }

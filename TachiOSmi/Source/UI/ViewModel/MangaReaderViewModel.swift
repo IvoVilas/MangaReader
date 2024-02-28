@@ -34,38 +34,59 @@ final class MangaReaderViewModel: ObservableObject {
       .store(in: &observers)
 
     datasource.statePublisher
+      .removeDuplicates()
       .receive(on: DispatchQueue.main)
       .sink { [weak self] in self?.isLoading = $0.isLoading }
       .store(in: &observers)
 
     datasource.errorPublisher
       .receive(on: DispatchQueue.main)
+      .compactMap { $0 }
       .sink { [weak self] in self?.error = $0 }
       .store(in: &observers)
   }
+
+}
+
+extension MangaReaderViewModel {
 
   func fetchPages() async {
     await datasource.refresh()
   }
 
-  func loadNextIfNeeded(_ pageId: String) {
+  func loadNextIfNeeded(_ pageId: String) async {
+    if await !datasource.hasMorePages { return }
+
     let count = pages.count
 
     guard count - 3 >= 0 else {
       if pageId == pages.last?.id {
-        Task(priority: .background) {
-          await datasource.loadNextPages()
-        }
+        await datasource.loadNextPages()
       }
 
       return
     }
 
     if pageId == pages[count - 3].id {
-      Task(priority: .background) {
-        await datasource.loadNextPages()
+      await datasource.loadNextPages()
+    }
+  }
+
+  func reloadPages(startingAt page: PageModel) async {
+    guard let i = pages.firstIndex(where: { $0.id == page.id }) else { return }
+
+    let j = min(i + 10, pages.count - 1)
+    let pages = pages[i..<j].compactMap {
+      switch $0 {
+      case .notFound(let id, let url):
+        return (id, url)
+
+      default: 
+        return nil
       }
     }
+
+    await datasource.reloadPages(pages)
   }
 
 }

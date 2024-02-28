@@ -36,10 +36,6 @@ final class MangaSearchDatasource {
     error.eraseToAnyPublisher()
   }
 
-  var stateValue: DatasourceState {
-    state.value
-  }
-
   private var fetchTask: Task<Void, Never>?
 
   init(

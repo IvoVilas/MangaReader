@@ -45,16 +45,10 @@ final class MangaSearchViewModel: ObservableObject {
       .store(in: &observers)
 
     datasource.statePublisher
+      .removeDuplicates()
+      .map { $0.isLoading }
       .receive(on: DispatchQueue.main)
-      .sink { [weak self] state in
-        switch state {
-        case .loading, .starting:
-          self?.isLoading = true
-
-        default:
-          self?.isLoading = false
-        }
-      }
+      .sink { [weak self] in self?.isLoading = $0 }
       .store(in: &observers)
   }
 

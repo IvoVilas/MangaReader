@@ -62,9 +62,11 @@ struct ChapterReaderView: View {
       ScrollView(.horizontal) {
         LazyHStack(spacing: 0) {
           ForEach(viewModel.pages) { page in
-            makePage(page, proxy: proxy)
+            makePage(page: page, proxy: proxy)
               .onAppear {
-                viewModel.loadNextIfNeeded(page.id)
+                Task(priority: .background) {
+                  await viewModel.loadNextIfNeeded(page.id)
+                }
               }
           }
         }
@@ -74,9 +76,11 @@ struct ChapterReaderView: View {
       ScrollView {
         LazyVStack(spacing: 0) {
           ForEach(viewModel.pages) { page in
-            makePage(page, proxy: proxy)
+            makePage(page: page, proxy: proxy)
               .onAppear {
-                viewModel.loadNextIfNeeded(page.id)
+                Task(priority: .background) {
+                  await viewModel.loadNextIfNeeded(page.id)
+                }
               }
           }
         }
@@ -86,28 +90,51 @@ struct ChapterReaderView: View {
 
   @ViewBuilder
   private func makePage(
-    _ page: PageModel,
+    page: PageModel,
     proxy: GeometryProxy
   ) -> some View {
-    switch page {
-    case .remote(_, let data):
-      Image(uiImage: UIImage(data: data) ?? .coverNotFound)
-        .resizable()
-        .aspectRatio(contentMode: .fit)
-        .frame(width: proxy.size.width)
+      switch page {
+      case .remote(_, let data):
+        Image(uiImage: UIImage(data: data) ?? .coverNotFound)
+          .resizable()
+          .aspectRatio(contentMode: .fit)
+          .frame(width: proxy.size.width)
 
-    case .loading:
-      ProgressView()
-        .progressViewStyle(.circular)
-        .tint(.white)
-        .frame(width: proxy.size.width, height: proxy.size.height)
+      case .loading:
+        ProgressView()
+          .progressViewStyle(.circular)
+          .tint(.white)
+          .frame(width: proxy.size.width, height: proxy.size.height)
 
-    case .notFound:
-      Image(uiImage: .coverNotFound)
-        .resizable()
-        .aspectRatio(contentMode: .fit)
+      case .notFound:
+        ZStack(alignment: .bottom) {
+          Image(uiImage: .coverNotFound)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+
+          Button {
+            Task(priority: .userInitiated) {
+              await viewModel.reloadPages(startingAt: page)
+            }
+          } label: {
+            HStack(alignment: .center, spacing: 8) {
+              Text("Retry")
+                .font(.body)
+                .foregroundStyle(.white)
+
+              Image(systemName: "arrow.triangle.2.circlepath.icloud")
+                .tint(.white)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(.black)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(.horizontal, 24)
+            .padding(.bottom, 24)
+          }
+        }
         .frame(width: proxy.size.width)
-    }
+      }
   }
 
 }

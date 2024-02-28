@@ -44,31 +44,37 @@ final class MangaDetailsViewModel: ObservableObject {
     isImageLoading = false
 
     detailsDatasource.titlePublisher
+      .removeDuplicates()
       .receive(on: DispatchQueue.main)
       .sink { [weak self] in self?.title = $0 }
       .store(in: &observers)
 
     detailsDatasource.descriptionPublisher
+      .removeDuplicates()
       .receive(on: DispatchQueue.main)
       .sink { [weak self] in self?.description = $0 }
       .store(in: &observers)
 
     detailsDatasource.statusPublisher
+      .removeDuplicates()
       .receive(on: DispatchQueue.main)
       .sink { [weak self] in self?.status = $0 }
       .store(in: &observers)
 
     detailsDatasource.authorsPublisher
+      .removeDuplicates()
       .receive(on: DispatchQueue.main)
       .sink { [weak self] in self?.authors = $0 }
       .store(in: &observers)
 
     detailsDatasource.tagsPublisher
+      .removeDuplicates()
       .receive(on: DispatchQueue.main)
       .sink { [weak self] in self?.tags = $0 }
       .store(in: &observers)
 
     detailsDatasource.coverPublisher
+      .removeDuplicates()
       .receive(on: DispatchQueue.main)
       .compactMap { $0 }
       .sink { [weak self] in self?.cover = UIImage(data: $0) }
@@ -83,8 +89,10 @@ final class MangaDetailsViewModel: ObservableObject {
       detailsDatasource.statePublisher,
       chaptersDatasource.statePublisher
     )
+    .map { $0.0.isLoading || $0.1.isLoading }
+    .removeDuplicates()
     .receive(on: DispatchQueue.main)
-    .sink { [weak self] in self?.isLoading = $0.0.isLoading || $0.1.isLoading }
+    .sink { [weak self] in self?.isLoading = $0 }
     .store(in: &observers)
 
     Publishers.CombineLatest(
