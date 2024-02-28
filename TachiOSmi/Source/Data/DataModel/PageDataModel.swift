@@ -10,7 +10,7 @@ import Foundation
 enum PageModel: Identifiable {
   case remote(Int, Data)
   case loading(Int)
-  case notFound(Int)
+  case notFound(Int, String)
 
   var id: String {
     switch self {
@@ -20,7 +20,7 @@ enum PageModel: Identifiable {
     case .loading(let pos):
       return "\(pos)"
 
-    case .notFound(let pos):
+    case .notFound(let pos, _):
       return "\(pos)"
     }
   }
@@ -33,7 +33,7 @@ enum PageModel: Identifiable {
     case .loading(let pos):
       return pos
 
-    case .notFound(let pos):
+    case .notFound(let pos, _):
       return pos
     }
   }

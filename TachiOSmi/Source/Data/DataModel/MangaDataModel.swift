@@ -31,7 +31,7 @@ struct MangaModel: Identifiable, Hashable {
 
   static func from(
     _ manga: MangaMO,
-    cover: Data?
+    cover: Data
   ) -> MangaModel {
     return MangaModel(
       id: manga.id,

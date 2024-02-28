@@ -1,5 +1,5 @@
 //
-//  MangaReaderView.swift
+//  ChapterReaderView.swift
 //  TachiOSmi
 //
 //  Created by Ivo Vilas on 24/02/2024.
@@ -8,10 +8,11 @@
 import SwiftUI
 import Combine
 
-struct MangaReaderView: View {
+struct ChapterReaderView: View {
 
   @ObservedObject var viewModel: MangaReaderViewModel
   @State private var isHorizontal = true
+  @State private var toast: Toast?
 
   var body: some View {
     GeometryReader { geo in
@@ -32,6 +33,15 @@ struct MangaReaderView: View {
     // This changes layout direction so that HStack grows from right to left
     .environment(\.layoutDirection, .rightToLeft)
     .background(.black)
+    .toastView(toast: $toast)
+    .onReceive(viewModel.$error) { error in
+      if let error {
+        toast = Toast(
+          style: .error,
+          message: error.localizedDescription
+        )
+      }
+    }
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
         Button {
@@ -103,7 +113,7 @@ struct MangaReaderView: View {
 }
 
 #Preview {
-  MangaReaderView(
+  ChapterReaderView(
     viewModel: MangaReaderViewModel(
       datasource: ChapterPagesDatasource(
         chapter: ChapterModel(

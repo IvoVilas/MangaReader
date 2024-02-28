@@ -47,7 +47,6 @@ final class ChapterPagesDatasource {
     error = CurrentValueSubject(nil)
   }
 
-  // TODO: Falta colocar loading temporario enquanto páginas não carregam
   func refresh() async {
     await MainActor.run {
       self.currentPage = 0
@@ -91,14 +90,8 @@ final class ChapterPagesDatasource {
       if pages.isEmpty {
         return
       }
-    } catch let error as ParserError {
-      erro = .errorParsingResponse(error.localizedDescription)
-    } catch let error as HttpError {
-      erro = .networkError(error.localizedDescription)
-    } catch let error as CrudError {
-      erro = .databaseError(error.localizedDescription)
     } catch {
-      erro = .unexpectedError(error.localizedDescription)
+      erro = catchError(error)
     }
 
     await MainActor.run { [pages, erro] in
@@ -137,6 +130,33 @@ final class ChapterPagesDatasource {
 
 }
 
+// MARK: Error
+extension ChapterPagesDatasource {
+  
+  private func catchError(_ error: Error) -> DatasourceError? {
+    switch error {
+    case is CancellationError:
+      print("MangaChapterDatasource -> Task cancelled")
+
+      return nil
+
+    case let error as ParserError:
+      return .errorParsingResponse(error.localizedDescription)
+
+    case let error as HttpError:
+      return .networkError(error.localizedDescription)
+
+    case let error as CrudError:
+      return .databaseError(error.localizedDescription)
+
+    default:
+      return .unexpectedError(error.localizedDescription)
+    }
+  }
+
+}
+
+// MARK: Network
 extension ChapterPagesDatasource {
 
   private func makeChapterPagesRequest() async throws -> ChapterPagesModel {
@@ -190,20 +210,17 @@ extension ChapterPagesDatasource {
     let results = await withTaskGroup(of: PageModel.self, returning: [PageModel].self) { taskGroup in
       for (index, data) in pagedData.enumerated() {
         taskGroup.addTask {
+          let url = "\(chapterPages.url)/\(data)"
+
           do {
-            let pageData = try await self.httpClient.makeDataGetRequest(url: "\(chapterPages.url)/\(data)")
+            let pageData    = try await self.httpClient.makeDataGetRequest(url: url)
+            let flippedData = try self.flipData(pageData)
 
-            if let flippedData = self.flipData(pageData) {
-              return .remote(offset + index, flippedData)
-            } else {
-              print("MangaReaderViewModel -> Failed to flip page data")
-
-              return .notFound(offset + index)
-            }
+            return .remote(offset + index, flippedData)
           } catch {
             print("MangaReaderViewModel -> Page \(offset + index) failed download: \(error)")
 
-            return .notFound(offset + index)
+            return .notFound(offset + index, url)
           }
         }
       }
@@ -218,6 +235,11 @@ extension ChapterPagesDatasource {
     return results
   }
 
+}
+
+// MARK: Data manipulation
+extension ChapterPagesDatasource {
+
   // TODO: There has to be a better way to do this
   // Context: Using LazyHStack with right to left layout direction does not work
   // For some reason, the stack is drawn showing the last page instead of the first
@@ -225,8 +247,8 @@ extension ChapterPagesDatasource {
   // On the view side we mirror the view when using rightToLeftLayout
   // Here we also flip the data horizontally
   // That way the LazyHStack is drawn correctly and the pages are also
-  private func flipData(_ data: Data) -> Data? {
-    guard let image = UIImage(data: data) else { return nil }
+  private func flipData(_ data: Data) throws -> Data {
+    guard let image = UIImage(data: data) else { throw DatasourceError.unexpectedError("") }
 
     if let imageCG = image.cgImage {
       let width  = imageCG.width
@@ -234,7 +256,7 @@ extension ChapterPagesDatasource {
       let bitsPerComponent = imageCG.bitsPerComponent
       let bytesPerRow = imageCG.bytesPerRow
 
-      if 
+      if
         let space = imageCG.colorSpace,
         let context = CGContext(
         data: nil,
@@ -251,12 +273,15 @@ extension ChapterPagesDatasource {
         context.draw(imageCG, in: CGRect(x: 0, y: 0, width: width, height: height))
 
         if let flippedImage = context.makeImage() {
-          return UIImage(cgImage: flippedImage).jpegData(compressionQuality: 1)
+          if let flippedData = UIImage(cgImage: flippedImage).jpegData(compressionQuality: 1) {
+            return flippedData
+          }
         }
       }
     }
 
-    return nil
+    throw DatasourceError.unexpectedError("")
   }
+
 
 }

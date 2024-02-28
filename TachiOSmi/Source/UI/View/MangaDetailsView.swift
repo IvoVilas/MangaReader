@@ -10,7 +10,7 @@ import SwiftUI
 struct MangaDetailsView: View {
 
   @ObservedObject var viewModel: MangaDetailsViewModel
-  @State private var showAlert = false
+  @State private var toast: Toast?
 
   init(
     viewModel: MangaDetailsViewModel
@@ -63,22 +63,18 @@ struct MangaDetailsView: View {
     }
     .refreshable { viewModel.forceRefresh() }
     .navigationDestination(for: ChapterModel.self) { chapter in
-      MangaReaderView(
+      ChapterReaderView(
         viewModel: viewModel.buildReaderViewModel(chapter)
       )
     }
+    .toastView(toast: $toast)
     .onReceive(viewModel.$error) { error in
-      if error != nil {
-        showAlert.toggle()
+      if let error {
+        toast = Toast(
+          style: .error,
+          message: error.localizedDescription
+        )
       }
-    }
-    .alert(
-      "Error",
-      isPresented: $showAlert,
-      presenting: viewModel.error,
-      actions: { _ in }
-    ) { error in
-      Text(error.localizedDescription)
     }
   }
 

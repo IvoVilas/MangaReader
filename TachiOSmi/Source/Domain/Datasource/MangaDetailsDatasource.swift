@@ -93,79 +93,51 @@ final class MangaDetailsDatasource {
     error       = CurrentValueSubject(nil)
   }
 
+  // Setups initial data
+  // Prioritize local data
+  // We update cover and everything else separately in case the cover request fails
   func setupData() async {
     do {
-      state.value = .loading
       print("MangaDetailsDatasource -> Start manga details fetch")
-      if let manga = try mangaCrud.getManga(mangaId, moc: viewMoc) {
-        print("MangaDetailsDatasource -> Found local manga details")
-        update(with: .from(manga))
+      state.value = .loading
 
-        state.value = .normal
+      let mangaModel: MangaModel
+      var didRequest = false
 
-        return
+      if let cover = try coverCrud.getCoverData(for: mangaId, moc: viewMoc) {
+        self.cover.value = cover
+
+        if let manga = try mangaCrud.getManga(mangaId, moc: viewMoc) {
+          mangaModel = .from(manga, cover: cover)
+        } else {
+          let parsedData = try await makeMangaIndexRequest()
+
+          didRequest = true
+          mangaModel = parsedData.convertToModel(cover: cover)
+        }
+
+        update(with: mangaModel)
+      } else {
+        let parsedData = try await makeMangaIndexRequest()
+
+        update(with: parsedData.convertToModel())
+
+        let cover = try await makeCoverRequest(fileName: parsedData.coverFileName)
+
+        self.cover.value = cover
+
+        didRequest = true
+        mangaModel = parsedData.convertToModel(cover: cover)
       }
 
-      print("MangaDetailsDatasource -> Will fetch manga details from remote")
-
-      let parsedData = try await makeMangaIndexRequest()
-
-      update(with: parsedData.convertToModel())
-
-      let cover = try await getCover(fileName: parsedData.coverFileName)
-
-      self.cover.value = cover
-
-      try await viewMoc.perform {
-        let manga = try self.mangaCrud.createOrUpdateManga(
-          id: parsedData.id,
-          title: parsedData.title,
-          synopsis: parsedData.description,
-          status: parsedData.status,
-          moc: self.viewMoc
-        )
-
-        _ = try self.coverCrud.createEntity(
-          mangaId: manga.id,
-          data: cover,
-          moc: self.viewMoc
-        )
-
-        // For now, we only store one author
-        if let author = parsedData.authors.first {
-          _ = try self.authorCrud.createOrUpdateAuthor(
-            id: author.id,
-            name: author.name,
-            manga: manga,
-            moc: self.viewMoc
-          )
-        }
-
-        for tag in manga.tags {
-          _ = try self.tagCrud.createOrUpdateTag(
-            id: tag.id,
-            title: tag.title,
-            manga: manga,
-            moc: self.viewMoc
-          )
-        }
-
-        if !self.viewMoc.saveIfNeeded(rollbackOnError: true).isSuccess {
-          throw CrudError.saveError
-        }
+      if didRequest {
+        try await updateDatabase(mangaModel)
       }
-    } catch let error as ParserError {
-      print("MangaDetailsDatasource -> Error during parsing operation: \(error.localizedDescription)")
-    } catch let error as HttpError {
-      self.error.value = .networkError(error.localizedDescription)
-    } catch let error as CrudError {
-      print("MangaDetailsDatasource -> Error during database operation: \(error.localizedDescription)")
     } catch {
-      self.error.value = .unexpectedError(error.localizedDescription)
+      catchError(error)
     }
 
     state.value = .normal
-
     print("MangaDetailsDatasource -> Ended manga details fetch")
   }
 
@@ -182,46 +154,9 @@ final class MangaDetailsDatasource {
 
       self.cover.value = cover
 
-      try await viewMoc.perform {
-        let manga = try self.mangaCrud.createOrUpdateManga(
-          id: parsedData.id,
-          title: parsedData.title,
-          synopsis: parsedData.description,
-          status: parsedData.status,
-          moc: self.viewMoc
-        )
-
-        // For now, we only store one author
-        if let author = parsedData.authors.first {
-          _ = try self.authorCrud.createOrUpdateAuthor(
-            id: author.id,
-            name: author.name,
-            manga: manga,
-            moc: self.viewMoc
-          )
-        }
-
-        for tag in parsedData.tags {
-          _ = try self.tagCrud.createOrUpdateTag(
-            id: tag.id,
-            title: tag.title,
-            manga: manga,
-            moc: self.viewMoc
-          )
-        }
-
-        if !self.viewMoc.saveIfNeeded(rollbackOnError: true).isSuccess {
-          throw CrudError.saveError
-        }
-      }
-    } catch let error as ParserError {
-      print("MangaDetailsDatasource -> Error during parsing operation: \(error.localizedDescription)")
-    } catch let error as HttpError {
-      self.error.value = .networkError(error.localizedDescription)
-    } catch let error as CrudError {
-      print("MangaDetailsDatasource -> Error during database operation: \(error.localizedDescription)")
+      try await updateDatabase(parsedData.convertToModel(cover: cover))
     } catch {
-      self.error.value = .unexpectedError(error.localizedDescription)
+      catchError(error)
     }
 
     state.value = .normal
@@ -240,6 +175,81 @@ final class MangaDetailsDatasource {
 
 }
 
+// MARK: Error
+extension MangaDetailsDatasource {
+
+  private func catchError(_ error: Error) {
+    switch error {
+    case is CancellationError:
+      print("MangaDetailsDatasource -> Task cancelled")
+
+    case let error as ParserError:
+      self.error.value = .errorParsingResponse(error.localizedDescription)
+
+    case let error as HttpError:
+      self.error.value = .networkError(error.localizedDescription)
+
+    case let error as CrudError:
+      self.error.value = .databaseError(error.localizedDescription)
+
+    default:
+      self.error.value = .unexpectedError(error.localizedDescription)
+    }
+  }
+
+}
+
+// MARK: Database
+extension MangaDetailsDatasource {
+
+  private func updateDatabase(
+    _ manga: MangaModel
+  ) async throws {
+    try await viewMoc.perform {
+      let mangaMO = try self.mangaCrud.createOrUpdateManga(
+        id: manga.id,
+        title: manga.title,
+        synopsis: manga.description,
+        status: manga.status,
+        moc: self.viewMoc
+      )
+
+      if let cover = manga.cover {
+        _ = try self.coverCrud.createOrUpdateEntity(
+          mangaId: manga.id,
+          data: cover,
+          moc: self.viewMoc
+        )
+      }
+
+      // For now, we only store one author
+      if let author = manga.authors.first {
+        _ = try self.authorCrud.createOrUpdateAuthor(
+          id: author.id,
+          name: author.name,
+          manga: mangaMO,
+          moc: self.viewMoc
+        )
+      }
+
+      for tag in manga.tags {
+        _ = try self.tagCrud.createOrUpdateTag(
+          id: tag.id,
+          title: tag.title,
+          manga: mangaMO,
+          moc: self.viewMoc
+        )
+      }
+
+      if !self.viewMoc.saveIfNeeded(rollbackOnError: true).isSuccess {
+        throw CrudError.saveError
+      }
+    }
+  }
+
+}
+
+// MARK: Network
 extension MangaDetailsDatasource {
 
   private func makeMangaIndexRequest() async throws -> MangaParser.MangaParsedData  {

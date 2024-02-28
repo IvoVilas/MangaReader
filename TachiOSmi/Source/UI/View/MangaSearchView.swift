@@ -11,7 +11,7 @@ import CoreData
 struct MangaSearchView: View {
 
   @ObservedObject var viewModel: MangaSearchViewModel
-  @State private var showAlert = false
+  @State private var toast: Toast?
 
   let columns = Array(
     repeating: GridItem(.flexible(), spacing: 16),
@@ -55,16 +55,14 @@ struct MangaSearchView: View {
       .navigationDestination(for: MangaModel.self) { manga in
         MangaDetailsView(viewModel: viewModel.buildMangaDetailsViewModel(manga))
       }
+      .toastView(toast: $toast)
       .onReceive(viewModel.$error) { error in
-        if error != nil { showAlert.toggle() }
-      }
-      .alert(
-        "Error",
-        isPresented: $showAlert,
-        presenting: viewModel.error,
-        actions: { _ in }
-      ) { error in
-        Text(error.localizedDescription)
+        if let error {
+          toast = Toast(
+            style: .error,
+            message: error.localizedDescription
+          )
+        }
       }
     }
   }

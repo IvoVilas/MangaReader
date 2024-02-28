@@ -145,41 +145,6 @@ final class MangaSearchDatasource {
     }
   }
 
-  private func catchError(_ error: Error) {
-    switch error {
-    case is CancellationError:
-      print("MangaSearchDatasource -> Task cancelled")
-
-    case let error as ParserError:
-      self.error.value = .errorParsingResponse(error.localizedDescription)
-
-    case let error as HttpError:
-      self.error.value = .networkError(error.localizedDescription)
-
-    case let error as CrudError:
-      print("MangaSearchDatasource -> Error during database operation: \(error.localizedDescription)")
-
-    default:
-      self.error.value = .unexpectedError(error.localizedDescription)
-    }
-  }
-
-  private func fetchSearchResults(
-    _ searchValue: String,
-    page: Int
-  ) async throws -> [MangaParser.MangaParsedData] {
-    let limit  = 15
-    let offset = page * limit
-
-    let results = try await makeSearchRequest(
-      searchValue,
-      limit: limit,
-      offset: offset
-    )
-
-    return results
-  }
-
   private func addCoversTo(
     _ info: [(String, Data?)]
   ) {
@@ -194,6 +159,35 @@ final class MangaSearchDatasource {
       mangas.value[i].cover = cover
     }
   }
+
+}
+
+// MARK: Error
+extension MangaSearchDatasource {
+
+  private func catchError(_ error: Error) {
+    switch error {
+    case is CancellationError:
+      print("MangaSearchDatasource -> Task cancelled")
+
+    case let error as ParserError:
+      self.error.value = .errorParsingResponse(error.localizedDescription)
+
+    case let error as HttpError:
+      self.error.value = .networkError(error.localizedDescription)
+
+    case let error as CrudError:
+      self.error.value = .databaseError(error.localizedDescription)
+
+    default:
+      self.error.value = .unexpectedError(error.localizedDescription)
+    }
+  }
+
+}
+
+// MARK: Database
+extension MangaSearchDatasource {
 
   private func storeCovers(
     _ coverInfo: [(String, Data?)]
@@ -219,6 +213,22 @@ final class MangaSearchDatasource {
 
 // MARK: Search
 extension MangaSearchDatasource {
+
+  private func fetchSearchResults(
+    _ searchValue: String,
+    page: Int
+  ) async throws -> [MangaParser.MangaParsedData] {
+    let limit  = 15
+    let offset = page * limit
+
+    let results = try await makeSearchRequest(
+      searchValue,
+      limit: limit,
+      offset: offset
+    )
+
+    return results
+  }
 
   private func makeSearchRequest(
     _ searchValue: String,
@@ -247,7 +257,7 @@ extension MangaSearchDatasource {
 
 }
 
-// MARK: Cover
+// MARK: Covers
 extension MangaSearchDatasource {
 
   private func getCovers(
@@ -283,10 +293,10 @@ extension MangaSearchDatasource {
 
       return remoteCoverData
     } catch {
-      print("MangaSearchDatasource -> Error during cover fetch: \(error)")
-
-      return nil
+      catchError(error)
     }
+
+    return nil
   }
 
   private func makeCoverRequest(

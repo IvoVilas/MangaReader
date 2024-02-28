@@ -100,16 +100,8 @@ final class MangaChapterDatasource {
         } else {
           try await self.chapterRefreshIfNeeded()
         }
-      } catch is CancellationError {
-        print("MangaChapterDatasource -> Fetch task cancelled")
-      } catch let error as ParserError {
-        self.error.value = .errorParsingResponse(error.localizedDescription)
-      } catch let error as HttpError {
-        self.error.value = .networkError(error.localizedDescription)
-      } catch let error as CrudError {
-        self.error.value = .databaseError(error.localizedDescription)
       } catch {
-        self.error.value = .unexpectedError(error.localizedDescription)
+        catchError(error)
       }
 
       self.state.value = .normal
@@ -155,20 +147,78 @@ final class MangaChapterDatasource {
 
     chapters.value = results
 
-    try await PersistenceController.shared.container.performBackgroundTask { moc in
-      try self.updateDatabase(
-        chapters: results,
-        updatedAt: Date(),
-        moc: moc
-      )
-    }
+    try await self.updateDatabase(
+      chapters: results,
+      updatedAt: Date()
+    )
 
     print("MangaChapterDatasource -> Fetch task ended")
   }
 
-  private func fetchChapters() async throws -> [ChapterModel] {
-    print("MangaChapterDatasource -> Fetch task intiated")
+}
 
+// MARK: Database
+extension MangaChapterDatasource {
+
+  private func updateDatabase(
+    chapters: [ChapterModel],
+    updatedAt: Date
+  ) async throws {
+    try await viewMoc.perform {
+      guard let manga = try self.mangaCrud.getManga(self.mangaId, moc: self.viewMoc) else {
+        throw CrudError.mangaNotFound(id: self.mangaId)
+      }
+
+      for chapter in chapters {
+        _ = try self.chapterCrud.createOrUpdateChapter(
+          id: chapter.id,
+          chapterNumber: chapter.number,
+          title: chapter.title,
+          numberOfPages: chapter.numberOfPages,
+          publishAt: chapter.publishAt,
+          manga: manga,
+          moc: self.viewMoc
+        )
+      }
+
+      self.mangaCrud.updateLastUpdateAt(manga, date: updatedAt)
+
+      if !self.viewMoc.saveIfNeeded(rollbackOnError: true).isSuccess {
+        throw CrudError.saveError
+      }
+    }
+  }
+
+}
+
+// MARK: Error
+extension MangaChapterDatasource {
+
+  private func catchError(_ error: Error) {
+    switch error {
+    case is CancellationError:
+      print("MangaChapterDatasource -> Task cancelled")
+
+    case let error as ParserError:
+      self.error.value = .errorParsingResponse(error.localizedDescription)
+
+    case let error as HttpError:
+      self.error.value = .networkError(error.localizedDescription)
+
+    case let error as CrudError:
+      self.error.value = .databaseError(error.localizedDescription)
+
+    default:
+      self.error.value = .unexpectedError(error.localizedDescription)
+    }
+  }
+
+}
+
+// MARK: Network
+extension MangaChapterDatasource {
+
+  private func fetchChapters() async throws -> [ChapterModel] {
     var results = [ChapterModel]()
     let limit   = 25
     var offset  = 0
@@ -187,38 +237,6 @@ final class MangaChapterDatasource {
 
     return results
   }
-
-  private func updateDatabase(
-    chapters: [ChapterModel],
-    updatedAt: Date,
-    moc: NSManagedObjectContext
-  ) throws {
-    guard let manga = try mangaCrud.getManga(mangaId, moc: moc) else {
-      throw CrudError.mangaNotFound(id: mangaId)
-    }
-
-    for chapter in chapters {
-      _ = try chapterCrud.createOrUpdateChapter(
-        id: chapter.id,
-        chapterNumber: chapter.number,
-        title: chapter.title,
-        numberOfPages: chapter.numberOfPages,
-        publishAt: chapter.publishAt,
-        manga: manga,
-        moc: moc
-      )
-    }
-
-    mangaCrud.updateLastUpdateAt(manga, date: updatedAt)
-
-    if !moc.saveIfNeeded(rollbackOnError: true).isSuccess {
-      throw CrudError.saveError
-    }
-  }
-
-}
-
-extension MangaChapterDatasource {
 
   private func makeChapterFeedRequest(
     limit: Int,
