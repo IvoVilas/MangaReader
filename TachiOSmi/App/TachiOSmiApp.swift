@@ -24,8 +24,14 @@ struct TachiOSmiApp: App {
     WindowGroup {
       MangaSearchView(
         viewModel: MangaSearchViewModel(
-          datasource: AppEnv.env.mangaSearchDatasource,
-          moc: persistenceController.container.viewContext
+          datasource: SearchDatasource(
+            delegate: MangadexSearchDelegate(
+              httpClient: AppEnv.env.httpClient,
+              mangaParser: AppEnv.env.mangaParser
+            ),
+            mangaCrud: AppEnv.env.mangaCrud,
+            coverCrud: AppEnv.env.coverCrud
+          )
         )
       )
     }

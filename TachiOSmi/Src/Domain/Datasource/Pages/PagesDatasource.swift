@@ -1,18 +1,17 @@
 //
-//  ChapterPagesDatasource.swift
+//  PagesDatasource.swift
 //  TachiOSmi
 //
-//  Created by Ivo Vilas on 24/02/2024.
+//  Created by Ivo Vilas on 29/02/2024.
 //
 
 import Foundation
 import Combine
-import UIKit
 
-final class ChapterPagesDatasource {
+final class PagesDatasource<Delegate: PagesDelegateType> {
 
-  private let chapter: ChapterModel
-  private let httpClient: HttpClient
+  private let chapterId: String
+  private let delegate: Delegate
 
   private let pages: CurrentValueSubject<[PageModel], Never>
   private let state: CurrentValueSubject<DatasourceState, Never>
@@ -34,14 +33,14 @@ final class ChapterPagesDatasource {
 
   @MainActor var hasMorePages = true
   @MainActor private var currentPage = 0
-  @MainActor private var chapterInfo: ChapterDownloadInfoModel?
+  @MainActor private var chapterInfo: Delegate.Info?
 
   init(
-    chapter: ChapterModel,
-    httpClient: HttpClient
+    chapterId: String,
+    delegate: Delegate
   ) {
-    self.chapter = chapter
-    self.httpClient = httpClient
+    self.chapterId = chapterId
+    self.delegate = delegate
 
     pages = CurrentValueSubject([])
     state = CurrentValueSubject(.starting)
@@ -61,9 +60,9 @@ final class ChapterPagesDatasource {
     var hasMorePages = true
 
     do {
-      let chapterInfo = try await getChapterInfo()
+      let chapterInfo = try await getDownloadInfo()
 
-      pages = try await makePagesRequest(using: chapterInfo)
+      pages = await makePagesRequest(using: chapterInfo)
 
       if pages.isEmpty {
         hasMorePages = false
@@ -71,7 +70,7 @@ final class ChapterPagesDatasource {
         throw DatasourceError.otherError("No pages found")
       }
     } catch {
-      erro = catchError(error)
+      erro = delegate.catchError(error)
     }
 
     await MainActor.run { [pages, erro, hasMorePages] in
@@ -90,22 +89,22 @@ final class ChapterPagesDatasource {
     var pages = [PageModel]()
 
     do {
-      let chapterInfo = try await getChapterInfo()
+      let chapterInfo = try await getDownloadInfo()
 
-      pages = try await makePagesRequest(using: chapterInfo)
+      pages = await makePagesRequest(using: chapterInfo)
 
       if pages.isEmpty {
         hasMorePages = false
+      } else {
+        await self.updateOrAppend(pages)
       }
     } catch {
-      erro = catchError(error)
+      erro = delegate.catchError(error)
     }
 
-    await MainActor.run { [pages, erro, hasMorePages] in
+    await MainActor.run { [erro, hasMorePages] in
       self.error.valueOnMain = erro
       self.hasMorePages = hasMorePages
-      
-      self.updateOrAppend(pages)
     }
   }
 
@@ -124,12 +123,11 @@ final class ChapterPagesDatasource {
           let page: PageModel
 
           do {
-            print("ChapterPagesDatasource -> Reloading page \(id)")
-            let data = try await self.makePageRequest(url)
+            let data = try await self.delegate.fetchPage(url)
 
             page = .remote(id, data)
           } catch {
-            erro = self.catchError(error)
+            erro = self.delegate.catchError(error)
             page = .notFound(id, url)
           }
 
@@ -137,19 +135,17 @@ final class ChapterPagesDatasource {
             self.error.valueOnMain = erro
             self.tryToUpdatePage(page)
           }
-
-          print("ChapterPagesDatasource -> Ended page \(id) reload with error: \(String(describing: erro))")
         }
       }
     }
   }
 
-  private func getChapterInfo() async throws -> ChapterDownloadInfoModel {
+  private func getDownloadInfo() async throws -> Delegate.Info {
     if let local = await chapterInfo {
       return local
     }
 
-    let remote = try await makeChapterInfoRequest()
+    let remote = try await delegate.fetchDownloadInfo(chapterId: chapterId)
 
     await MainActor.run { chapterInfo = remote }
 
@@ -178,7 +174,21 @@ final class ChapterPagesDatasource {
   ) {
     for page in info {
       if let i = pages.valueOnMain.firstIndex(where: { $0.id == page.id }) {
-        pages.valueOnMain[i] = page
+        let p = pages.valueOnMain[i]
+
+        switch (p, page) {
+        case (.notFound, _):
+          pages.valueOnMain[i] = page
+
+        case (.remote, .remote):
+          pages.valueOnMain[i] = page
+
+        case (.loading, .remote):
+          pages.valueOnMain[i] = page
+
+        default:
+          break
+        }
       } else {
         pages.valueOnMain.append(page)
       }
@@ -187,103 +197,48 @@ final class ChapterPagesDatasource {
 
 }
 
-// MARK: Error
-extension ChapterPagesDatasource {
-  
-  private func catchError(_ error: Error) -> DatasourceError? {
-    switch error {
-    case is CancellationError:
-      return .unexpectedError("Task was unexpectedly canceled")
-
-    case let error as ParserError:
-      return .errorParsingResponse(error.localizedDescription)
-
-    case let error as HttpError:
-      return .networkError(error.localizedDescription)
-
-    case let error as CrudError:
-      print("ChapterPagesDatasource -> Error during database operaiton: \(error)")
-
-    case let error as DatasourceError:
-      return error
-
-    default:
-      return .unexpectedError(error.localizedDescription)
-    }
-
-    return nil
-  }
-
-}
-
-// MARK: Network
-extension ChapterPagesDatasource {
-
-  private func makeChapterInfoRequest() async throws -> ChapterDownloadInfoModel {
-    print("MangaReaderViewModel -> Starting chapter page download info")
-
-    let json = try await httpClient.makeJsonGetRequest(
-      url: "https://api.mangadex.org/at-home/server/\(chapter.id)"
-    )
-
-    guard
-      let baseUrl = json["baseUrl"] as? String,
-      let chapterJson = json["chapter"] as? [String: Any],
-      let hash = chapterJson["hash"] as? String,
-      let dataArray = chapterJson["data"] as? [String]
-    else {
-      throw ParserError.parsingError
-    }
-
-    print("MangaReaderViewModel -> Ended chapter page download info")
-
-    return ChapterDownloadInfoModel(
-      baseUrl: baseUrl,
-      hash: hash,
-      data: dataArray
-    )
-  }
+// MARK: Fetch pages
+extension PagesDatasource {
 
   private func makePagesRequest(
-    using chapterInfo: ChapterDownloadInfoModel
-  ) async throws -> [PageModel] {
+    using info: Delegate.Info
+  ) async -> [PageModel] {
     print("MangaReaderViewModel -> Starting chapter download")
-    let currentPage = await MainActor.run(resultType: Int.self) {
-      let currentPage = self.currentPage
+    let page = await MainActor.run(resultType: Int.self) {
+      let page = self.currentPage
 
       self.currentPage += 1
 
-      return currentPage
+      return page
     }
 
-    let limit     = 10
-    let offset    = limit * currentPage
-    let dataArray = chapterInfo.data
+    let limit = 10
+    let offset = limit * page
+    let count = info.numberOfPages
 
-    if offset >= dataArray.count {
+    if offset >= count {
       return []
     }
 
-    let endIndex  = min(dataArray.count, offset + limit)
-    let pagedData = dataArray[offset ..< endIndex]
+    let endIndex = min(count, offset + limit)
+    let pages = offset ..< endIndex
 
-    await MainActor.run {
-      self.pages.valueOnMain.append(
-        contentsOf: pagedData.indices.map { .loading($0) }
-      )
-    }
+    await updateOrAppend(pages.map { .loading($0) })
 
     let results = await withTaskGroup(of: PageModel.self, returning: [PageModel].self) { taskGroup in
-      for (index, data) in pagedData.enumerated() {
+      for index in pages {
         taskGroup.addTask {
-          let url = "\(chapterInfo.url)/\(data)"
-
           do {
-            let data = try await self.makePageRequest(url)
+            let data = try await self.delegate.fetchPage(index: index, info: info)
 
             return .remote(offset + index, data)
           } catch {
             print("MangaReaderViewModel -> Page \(offset + index) failed download: \(error)")
+            guard let url = try? self.delegate.buildUrl(index: index, info: info) else {
+              print ("PagesDatasource -> Error building url")
+
+              return .notFound(offset + index, "")
+            }
 
             return .notFound(offset + index, url)
           }
@@ -300,12 +255,5 @@ extension ChapterPagesDatasource {
     return results
   }
 
-  private func makePageRequest(
-    _ url: String
-  ) async throws -> Data {
-    var data = try await httpClient.makeDataGetRequest(url: url)
-
-    return data
-  }
-
 }
+

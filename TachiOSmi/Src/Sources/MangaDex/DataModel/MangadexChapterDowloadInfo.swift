@@ -1,13 +1,13 @@
 //
-//  ChapterDownloadInfoModel.swift
+//  MangadexChapterDowloadInfo.swift
 //  TachiOSmi
 //
-//  Created by Ivo Vilas on 27/02/2024.
+//  Created by Ivo Vilas on 01/03/2024.
 //
 
 import Foundation
 
-struct ChapterDownloadInfoModel: Identifiable {
+struct MangadexChapterDownloadInfo: ChapterDownloadInfo {
 
   let baseUrl: String
   let hash: String
@@ -16,6 +16,8 @@ struct ChapterDownloadInfoModel: Identifiable {
   var id: String { "\(baseUrl)_\(hash)" }
 
   var url: String { "\(baseUrl)/data/\(hash)" }
+
+  var numberOfPages: Int { data.count }
 
   init(
     baseUrl: String,

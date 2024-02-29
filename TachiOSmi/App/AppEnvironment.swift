@@ -32,9 +32,6 @@ final class AppEnvironment {
   let mangaParser: MangaParser
   let chapterParser: ChapterParser
 
-  // Datasource
-  let mangaSearchDatasource: MangaSearchDatasource
-
   // Tools
   let systemDateTime: SystemDateTimeType
 
@@ -54,18 +51,7 @@ final class AppEnvironment {
     coverCrud   = CoverCrud()
 
     mangaParser   = MangaParser()
-    chapterParser = ChapterParser(
-      mangaCrud: mangaCrud,
-      chapterCrud: chapterCrud,
-      moc: moc
-    )
-
-    mangaSearchDatasource = MangaSearchDatasource(
-      httpClient: httpClient,
-      mangaParser: mangaParser,
-      mangaCrud: mangaCrud,
-      coverCrud: coverCrud
-    )
+    chapterParser = ChapterParser()
 
     systemDateTime = SystemDateTime()
   }

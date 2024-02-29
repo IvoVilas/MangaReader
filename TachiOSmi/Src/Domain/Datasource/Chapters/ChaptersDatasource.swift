@@ -1,20 +1,19 @@
 //
-//  MangaChapterDatasource.swift
+//  ChaptersDatasource.swift
 //  TachiOSmi
 //
-//  Created by Ivo Vilas on 19/02/2024.
+//  Created by Ivo Vilas on 29/02/2024.
 //
 
 import Foundation
 import Combine
 import CoreData
 
-final class MangaChapterDatasource {
+final class ChaptersDatasource {
 
   private let mangaId: String
 
-  private let httpClient: HttpClient
-  private let chapterParser: ChapterParser
+  private let delegate: ChaptersDelegateType
   private let mangaCrud: MangaCrud
   private let chapterCrud: ChapterCrud
   private let systemDateTime: SystemDateTimeType
@@ -66,25 +65,23 @@ final class MangaChapterDatasource {
 
   init(
     mangaId: String,
-    httpClient: HttpClient,
-    chapterParser: ChapterParser,
+    delegate: ChaptersDelegateType,
     mangaCrud: MangaCrud,
     chapterCrud: ChapterCrud,
     systemDateTime: SystemDateTimeType,
     viewMoc: NSManagedObjectContext = PersistenceController.shared.container.viewContext
   ) {
-    self.mangaId        = mangaId
-    self.httpClient     = httpClient
-    self.chapterParser  = chapterParser
-    self.mangaCrud      = mangaCrud
-    self.chapterCrud    = chapterCrud
+    self.mangaId = mangaId
+    self.delegate = delegate
+    self.mangaCrud = mangaCrud
+    self.chapterCrud = chapterCrud
     self.systemDateTime = systemDateTime
-    self.viewMoc        = viewMoc
+    self.viewMoc = viewMoc
 
     chapters = CurrentValueSubject([])
-    count    = CurrentValueSubject(0)
-    state    = CurrentValueSubject(.starting)
-    error    = CurrentValueSubject(nil)
+    count = CurrentValueSubject(0)
+    state = CurrentValueSubject(.starting)
+    error = CurrentValueSubject(nil)
   }
 
   func setupData() async {
@@ -113,7 +110,7 @@ final class MangaChapterDatasource {
         results = try await self.fetchLocalChapters()
 
         if results.isEmpty {
-          results = try await self.fetchChapters()
+          results = try await self.delegate.fetchChapters(mangaId: mangaId)
         }
 
         await MainActor.run { [results] in
@@ -121,7 +118,10 @@ final class MangaChapterDatasource {
           self.sendNextChapters()
         }
 
-        let newResults = try await fetchRemoteChaptersIfNeeded()
+        let newResults = try await self.fetchRemoteChaptersIfNeeded(
+          mangaId: mangaId,
+          viewMoc: viewMoc
+        )
 
         if !newResults.isEmpty {
           await MainActor.run { [newResults] in
@@ -129,12 +129,14 @@ final class MangaChapterDatasource {
             self.sendAllLoadedChapters()
           }
 
-          try await updateDatabase(
+          try await self.updateDatabase(
             chapters: newResults,
             updatedAt: self.systemDateTime.now
           )
         }
-      } catch { erro = catchError(error) }
+      } catch {
+        erro = self.delegate.catchError(error)
+      }
 
       await MainActor.run { [erro] in
         self.state.valueOnMain = .normal
@@ -165,18 +167,20 @@ final class MangaChapterDatasource {
       do {
         try await Task.sleep(nanoseconds: 5_000_000_000)
 
-        results = try await self.fetchChapters()
+        results = try await self.delegate.fetchChapters(mangaId: mangaId)
 
         await MainActor.run { [results] in
           self.results = results
-          self.sendAllLoadedChapters()      
+          self.sendAllLoadedChapters()
         }
 
-        try await updateDatabase(
+        try await self.updateDatabase(
           chapters: results,
           updatedAt: self.systemDateTime.now
         )
-      } catch { erro = catchError(error) }
+      } catch {
+        erro = self.delegate.catchError(error)
+      }
 
       await MainActor.run { [erro] in
         self.state.valueOnMain = .normal
@@ -192,30 +196,33 @@ final class MangaChapterDatasource {
     }
   }
 
-  private func fetchLocalChapters() async throws -> [ChapterModel] {
-    return try chapterCrud
-      .getAllChapters(mangaId: mangaId, moc: viewMoc)
-      .map { ChapterModel.from($0) }
-      .sorted(by: MangaChapterDatasource.sortByNumber)
-  }
-
-  private func fetchRemoteChaptersIfNeeded() async throws -> [ChapterModel] {
+  func fetchRemoteChaptersIfNeeded(
+    mangaId: String,
+    viewMoc: NSManagedObjectContext
+  ) async throws -> [ChapterModel] {
     guard let manga = try mangaCrud.getManga(mangaId, moc: viewMoc) else {
       throw CrudError.mangaNotFound(id: mangaId)
     }
 
     guard let lastUpdateAt = manga.lastUpdateAt else {
-      return try await fetchChapters()
+      return try await delegate.fetchChapters(mangaId: mangaId)
     }
 
     if systemDateTime.comparator.isDate(
       lastUpdateAt,
       lessThanOrEqual: systemDateTime.calculator.removeDays(5, to: systemDateTime.now)
     ) {
-      return try await fetchChapters()
+      return try await delegate.fetchChapters(mangaId: mangaId)
     }
 
     return []
+  }
+
+  private func fetchLocalChapters() async throws -> [ChapterModel] {
+    return try chapterCrud
+      .getAllChapters(mangaId: mangaId, moc: viewMoc)
+      .map { ChapterModel.from($0) }
+      .sorted(by: ChaptersDatasource.sortByNumber)
   }
 
   @MainActor
@@ -235,7 +242,7 @@ final class MangaChapterDatasource {
     currentPage += 1
   }
 
-  @MainActor 
+  @MainActor
   func sendAllLoadedChapters() {
     let limit = 30
     let i = min(currentPage * limit, results.count)
@@ -248,7 +255,7 @@ final class MangaChapterDatasource {
 }
 
 // MARK: Database
-extension MangaChapterDatasource {
+extension ChaptersDatasource {
 
   private func updateDatabase(
     chapters: [ChapterModel],
@@ -281,77 +288,3 @@ extension MangaChapterDatasource {
 
 }
 
-// MARK: Error
-extension MangaChapterDatasource {
-
-  private func catchError(_ error: Error) -> DatasourceError? {
-    switch error {
-    case is CancellationError:
-      print("MangaChapterDatasource -> Task cancelled")
-
-    case let error as ParserError:
-      return .errorParsingResponse(error.localizedDescription)
-
-    case let error as HttpError:
-      return .networkError(error.localizedDescription)
-
-    case let error as CrudError:
-      return .databaseError(error.localizedDescription)
-
-    default:
-      return .unexpectedError(error.localizedDescription)
-    }
-
-    return nil
-  }
-
-}
-
-// MARK: Network
-extension MangaChapterDatasource {
-
-  private func fetchChapters() async throws -> [ChapterModel] {
-    var results = [ChapterModel]()
-    let limit   = 25
-    var offset  = 0
-
-    while true {
-      try Task.checkCancellation()
-
-      let result = try await makeChapterFeedRequest(limit: limit, offset: offset)
-
-      if result.isEmpty { break }
-
-      offset += limit
-
-      results.append(contentsOf: result)
-    }
-
-    return results
-  }
-
-  private func makeChapterFeedRequest(
-    limit: Int,
-    offset: Int
-  ) async throws -> [ChapterModel] {
-    let json = try await httpClient.makeJsonGetRequest(
-      url: "https://api.mangadex.org/manga/\(mangaId)/feed",
-      parameters: [
-        ("translatedLanguage[]", "en"),
-        ("order[chapter]", "desc"),
-        ("order[createdAt]", "desc"),
-        ("limit", limit),
-        ("offset", offset)
-      ]
-    )
-
-    guard let dataJson = json["data"] as? [[String: Any]] else {
-      throw ParserError.parameterNotFound("data")
-    }
-
-    return chapterParser
-      .parseChapterData(mangaId: mangaId, data: dataJson)
-      .filter { $0.numberOfPages > 0 }
-  }
-
-}

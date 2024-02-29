@@ -240,28 +240,28 @@ struct MangaSearchView: View {
 
 }
 
-#Preview {
-  MangaSearchView(
-    viewModel: MangaSearchView.buildPreviewViewModel()
-  )
-}
-
-extension MangaSearchView {
-
-  static func buildPreviewViewModel(
-  ) -> MangaSearchViewModel {
-    let moc = PersistenceController.preview.container.viewContext
-
-    return MangaSearchViewModel(
-      datasource: MangaSearchDatasource(
-        httpClient: HttpClient(),
-        mangaParser: MangaParser(),
-        mangaCrud: MangaCrud(),
-        coverCrud: CoverCrud(),
-        viewMoc: moc
-      ),
-      moc: moc
-    )
-  }
-
-}
+//#Preview {
+//  MangaSearchView(
+//    viewModel: MangaSearchView.buildPreviewViewModel()
+//  )
+//}
+//
+//extension MangaSearchView {
+//
+//  static func buildPreviewViewModel(
+//  ) -> MangaSearchViewModel {
+//    let moc = PersistenceController.preview.container.viewContext
+//
+//    return MangaSearchViewModel(
+//      datasource: MangaSearchDatasource(
+//        httpClient: HttpClient(),
+//        mangaParser: MangaParser(),
+//        mangaCrud: MangaCrud(),
+//        coverCrud: CoverCrud(),
+//        viewMoc: moc
+//      ),
+//      moc: moc
+//    )
+//  }
+//
+//}

@@ -9,18 +9,18 @@ import Foundation
 import SwiftUI
 import Combine
 
-final class ChapterReaderViewModel: ObservableObject {
+final class ChapterReaderViewModel<Delegate: PagesDelegateType>: ObservableObject {
 
   @Published var pages: [PageModel]
   @Published var isLoading: Bool
   @Published var error: DatasourceError?
 
-  private let datasource: ChapterPagesDatasource
+  private let datasource: PagesDatasource<Delegate>
 
   private var observers = Set<AnyCancellable>()
 
   init(
-    datasource: ChapterPagesDatasource
+    datasource: PagesDatasource<Delegate>
   ) {
     self.datasource = datasource
 
@@ -55,20 +55,14 @@ extension ChapterReaderViewModel {
   }
 
   func loadNextIfNeeded(_ pageId: String) async {
-    if await !datasource.hasMorePages { return }
-
     let count = pages.count
 
-    guard count - 3 >= 0 else {
-      if pageId == pages.last?.id {
-        await datasource.loadNextPages()
-      }
-
-      return
-    }
+    guard count - 3 >= 0 else { return }
 
     if pageId == pages[count - 3].id {
-      await datasource.loadNextPages()
+      if await datasource.hasMorePages {
+        await datasource.loadNextPages()
+      }
     }
   }
 

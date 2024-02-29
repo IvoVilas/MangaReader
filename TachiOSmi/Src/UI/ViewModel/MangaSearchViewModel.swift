@@ -17,22 +17,19 @@ final class MangaSearchViewModel: ObservableObject {
   @Published var isLoading: Bool
   @Published var error: DatasourceError?
 
-  private let datasource: MangaSearchDatasource
-  private let moc: NSManagedObjectContext
+  private let datasource: SearchDatasource
 
-  private var observers   = Set<AnyCancellable>()
+  private var observers = Set<AnyCancellable>()
 
   init(
-    datasource: MangaSearchDatasource,
-    moc: NSManagedObjectContext
+    datasource: SearchDatasource
   ) {
     self.datasource = datasource
-    self.moc        = moc
 
-    results   = []
-    input     = ""
+    results = []
+    input = ""
     isLoading = false
-    error     = nil
+    error = nil
 
     datasource.mangasPublisher
       .receive(on: DispatchQueue.main)
@@ -62,7 +59,9 @@ extension MangaSearchViewModel {
 
   func loadNextIfNeeded(_ id: String) async {
     if id == results.last?.id {
-      await datasource.loadNextPage(input)
+      if await datasource.hasMorePages {
+        await datasource.loadNextPage(input)
+      }
     }
   }
 
@@ -70,18 +69,24 @@ extension MangaSearchViewModel {
     _ manga: MangaModel
   ) -> MangaDetailsViewModel {
     return MangaDetailsViewModel(
-      chaptersDatasource: MangaChapterDatasource(
+      chaptersDatasource: ChaptersDatasource(
         mangaId: manga.id,
-        httpClient: AppEnv.env.httpClient,
-        chapterParser: AppEnv.env.chapterParser,
+        delegate: MangadexChaptersDelegate(
+          httpClient: AppEnv.env.httpClient,
+          chapterParser: AppEnv.env.chapterParser,
+          systemDateTime: AppEnv.env.systemDateTime
+        ),
         mangaCrud: AppEnv.env.mangaCrud,
         chapterCrud: AppEnv.env.chapterCrud,
         systemDateTime: AppEnv.env.systemDateTime
       ),
-      detailsDatasource: MangaDetailsDatasource(
+      detailsDatasource: DetailsDatasource(
         manga: manga,
-        httpClient: AppEnv.env.httpClient,
-        mangaParser: AppEnv.env.mangaParser,
+        delegate: MangadexDetailsDelegate(
+          httpClient: AppEnv.env.httpClient,
+          coverCrud: AppEnv.env.coverCrud,
+          mangaParser: AppEnv.env.mangaParser
+        ),
         mangaCrud: AppEnv.env.mangaCrud,
         coverCrud: AppEnv.env.coverCrud,
         authorCrud: AppEnv.env.authorCrud,

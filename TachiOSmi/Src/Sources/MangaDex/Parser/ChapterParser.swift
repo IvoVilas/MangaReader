@@ -11,21 +11,9 @@ import UIKit
 
 final class ChapterParser {
 
-  private let mangaCrud: MangaCrud
-  private let chapterCrud: ChapterCrud
   private let dateFormatter: DateFormatter
 
-  private let moc: NSManagedObjectContext
-
-  init(
-    mangaCrud: MangaCrud,
-    chapterCrud: ChapterCrud,
-    moc: NSManagedObjectContext
-  ) {
-    self.mangaCrud   = mangaCrud
-    self.chapterCrud = chapterCrud
-    self.moc         = moc
-
+  init() {
     dateFormatter = DateFormatter()
     dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
   }

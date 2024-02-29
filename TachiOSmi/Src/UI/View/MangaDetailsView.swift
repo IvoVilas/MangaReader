@@ -77,7 +77,7 @@ struct MangaDetailsView: View {
     }
     .navigationDestination(for: ChapterModel.self) { chapter in
       ChapterReaderView(
-        viewModel: viewModel.buildReaderViewModel(chapter)
+        viewModel: viewModel.buildReaderViewModel(chapter, delegateType: MangadexPagesDelegate.self)
       )
     }
     .toastView(toast: $toast)
@@ -241,11 +241,13 @@ struct MangaDetailsView: View {
 extension MangaDetailsView {
 
   static func buildPreviewViewModel() -> MangaDetailsViewModel {
-    let mangaCrud   = MangaCrud()
+    let systemDateTime = SystemDateTime()
+    let mangaCrud = MangaCrud()
+    let coverCrud = CoverCrud()
     let chapterCrud = ChapterCrud()
-    let httpClient  = HttpClient()
-    let moc         = PersistenceController.preview.container.viewContext
-    let manga       = MangaModel(
+    let httpClient = HttpClient()
+    let moc = PersistenceController.preview.container.viewContext
+    let manga = MangaModel(
       id: "c52b2ce3-7f95-469c-96b0-479524fb7a1a",
       title: "Jujutsu Kaisen",
       description: "Yuuji is a genius at track and field. But he has zero interest running around in circles, he's happy as a clam in the Occult Research Club. Although he's only in the club for kicks, things get serious when a real spirit shows up at school! Life's about to get really strange in Sugisawa Town #3 High School!",
@@ -264,28 +266,28 @@ extension MangaDetailsView {
       authors: [AuthorModel(id: "1", name: "Akutami Gege")]
     )
 
-    let chapterParser = ChapterParser(
-      mangaCrud: mangaCrud,
-      chapterCrud: chapterCrud,
-      moc: moc
-    )
-
     return MangaDetailsViewModel(
-      chaptersDatasource: MangaChapterDatasource(
+      chaptersDatasource: ChaptersDatasource(
         mangaId: manga.id,
-        httpClient: httpClient,
-        chapterParser: chapterParser,
+        delegate: MangadexChaptersDelegate(
+          httpClient: httpClient,
+          chapterParser: ChapterParser(),
+          systemDateTime: systemDateTime
+        ),
         mangaCrud: mangaCrud,
         chapterCrud: chapterCrud,
-        systemDateTime: SystemDateTime(),
+        systemDateTime: systemDateTime, 
         viewMoc: moc
       ),
-      detailsDatasource: MangaDetailsDatasource(
+      detailsDatasource: DetailsDatasource(
         manga: manga,
-        httpClient: httpClient,
-        mangaParser: MangaParser(),
+        delegate: MangadexDetailsDelegate(
+          httpClient: httpClient,
+          coverCrud: coverCrud,
+          mangaParser: MangaParser()
+        ),
         mangaCrud: mangaCrud,
-        coverCrud: CoverCrud(),
+        coverCrud: coverCrud,
         authorCrud: AuthorCrud(),
         tagCrud: TagCrud(),
         viewMoc: moc

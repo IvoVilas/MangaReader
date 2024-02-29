@@ -11,8 +11,8 @@ import Combine
 
 final class MangaDetailsViewModel: ObservableObject {
 
-  private let chaptersDatasource: MangaChapterDatasource
-  private let detailsDatasource: MangaDetailsDatasource
+  private let chaptersDatasource: ChaptersDatasource
+  private let detailsDatasource: DetailsDatasource
 
   @Published var title: String
   @Published var cover: UIImage?
@@ -29,11 +29,11 @@ final class MangaDetailsViewModel: ObservableObject {
   private var observers = Set<AnyCancellable>()
 
   init(
-    chaptersDatasource: MangaChapterDatasource,
-    detailsDatasource: MangaDetailsDatasource
+    chaptersDatasource: ChaptersDatasource,
+    detailsDatasource: DetailsDatasource
   ) {
     self.chaptersDatasource = chaptersDatasource
-    self.detailsDatasource  = detailsDatasource
+    self.detailsDatasource = detailsDatasource
 
     cover          = nil
     title          = ""
@@ -45,41 +45,47 @@ final class MangaDetailsViewModel: ObservableObject {
     isLoading      = false
     isImageLoading = false
 
-    detailsDatasource.titlePublisher
+    detailsDatasource.detailsPublisher
+      .map { $0.title }
       .removeDuplicates()
       .receive(on: DispatchQueue.main)
       .sink { [weak self] in self?.title = $0 }
       .store(in: &observers)
 
-    detailsDatasource.descriptionPublisher
+    detailsDatasource.detailsPublisher
+      .map { $0.description }
       .removeDuplicates()
       .receive(on: DispatchQueue.main)
       .sink { [weak self] in self?.description = $0 }
       .store(in: &observers)
 
-    detailsDatasource.statusPublisher
+    detailsDatasource.detailsPublisher
+      .map { $0.status }
       .removeDuplicates()
       .receive(on: DispatchQueue.main)
       .sink { [weak self] in self?.status = $0 }
       .store(in: &observers)
 
-    detailsDatasource.authorsPublisher
+    detailsDatasource.detailsPublisher
+      .map { $0.authors }
       .removeDuplicates()
       .receive(on: DispatchQueue.main)
       .sink { [weak self] in self?.authors = $0 }
       .store(in: &observers)
 
-    detailsDatasource.tagsPublisher
+    detailsDatasource.detailsPublisher
+      .map { $0.tags }
       .removeDuplicates()
       .receive(on: DispatchQueue.main)
       .sink { [weak self] in self?.tags = $0 }
       .store(in: &observers)
 
-    detailsDatasource.coverPublisher
+    detailsDatasource.detailsPublisher
+      .compactMap { $0.cover }
       .removeDuplicates()
+      .map { UIImage(data: $0) }
       .receive(on: DispatchQueue.main)
-      .compactMap { $0 }
-      .sink { [weak self] in self?.cover = UIImage(data: $0) }
+      .sink { [weak self] in self?.cover = $0 }
       .store(in: &observers)
 
     chaptersDatasource.chaptersPublisher
@@ -110,7 +116,6 @@ final class MangaDetailsViewModel: ObservableObject {
     .receive(on: DispatchQueue.main)
     .map {
       if let error = $0 { return error }
-
       if let error = $1 { return error }
 
       return nil
@@ -145,13 +150,14 @@ extension MangaDetailsViewModel {
     }
   }
 
-  func buildReaderViewModel(
-    _ chapter: ChapterModel
-  ) -> ChapterReaderViewModel {
+  func buildReaderViewModel<Delegate: PagesDelegateType>(
+    _ chapter: ChapterModel,
+    delegateType: Delegate.Type
+  ) -> ChapterReaderViewModel<Delegate> {
     return ChapterReaderViewModel(
-      datasource: ChapterPagesDatasource(
-        chapter: chapter,
-        httpClient: AppEnv.env.httpClient
+      datasource: PagesDatasource<Delegate>(
+        chapterId: chapter.id,
+        delegate: delegateType.init(httpClient: AppEnv.env.httpClient)
       )
     )
   }
