@@ -8,6 +8,7 @@
 import SwiftUI
 import CoreData
 
+// MARK: Search
 struct MangaSearchView: View {
 
   enum ResultLayout {
@@ -34,13 +35,8 @@ struct MangaSearchView: View {
     }
   }
 
-  @StateObject var viewModel: MangaSearchViewModel
-
-  @FocusState private var inputFieldIsFocused: Bool
-
+  @ObservedObject var viewModel: MangaSearchViewModel
   @State private var toast: Toast?
-  @State private var didSearch = false
-  @State private var isSearching = false
   @State private var listLayout = ResultLayout.compact
 
   private let backgroundColor = Color.white
@@ -55,8 +51,13 @@ struct MangaSearchView: View {
   var body: some View {
     NavigationStack {
       VStack(spacing: 0) {
-        makeHeaderView()
-          .padding(.horizontal, 16)
+        HeaderView(
+          input: $viewModel.input,
+          tintColor: foregroundColor,
+          textColor: secondaryColor,
+          doSearch: viewModel.doSearch
+        )
+        .padding(.horizontal, 16)
 
         ZStack {
           ProgressView()
@@ -68,9 +69,10 @@ struct MangaSearchView: View {
             LazyVGrid(columns: columns, spacing: 16) {
               ForEach(viewModel.results) { result in
                 NavigationLink(value: result) {
-                  MangaResultView(
-                    manga: result,
-                    layout: listLayout,
+                  MangaResultCompactView(
+                    id: result.id,
+                    cover: result.cover,
+                    title: result.title,
                     textColor: secondaryColor
                   )
                   .equatable()
@@ -91,15 +93,13 @@ struct MangaSearchView: View {
               await viewModel.doSearch()
             }
           }
-          .onAppear {
-            Task(priority: .medium) {
-              if viewModel.results.isEmpty {
-                await viewModel.doSearch()
-              }
+          .task(priority: .medium) {
+            if viewModel.results.isEmpty {
+              await viewModel.doSearch()
             }
           }
         }
-        .navigationDestination(for: MangaModel.self) { manga in
+        .navigationDestination(for: MangaSearchData.self) { manga in
           MangaDetailsView(viewModel: viewModel.buildMangaDetailsViewModel(manga))
         }
         .toastView(toast: $toast)
@@ -116,34 +116,47 @@ struct MangaSearchView: View {
     }
   }
 
-  @ViewBuilder
-  private func makeHeaderView() -> some View {
+}
+
+// MARK: Header
+private struct HeaderView: View {
+
+  @State var didSearch = false
+  @State var isSearching: Bool = false
+  @Binding var input: String
+  @FocusState private var inputFieldIsFocused: Bool
+
+  let tintColor: Color
+  let textColor: Color
+  let doSearch: (() async -> Void)?
+
+  var body: some View {
     HStack(spacing: 16) {
       ZStack(alignment: .leading) {
         Text("MangaDex")
-          .foregroundStyle(foregroundColor)
+          .foregroundStyle(tintColor)
           .font(.title)
           .padding(.vertical, 16)
           .opacity(isSearching ? 0 : 1)
 
         TextField(
           "",
-          text: $viewModel.input,
+          text: $input,
           prompt: Text("Search title...")
             .font(.title3)
-            .foregroundStyle(foregroundColor)
+            .foregroundStyle(tintColor)
         )
         .keyboardType(.default)
         .focused($inputFieldIsFocused)
-        .foregroundStyle(secondaryColor)
+        .foregroundStyle(textColor)
         .textInputAutocapitalization(.sentences)
         .autocorrectionDisabled(true)
         .padding(.vertical, 8)
         .onSubmit {
-          didSearch = true
-
           Task(priority: .medium) {
-            await viewModel.doSearch()
+            didSearch = true
+
+            await doSearch?()
           }
         }
         .submitLabel(.search)
@@ -154,51 +167,46 @@ struct MangaSearchView: View {
 
       Button { searchAction() } label: {
         Image(systemName: isSearching ? "xmark" : "magnifyingglass")
-          .tint(foregroundColor)
+          .tint(tintColor)
       }
 
       Button {
-        listLayout = listLayout.toggle()
+        // do togle
       } label: {
-        Image(systemName: listLayout.iconName)
-          .tint(foregroundColor)
+        Image(systemName: "rectangle.grid.3x2.fill")
+          .tint(tintColor)
       }
     }
   }
 
   private func searchAction() {
-    if isSearching {
-      viewModel.input = ""
-      isSearching.toggle()
+    input = ""
 
-      if didSearch {
-        Task(priority: .medium) {
-          await viewModel.doSearch()
-        }
-      }
-
-      inputFieldIsFocused = false
+    if didSearch {
       didSearch = false
-    } else {
-      isSearching.toggle()
-      inputFieldIsFocused = true
+
+      Task(priority: .medium) { await doSearch?() }
     }
+
+    isSearching.toggle()
+
+    inputFieldIsFocused = isSearching
   }
 
 }
 
-struct MangaResultView: View, Equatable {
+// MARK: ResultCompact
+private struct MangaResultCompactView: View, Equatable {
 
-  var manga: MangaModel
-  var layout: MangaSearchView.ResultLayout
-  var textColor: Color
+  let id: String
+  let cover: Data?
+  let title: String
+  let textColor: Color
 
-  static func == (lhs: MangaResultView, rhs: MangaResultView) -> Bool {
-    if lhs.manga.id != rhs.manga.id { return false }
+  static func == (lhs: MangaResultCompactView, rhs: MangaResultCompactView) -> Bool {
+    if lhs.id != rhs.id { return false }
 
-    if lhs.layout != rhs.layout { return false }
-
-    switch (lhs.manga.cover, rhs.manga.cover) {
+    switch (lhs.cover, rhs.cover) {
     case (.none, .some):
       return false
 
@@ -211,55 +219,66 @@ struct MangaResultView: View, Equatable {
   }
 
   var body: some View {
-    switch layout {
-    case .normal:
-      VStack(spacing: 4) {
-        getCover(manga)
-          .clipShape(RoundedRectangle(cornerRadius: 8))
+    Image(uiImage: UIImage(data: cover ?? Data()) ?? UIImage())
+      .resizable()
+      .aspectRatio(0.625, contentMode: .fill)
+      .background(.gray)
+      .overlay {
+        ZStack(alignment: .bottomLeading) {
+          LinearGradient(
+            gradient: Gradient(colors: [.clear, .black.opacity(0.8)]),
+            startPoint: .center,
+            endPoint: .bottom
+          )
 
-        Text(manga.title)
-          .font(.caption2)
-          .lineLimit(2)
-          .multilineTextAlignment(.leading)
-          .foregroundStyle(textColor)
-          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-      }
-
-    case .compact:
-      getCover(manga)
-        .overlay {
-          ZStack(alignment: .bottomLeading) {
-            LinearGradient(
-              gradient: Gradient(colors: [.clear, .black.opacity(0.8)]),
-              startPoint: .center,
-              endPoint: .bottom
-            )
-
-            Text(manga.title)
-              .font(.bold(.footnote)())
-              .lineLimit(2)
-              .multilineTextAlignment(.leading)
-              .foregroundStyle(.white)
-              .padding(.horizontal, 4)
-              .padding(.bottom, 8)
-          }
+          Text(title)
+            .font(.bold(.footnote)())
+            .lineLimit(2)
+            .multilineTextAlignment(.leading)
+            .foregroundStyle(.white)
+            .padding(.horizontal, 4)
+            .padding(.bottom, 8)
         }
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+      }
+      .clipShape(RoundedRectangle(cornerRadius: 8))
+  }
+
+}
+
+// MARK: Result
+private struct MangaResultView: View, Equatable {
+
+  let id: String
+  let cover: Data?
+  let title: String
+  let textColor: Color
+
+  static func == (lhs: MangaResultView, rhs: MangaResultView) -> Bool {
+    if lhs.id != rhs.id { return false }
+
+    switch (lhs.cover, rhs.cover) {
+    case (.none, .some):
+      return false
+
+    case (.some, .none):
+      return false
+
+    default:
+      return true
     }
   }
 
-  @ViewBuilder
-  private func getCover(
-    _ manga: MangaModel
-  ) -> some View {
-    if let data = manga.cover, let cover = UIImage(data: data) {
-      Image(uiImage: cover)
-        .resizable()
-        .aspectRatio(0.625, contentMode: .fill)
-    } else {
-      Rectangle()
-        .fill(.gray)
-        .aspectRatio(0.625, contentMode: .fill)
+  var body: some View {
+    VStack(spacing: 4) {
+      Image(uiImage: UIImage(data: cover ?? Data()) ?? UIImage())
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+
+      Text(title)
+        .font(.caption2)
+        .lineLimit(2)
+        .multilineTextAlignment(.leading)
+        .foregroundStyle(textColor)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
   }
 

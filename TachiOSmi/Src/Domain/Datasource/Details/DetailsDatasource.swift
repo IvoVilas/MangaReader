@@ -38,7 +38,7 @@ final class DetailsDatasource {
   }
 
   init(
-    manga: MangaModel,
+    manga: MangaSearchData,
     delegate: DetailsDelegateType,
     mangaCrud: MangaCrud,
     coverCrud: CoverCrud,
@@ -55,9 +55,19 @@ final class DetailsDatasource {
     self.tagCrud = tagCrud
     self.viewMoc = viewMoc
 
-    details = CurrentValueSubject(manga)
     state = CurrentValueSubject(.starting)
     error = CurrentValueSubject(nil)
+    details = CurrentValueSubject(
+      MangaModel(
+        id: manga.id,
+        title: manga.title,
+        description: nil,
+        status: .unknown,
+        cover: manga.cover,
+        tags: [],
+        authors: []
+      )
+    )
   }
 
   // Setups initial data

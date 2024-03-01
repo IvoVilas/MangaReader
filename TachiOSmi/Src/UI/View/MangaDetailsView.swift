@@ -12,8 +12,8 @@ struct MangaDetailsView: View {
   @ObservedObject var viewModel: MangaDetailsViewModel
   @State private var toast: Toast?
 
-  private let backgroundColor: Color = .black
-  private let foregroundColor: Color = .white
+  private let backgroundColor: Color = .white
+  private let foregroundColor: Color = .black
 
   init(
     viewModel: MangaDetailsViewModel
@@ -67,6 +67,7 @@ struct MangaDetailsView: View {
         .padding(.horizontal, 24)
       }
     }
+    .scrollIndicators(.hidden)
     .ignoresSafeArea(.all, edges: .top)
     .background(backgroundColor)
     .onAppear {
@@ -139,7 +140,7 @@ struct MangaDetailsView: View {
     HStack(spacing: 16) {
       Image(uiImage: viewModel.cover ?? .coverNotFound)
         .resizable()
-        .aspectRatio(contentMode: .fit)
+        .aspectRatio(contentMode: .fill)
         .frame(width: 100, height: 160)
         .clipShape(RoundedRectangle(cornerRadius: 8))
 
@@ -248,23 +249,10 @@ extension MangaDetailsView {
     let chapterCrud = ChapterCrud()
     let httpClient = HttpClient()
     let moc = PersistenceController.preview.container.viewContext
-    let manga = MangaModel(
+    let manga = MangaSearchData(
       id: "c52b2ce3-7f95-469c-96b0-479524fb7a1a",
       title: "Jujutsu Kaisen",
-      description: "Yuuji is a genius at track and field. But he has zero interest running around in circles, he's happy as a clam in the Occult Research Club. Although he's only in the club for kicks, things get serious when a real spirit shows up at school! Life's about to get really strange in Sugisawa Town #3 High School!",
-      status: .ongoing,
-      cover: UIImage.jujutsuCover.jpegData(compressionQuality: 1),
-      tags: [
-        TagModel(id: "1", title: "Action"),
-        TagModel(id: "2", title: "Drama"),
-        TagModel(id: "3", title: "Horror"),
-        TagModel(id: "4", title: "School life"),
-        TagModel(id: "5", title: "Shounen"),
-        TagModel(id: "6", title: "Supernatural"),
-        TagModel(id: "7", title: "Manga"),
-        TagModel(id: "8", title: "Ghosts")
-      ],
-      authors: [AuthorModel(id: "1", name: "Akutami Gege")]
+      cover: UIImage.jujutsuCover.jpegData(compressionQuality: 1)
     )
 
     return MangaDetailsViewModel(

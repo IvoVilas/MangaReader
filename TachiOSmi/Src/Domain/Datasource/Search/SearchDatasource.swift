@@ -106,12 +106,10 @@ final class SearchDatasource {
     }
 
     let page = await MainActor.run(resultType: Int.self) {
-      let page = self.currentPage
-
       self.error.valueOnMain = nil
       self.currentPage += 1
 
-      return page
+      return currentPage
     }
 
     fetchTask = Task { [weak self] in
