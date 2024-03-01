@@ -77,10 +77,18 @@ final class DetailsDatasource {
       let mangaModel: MangaModel
       var didRequest = false
 
-      if let cover = try coverCrud.getCoverData(for: mangaId, moc: viewMoc) {
+      let cover = try viewMoc.performAndWait {
+        try coverCrud.getCoverData(for: mangaId, moc: viewMoc)
+      }
+
+      if let cover {
         await update(cover: cover)
 
-        if let manga = try mangaCrud.getManga(mangaId, moc: viewMoc) {
+        let manga = try viewMoc.performAndWait {
+          try mangaCrud.getManga(mangaId, moc: viewMoc)
+        }
+
+        if let manga {
           mangaModel = .from(manga, cover: cover)
         } else {
           let data = try await delegate.fetchDetails(mangaId)
@@ -97,9 +105,8 @@ final class DetailsDatasource {
         await update(using: model)
 
         let cover = try await delegate.fetchCover(
-          mangaId: data.id,
-          fileName: data.coverFileName,
-          viewMoc: viewMoc
+          mangaId: mangaId,
+          fileName: data.coverFileName
         )
 
         await update(cover: cover)
@@ -141,8 +148,7 @@ final class DetailsDatasource {
 
       let cover = try await delegate.fetchCover(
         mangaId: mangaId,
-        fileName: data.coverFileName,
-        viewMoc: viewMoc
+        fileName: data.coverFileName
       )
 
       await update(cover: cover)

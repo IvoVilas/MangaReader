@@ -13,7 +13,7 @@ struct MangaModel: Identifiable, Hashable {
   let title: String
   let description: String?
   let status: MangaStatus
-  var cover: Data?
+  let cover: Data?
   let tags: [TagModel]
   let authors: [AuthorModel]
 

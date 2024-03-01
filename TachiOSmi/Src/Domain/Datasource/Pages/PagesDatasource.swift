@@ -56,60 +56,40 @@ final class PagesDatasource<Delegate: PagesDelegateType> {
     }
 
     var erro: DatasourceError?
-    var pages = [PageModel]()
-    var hasMorePages = true
 
     do {
       let chapterInfo = try await getDownloadInfo()
 
-      pages = await makePagesRequest(using: chapterInfo)
-
-      if pages.isEmpty {
-        hasMorePages = false
-
-        throw DatasourceError.otherError("No pages found")
-      }
+      await makePagesRequest(using: chapterInfo)
     } catch {
       erro = delegate.catchError(error)
     }
 
-    await MainActor.run { [pages, erro, hasMorePages] in
+    await MainActor.run { [erro] in
       self.error.valueOnMain = erro
-      self.pages.valueOnMain = pages
-      self.hasMorePages = hasMorePages
     }
   }
 
   func loadNextPages() async {
-    var hasMorePages = await hasMorePages
-
-    if !hasMorePages { return }
+    if await !hasMorePages { return }
 
     var erro: DatasourceError?
-    var pages = [PageModel]()
 
     do {
       let chapterInfo = try await getDownloadInfo()
 
-      pages = await makePagesRequest(using: chapterInfo)
-
-      if pages.isEmpty {
-        hasMorePages = false
-      } else {
-        await self.updateOrAppend(pages)
-      }
+      await makePagesRequest(using: chapterInfo)
     } catch {
       erro = delegate.catchError(error)
     }
 
-    await MainActor.run { [erro, hasMorePages] in
+    await MainActor.run { [erro] in
       self.error.valueOnMain = erro
-      self.hasMorePages = hasMorePages
     }
   }
 
   func reloadPages(
-    _ pages: [(id: Int, url: String)]
+    _ pages: [(id: Int, url: String?)]
   ) async {
     await self.tryToUpdatePages(pages.map { .loading($0.id) })
 
@@ -118,6 +98,12 @@ final class PagesDatasource<Delegate: PagesDelegateType> {
         taskGroup.addTask {
           let id = info.id
           let url = info.url
+
+          guard let url else {
+            print("PagesDatasource -> Error building page \(id) url")
+
+            return
+          }
 
           var erro: DatasourceError?
           let page: PageModel
@@ -173,26 +159,56 @@ final class PagesDatasource<Delegate: PagesDelegateType> {
     _ info: [PageModel]
   ) {
     for page in info {
-      if let i = pages.valueOnMain.firstIndex(where: { $0.id == page.id }) {
-        let p = pages.valueOnMain[i]
-
-        switch (p, page) {
-        case (.notFound, _):
-          pages.valueOnMain[i] = page
-
-        case (.remote, .remote):
-          pages.valueOnMain[i] = page
-
-        case (.loading, .remote):
-          pages.valueOnMain[i] = page
-
-        default:
-          break
-        }
-      } else {
-        pages.valueOnMain.append(page)
-      }
+      updateOrAppend(page)
     }
+  }
+
+  @MainActor
+  private func updateOrAppend(
+    _ page: PageModel
+  ) {
+    if let i = pages.valueOnMain.firstIndex(where: { $0.id == page.id }) {
+      let p = pages.valueOnMain[i]
+
+      switch (p, page) {
+      case (.notFound, _):
+        pages.valueOnMain[i] = page
+
+      case (.remote, .remote):
+        pages.valueOnMain[i] = page
+
+      case (.loading, .remote):
+        pages.valueOnMain[i] = page
+
+      default:
+        break
+      }
+    } else {
+      pages.valueOnMain.append(page)
+    }
+  }
+
+  @MainActor
+  private func preparePageRequest(
+    _ info: Delegate.Info
+  ) -> [Int] {
+    let limit = 10
+    let offset = limit * currentPage
+    let count = info.numberOfPages
+
+    if offset >= count {
+      hasMorePages = false
+
+      return []
+    }
+
+    let endIndex = min(count, offset + limit)
+    let pages = Array(offset ..< endIndex)
+
+    updateOrAppend(pages.map { .loading($0) })
+    currentPage += 1
+
+    return pages
   }
 
 }
@@ -202,57 +218,27 @@ extension PagesDatasource {
 
   private func makePagesRequest(
     using info: Delegate.Info
-  ) async -> [PageModel] {
-    print("MangaReaderViewModel -> Starting chapter download")
-    let page = await MainActor.run(resultType: Int.self) {
-      let page = self.currentPage
+  ) async {
+    let pages = await preparePageRequest(info)
 
-      self.currentPage += 1
+    Task {
+      await withTaskGroup(of: Void.self) { taskGroup in
+        for index in pages {
+          taskGroup.addTask {
+            do {
+              let data = try await self.delegate.fetchPage(index: index, info: info)
 
-      return page
-    }
+              await self.updateOrAppend(.remote(index, data))
+            } catch {
+              print("MangaReaderViewModel -> Page \(index) failed download: \(error)")
+              let url = try? self.delegate.buildUrl(index: index, info: info)
 
-    let limit = 10
-    let offset = limit * page
-    let count = info.numberOfPages
-
-    if offset >= count {
-      return []
-    }
-
-    let endIndex = min(count, offset + limit)
-    let pages = offset ..< endIndex
-
-    await updateOrAppend(pages.map { .loading($0) })
-
-    let results = await withTaskGroup(of: PageModel.self, returning: [PageModel].self) { taskGroup in
-      for index in pages {
-        taskGroup.addTask {
-          do {
-            let data = try await self.delegate.fetchPage(index: index, info: info)
-
-            return .remote(offset + index, data)
-          } catch {
-            print("MangaReaderViewModel -> Page \(offset + index) failed download: \(error)")
-            guard let url = try? self.delegate.buildUrl(index: index, info: info) else {
-              print ("PagesDatasource -> Error building url")
-
-              return .notFound(offset + index, "")
+              await self.updateOrAppend(.notFound(index, url))
             }
-
-            return .notFound(offset + index, url)
           }
         }
       }
-
-      return await taskGroup.reduce(into: [PageModel]()) { partialResult, page in
-        partialResult.append(page)
-      }
     }
-
-    print("MangaReaderViewModel -> Ending chapter download")
-
-    return results
   }
 
 }

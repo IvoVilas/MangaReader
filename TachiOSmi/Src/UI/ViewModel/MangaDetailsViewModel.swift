@@ -140,11 +140,7 @@ extension MangaDetailsViewModel {
     await chaptersDatasource.refresh()
   }
 
-  func loadNextChaptersIfNeeded(_ id: String) async {
-    if await !chaptersDatasource.hasMorePages {
-      return
-    }
-
+  func loadNextChapters(_ id: String) async {
     if id == chapters.last?.id {
       await chaptersDatasource.loadNextPage()
     }

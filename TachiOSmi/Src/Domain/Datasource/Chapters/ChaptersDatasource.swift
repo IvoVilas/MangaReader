@@ -44,7 +44,7 @@ final class ChaptersDatasource {
     state.value
   }
 
-  @MainActor var hasMorePages = true
+  @MainActor private var hasMorePages = true
   @MainActor private var currentPage = 0
   @MainActor private var results = [ChapterModel]() {
     didSet { count.valueOnMain = results.count }
@@ -111,17 +111,17 @@ final class ChaptersDatasource {
 
         if results.isEmpty {
           results = try await self.delegate.fetchChapters(mangaId: mangaId)
+
+          if results.isEmpty {
+            await MainActor.run { self.hasMorePages = false }
+
+            throw DatasourceError.otherError("No chapters found")
+          }
         }
 
-        await MainActor.run { [results] in
-          self.results = results
-          self.sendNextChapters()
-        }
+        await self.updateResultsAndSend(results)
 
-        let newResults = try await self.fetchRemoteChaptersIfNeeded(
-          mangaId: mangaId,
-          viewMoc: viewMoc
-        )
+        let newResults = try await self.fetchChaptersIfNeeded()
 
         if !newResults.isEmpty {
           await MainActor.run { [newResults] in
@@ -165,8 +165,6 @@ final class ChaptersDatasource {
       var erro: DatasourceError?
 
       do {
-        try await Task.sleep(nanoseconds: 5_000_000_000)
-
         results = try await self.delegate.fetchChapters(mangaId: mangaId)
 
         await MainActor.run { [results] in
@@ -191,16 +189,19 @@ final class ChaptersDatasource {
   }
 
   func loadNextPage() async {
-    await MainActor.run {
-      sendNextChapters()
+    if await hasMorePages {
+      await MainActor.run {
+        sendNextChapters()
+      }
     }
   }
 
-  func fetchRemoteChaptersIfNeeded(
-    mangaId: String,
-    viewMoc: NSManagedObjectContext
-  ) async throws -> [ChapterModel] {
-    guard let manga = try mangaCrud.getManga(mangaId, moc: viewMoc) else {
+  private func fetchChaptersIfNeeded() async throws -> [ChapterModel] {
+    let manga = try viewMoc.performAndWait {
+      try mangaCrud.getManga(mangaId, moc: viewMoc)
+    }
+
+    guard let manga else {
       throw CrudError.mangaNotFound(id: mangaId)
     }
 
@@ -223,6 +224,20 @@ final class ChaptersDatasource {
       .getAllChapters(mangaId: mangaId, moc: viewMoc)
       .map { ChapterModel.from($0) }
       .sorted(by: ChaptersDatasource.sortByNumber)
+  }
+
+}
+
+// MARK: MainActor
+extension ChaptersDatasource {
+
+  @MainActor
+  private func updateResultsAndSend(
+    _ results: [ChapterModel]
+  ) {
+    self.results = results
+
+    sendNextChapters()
   }
 
   @MainActor

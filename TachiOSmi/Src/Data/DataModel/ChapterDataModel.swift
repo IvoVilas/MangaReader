@@ -17,19 +17,23 @@ struct ChapterModel: Identifiable, Hashable {
   let isRead: Bool = false
 
   var description: String {
-    let description: String
+    let identifier: String
 
-    guard let number else {
-      return "Chapter N/A"
-    }
-
-    if number.truncatingRemainder(dividingBy: 1) == 0 {
-      description = String(format: "%.0f", number)
+    if let number {
+      if number.truncatingRemainder(dividingBy: 1) == 0 {
+        identifier = String(format: "%.0f", number)
+      } else {
+        identifier = String(format: "%.2f", number).trimmingCharacters(in: ["0"])
+      }
     } else {
-      description = String(format: "%.2f", number).trimmingCharacters(in: ["0"])
+      identifier = "N/A"
     }
 
-    return "Chapter \(description)"
+    if let title, !title.isEmpty {
+      return "Chapter \(identifier) - \(title)"
+    } else {
+      return "Chapter \(identifier)"
+    }
   }
 
   // DateFormatter and Calendar operations are heavy, one should not be created everytime this is called

@@ -188,7 +188,11 @@ final class SearchDatasource {
     fileName: String
   ) async -> Data? {
     do {
-      if let localCoverData = try coverCrud.getCoverData(for: mangaId, moc: viewMoc) {
+      let localCoverData = try viewMoc.performAndWait {
+        try coverCrud.getCoverData(for: mangaId, moc: viewMoc)
+      }
+
+      if let localCoverData {
         return localCoverData
       }
 
@@ -219,7 +223,17 @@ final class SearchDatasource {
     guard let cover else { return }
 
     if let i = mangas.valueOnMain.firstIndex(where: { $0.id == id }) {
-      mangas.valueOnMain[i].cover = cover
+      let manga = mangas.valueOnMain[i]
+
+      mangas.valueOnMain[i] = MangaModel(
+        id: manga.id,
+        title: manga.title,
+        description: manga.description,
+        status: manga.status,
+        cover: cover,
+        tags: manga.tags,
+        authors: manga.authors
+      )
     }
   }
 

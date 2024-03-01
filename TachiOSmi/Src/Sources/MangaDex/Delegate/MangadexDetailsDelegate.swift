@@ -44,16 +44,11 @@ final class MangadexDetailsDelegate: DetailsDelegateType {
 
   func fetchCover(
     mangaId: String,
-    fileName: String,
-    viewMoc: NSManagedObjectContext
+    fileName: String
   ) async throws -> Data {
-    if let localCoverData = try coverCrud.getCoverData(for: mangaId, moc: viewMoc) {
-      return localCoverData
-    }
-
-    let remoteCoverData = try await makeCoverRequest(mangaId: mangaId, fileName: fileName)
-
-    return remoteCoverData
+    return try await httpClient.makeDataGetRequest(
+      url: "https://uploads.mangadex.org/covers/\(mangaId)/\(fileName).256.jpg"
+    )
   }
 
   func catchError(_ error: Error) -> DatasourceError? {
@@ -75,19 +70,6 @@ final class MangadexDetailsDelegate: DetailsDelegateType {
     }
 
     return nil
-  }
-
-}
-
-extension MangadexDetailsDelegate {
-
-  private func makeCoverRequest(
-    mangaId: String,
-    fileName: String
-  ) async throws -> Data {
-    return try await httpClient.makeDataGetRequest(
-      url: "https://uploads.mangadex.org/covers/\(mangaId)/\(fileName).256.jpg"
-    )
   }
 
 }

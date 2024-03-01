@@ -16,8 +16,7 @@ protocol DetailsDelegateType {
 
   func fetchCover(
     mangaId: String,
-    fileName: String,
-    viewMoc: NSManagedObjectContext
+    fileName: String
   ) async throws -> Data
 
   func catchError(

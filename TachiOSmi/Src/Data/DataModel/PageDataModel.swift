@@ -10,7 +10,7 @@ import Foundation
 enum PageModel: Identifiable {
   case remote(Int, Data)
   case loading(Int)
-  case notFound(Int, String)
+  case notFound(Int, String?)
 
   var id: String {
     switch self {

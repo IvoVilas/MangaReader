@@ -58,7 +58,7 @@ struct MangaDetailsView: View {
               makeChapterView(chapter)
                 .onAppear {
                   Task(priority: .userInitiated) {
-                    await viewModel.loadNextChaptersIfNeeded(chapter.id)
+                    await viewModel.loadNextChapters(chapter.id)
                   }
                 }
             }
@@ -98,6 +98,7 @@ struct MangaDetailsView: View {
     VStack(alignment: .leading, spacing: 8) {
       Text(chapter.description)
         .font(.subheadline)
+        .lineLimit(1)
         .foregroundStyle(chapter.isRead ? .gray : foregroundColor)
 
       Text(chapter.createdAtDescription)

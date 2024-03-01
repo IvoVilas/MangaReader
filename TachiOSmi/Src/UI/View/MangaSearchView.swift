@@ -34,7 +34,7 @@ struct MangaSearchView: View {
     }
   }
 
-  @ObservedObject var viewModel: MangaSearchViewModel
+  @StateObject var viewModel: MangaSearchViewModel
 
   @FocusState private var inputFieldIsFocused: Bool
 
@@ -65,15 +65,20 @@ struct MangaSearchView: View {
             .opacity(viewModel.isLoading ? 1 : 0)
 
           ScrollView {
-            LazyVGrid(columns: columns) {
+            LazyVGrid(columns: columns, spacing: 16) {
               ForEach(viewModel.results) { result in
                 NavigationLink(value: result) {
-                  makeResultView(manga: result)
-                    .onAppear {
-                      Task(priority: .medium) {
-                        await viewModel.loadNextIfNeeded(result.id)
-                      }
+                  MangaResultView(
+                    manga: result,
+                    layout: listLayout,
+                    textColor: secondaryColor
+                  )
+                  .equatable()
+                  .onAppear {
+                    Task(priority: .medium) {
+                      await viewModel.loadNextIfNeeded(result.id)
                     }
+                  }
                 }
               }
             }
@@ -161,11 +166,52 @@ struct MangaSearchView: View {
     }
   }
 
-  @ViewBuilder
-  private func makeResultView(
-    manga: MangaModel
-  ) -> some View {
-    switch listLayout {
+  private func searchAction() {
+    if isSearching {
+      viewModel.input = ""
+      isSearching.toggle()
+
+      if didSearch {
+        Task(priority: .medium) {
+          await viewModel.doSearch()
+        }
+      }
+
+      inputFieldIsFocused = false
+      didSearch = false
+    } else {
+      isSearching.toggle()
+      inputFieldIsFocused = true
+    }
+  }
+
+}
+
+struct MangaResultView: View, Equatable {
+
+  var manga: MangaModel
+  var layout: MangaSearchView.ResultLayout
+  var textColor: Color
+
+  static func == (lhs: MangaResultView, rhs: MangaResultView) -> Bool {
+    if lhs.manga.id != rhs.manga.id { return false }
+
+    if lhs.layout != rhs.layout { return false }
+
+    switch (lhs.manga.cover, rhs.manga.cover) {
+    case (.none, .some):
+      return false
+
+    case (.some, .none):
+      return false
+
+    default:
+      return true
+    }
+  }
+
+  var body: some View {
+    switch layout {
     case .normal:
       VStack(spacing: 4) {
         getCover(manga)
@@ -175,7 +221,7 @@ struct MangaSearchView: View {
           .font(.caption2)
           .lineLimit(2)
           .multilineTextAlignment(.leading)
-          .foregroundStyle(secondaryColor)
+          .foregroundStyle(textColor)
           .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
       }
 
@@ -214,25 +260,6 @@ struct MangaSearchView: View {
       Rectangle()
         .fill(.gray)
         .aspectRatio(0.625, contentMode: .fill)
-    }
-  }
-
-  private func searchAction() {
-    if isSearching {
-      viewModel.input = ""
-      isSearching.toggle()
-
-      if didSearch {
-        Task(priority: .medium) {
-          await viewModel.doSearch()
-        }
-      }
-
-      inputFieldIsFocused = false
-      didSearch = false
-    } else {
-      isSearching.toggle()
-      inputFieldIsFocused = true
     }
   }
 
