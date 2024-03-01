@@ -22,18 +22,7 @@ struct TachiOSmiApp: App {
 
   var body: some Scene {
     WindowGroup {
-      MangaSearchView(
-        viewModel: MangaSearchViewModel(
-          datasource: SearchDatasource(
-            delegate: MangadexSearchDelegate(
-              httpClient: AppEnv.env.httpClient,
-              mangaParser: AppEnv.env.mangaParser
-            ),
-            mangaCrud: AppEnv.env.mangaCrud,
-            coverCrud: AppEnv.env.coverCrud
-          )
-        )
-      )
+      ContentView()
     }
   }
 

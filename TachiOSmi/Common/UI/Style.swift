@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct Style: View {
+  
   var body: some View {
     VStack(alignment: .leading) {
       Text("Large title").font(.largeTitle)
@@ -33,6 +34,7 @@ struct Style: View {
       Text("Caption 2").font(.caption2)
     }
   }
+
 }
 
 #Preview {

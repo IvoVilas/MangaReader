@@ -67,6 +67,7 @@
 		1EF20A642B9141F400D17A65 /* PagesDatasource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF20A632B9141F400D17A65 /* PagesDatasource.swift */; };
 		1EF20A662B91667200D17A65 /* MangadexChapterDowloadInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF20A652B91667200D17A65 /* MangadexChapterDowloadInfo.swift */; };
 		1EF20A682B91720800D17A65 /* Sources.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF20A672B91720800D17A65 /* Sources.swift */; };
+		1EF20A6E2B91E6F000D17A65 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF20A6D2B91E6F000D17A65 /* ContentView.swift */; };
 		1EF815F62B82163F00D9759F /* TachiOSmiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF815F52B82163F00D9759F /* TachiOSmiApp.swift */; };
 		1EF815F82B82163F00D9759F /* MangaSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF815F72B82163F00D9759F /* MangaSearchView.swift */; };
 		1EF815FA2B82164300D9759F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1EF815F92B82164300D9759F /* Assets.xcassets */; };
@@ -140,6 +141,7 @@
 		1EF20A632B9141F400D17A65 /* PagesDatasource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PagesDatasource.swift; sourceTree = "<group>"; };
 		1EF20A652B91667200D17A65 /* MangadexChapterDowloadInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangadexChapterDowloadInfo.swift; sourceTree = "<group>"; };
 		1EF20A672B91720800D17A65 /* Sources.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources.swift; sourceTree = "<group>"; };
+		1EF20A6D2B91E6F000D17A65 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		1EF815F22B82163F00D9759F /* TachiOSmi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TachiOSmi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1EF815F52B82163F00D9759F /* TachiOSmiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TachiOSmiApp.swift; sourceTree = "<group>"; };
 		1EF815F72B82163F00D9759F /* MangaSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaSearchView.swift; sourceTree = "<group>"; };
@@ -465,6 +467,7 @@
 		1EF816102B82A81400D9759F /* View */ = {
 			isa = PBXGroup;
 			children = (
+				1EF20A6D2B91E6F000D17A65 /* ContentView.swift */,
 				1EF815F72B82163F00D9759F /* MangaSearchView.swift */,
 				1EF816122B82A85800D9759F /* MangaDetailsView.swift */,
 				1EE68A122B896E2D003B9037 /* ChapterReaderView.swift */,
@@ -606,6 +609,7 @@
 				1EF815FF2B82164300D9759F /* Persistence.swift in Sources */,
 				1EE89F622B84D1A7000CAA20 /* TagCrud.swift in Sources */,
 				1E1235432B8534580022652F /* SystemDateTimeInterval.swift in Sources */,
+				1EF20A6E2B91E6F000D17A65 /* ContentView.swift in Sources */,
 				1EE89F602B84D09A000CAA20 /* AuthorCrud.swift in Sources */,
 				1E1235492B8534580022652F /* SystemDateTimeCalculator.swift in Sources */,
 				1EE68A152B896F1D003B9037 /* ChapterReaderViewModel.swift in Sources */,
@@ -814,7 +818,7 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -848,7 +852,7 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};

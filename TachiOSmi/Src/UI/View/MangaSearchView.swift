@@ -58,9 +58,6 @@ struct MangaSearchView: View {
         makeHeaderView()
           .padding(.horizontal, 16)
 
-        Divider()
-          .background(secondaryColor)
-
         ZStack {
           ProgressView()
             .progressViewStyle(.circular)
@@ -171,9 +168,7 @@ struct MangaSearchView: View {
     switch listLayout {
     case .normal:
       VStack(spacing: 4) {
-        Image(uiImage: getCoverImage(manga))
-          .resizable()
-          .aspectRatio(0.625, contentMode: .fill)
+        getCover(manga)
           .clipShape(RoundedRectangle(cornerRadius: 8))
 
         Text(manga.title)
@@ -185,9 +180,7 @@ struct MangaSearchView: View {
       }
 
     case .compact:
-      Image(uiImage: getCoverImage(manga))
-        .resizable()
-        .aspectRatio(0.625, contentMode: .fill)
+      getCover(manga)
         .overlay {
           ZStack(alignment: .bottomLeading) {
             LinearGradient(
@@ -209,14 +202,19 @@ struct MangaSearchView: View {
     }
   }
 
-  private func getCoverImage(
+  @ViewBuilder
+  private func getCover(
     _ manga: MangaModel
-  ) -> UIImage {
+  ) -> some View {
     if let data = manga.cover, let cover = UIImage(data: data) {
-      return cover
+      Image(uiImage: cover)
+        .resizable()
+        .aspectRatio(0.625, contentMode: .fill)
+    } else {
+      Rectangle()
+        .fill(.gray)
+        .aspectRatio(0.625, contentMode: .fill)
     }
-
-    return UIImage.coverNotFound
   }
 
   private func searchAction() {
@@ -240,28 +238,29 @@ struct MangaSearchView: View {
 
 }
 
-//#Preview {
-//  MangaSearchView(
-//    viewModel: MangaSearchView.buildPreviewViewModel()
-//  )
-//}
-//
-//extension MangaSearchView {
-//
-//  static func buildPreviewViewModel(
-//  ) -> MangaSearchViewModel {
-//    let moc = PersistenceController.preview.container.viewContext
-//
-//    return MangaSearchViewModel(
-//      datasource: MangaSearchDatasource(
-//        httpClient: HttpClient(),
-//        mangaParser: MangaParser(),
-//        mangaCrud: MangaCrud(),
-//        coverCrud: CoverCrud(),
-//        viewMoc: moc
-//      ),
-//      moc: moc
-//    )
-//  }
-//
-//}
+#Preview {
+  MangaSearchView(
+    viewModel: MangaSearchView.buildPreviewViewModel()
+  )
+}
+
+extension MangaSearchView {
+
+  static func buildPreviewViewModel(
+  ) -> MangaSearchViewModel {
+    let moc = PersistenceController.preview.container.viewContext
+
+    return MangaSearchViewModel(
+      datasource: SearchDatasource(
+        delegate: MangadexSearchDelegate(
+          httpClient: HttpClient(),
+          mangaParser: MangaParser()
+        ),
+        mangaCrud: MangaCrud(),
+        coverCrud: CoverCrud(),
+        viewMoc: moc
+      )
+    )
+  }
+
+}

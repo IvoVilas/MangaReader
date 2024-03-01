@@ -83,13 +83,7 @@ final class SearchDatasource {
 
         await MainActor.run { self.mangas.valueOnMain = mangas }
 
-        let updatedInfo = await self.fetchCovers(
-          for: results,
-          viewMoc: viewMoc
-        )
-
-        await self.addCoversTo(updatedInfo)
-        try await self.storeCovers(updatedInfo)
+        doFetchCoversTask(results)
       } catch {
         erro = self.delegate.catchError(error)
       }
@@ -138,16 +132,9 @@ final class SearchDatasource {
           return
         }
 
-        let mangas = results.map { $0.convertToModel() }
-        await appendResults(mangas)
+        await appendResults(results.map { $0.convertToModel() })
 
-        let updatedInfo = await self.fetchCovers(
-          for: results,
-          viewMoc: viewMoc
-        )
-
-        await self.addCoversTo(updatedInfo)
-        try await self.storeCovers(updatedInfo)
+        doFetchCoversTask(results)
       } catch {
         erro = self.delegate.catchError(error)
       }
@@ -161,33 +148,18 @@ final class SearchDatasource {
     }
   }
 
-  @MainActor
-  private func addCoversTo(
-    _ info: [(String, Data?)]
+  private func doFetchCoversTask(
+    _ results: [MangaParser.MangaParsedData]
   ) {
-    info.forEach { addCoverTo($0.0, cover: $0.1) }
-  }
+    Task(priority: .background) {
+      let info = await self.fetchCovers(for: results)
 
-  @MainActor
-  private func addCoverTo(
-    _ id: String,
-    cover: Data?
-  ) {
-    if let i = mangas.valueOnMain.firstIndex(where: { $0.id == id }) {
-      mangas.valueOnMain[i].cover = cover
+      try await self.storeCovers(info)
     }
   }
 
-  @MainActor func appendResults(
-    _ mangas: [MangaModel]
-  ) {
-    self.mangas.valueOnMain.append(contentsOf: mangas)
-  }
-
-  // TODO: Emit one cover at a time instead waiting for all
-  func fetchCovers(
-    for mangas: [MangaParser.MangaParsedData],
-    viewMoc: NSManagedObjectContext
+  private func fetchCovers(
+    for mangas: [MangaParser.MangaParsedData]
   ) async -> [(String, Data?)] {
     await withTaskGroup(of: (String, Data?).self, returning: [(String, Data?)].self) { taskGroup in
       for data in mangas {
@@ -196,9 +168,10 @@ final class SearchDatasource {
 
           let cover = await self.fetchCover(
             mangaId: id,
-            fileName: data.coverFileName,
-            viewMoc: viewMoc
+            fileName: data.coverFileName
           )
+
+          await self.updateCover(id, cover: cover)
 
           return (id, cover)
         }
@@ -212,8 +185,7 @@ final class SearchDatasource {
 
   func fetchCover(
     mangaId: String,
-    fileName: String,
-    viewMoc: NSManagedObjectContext
+    fileName: String
   ) async -> Data? {
     do {
       if let localCoverData = try coverCrud.getCoverData(for: mangaId, moc: viewMoc) {
@@ -230,6 +202,31 @@ final class SearchDatasource {
     }
 
     return nil
+  }
+
+  @MainActor
+  private func updateCovers(
+    using info: [(String, Data?)]
+  ) {
+    info.forEach { updateCover($0.0, cover: $0.1) }
+  }
+
+  @MainActor
+  private func updateCover(
+    _ id: String,
+    cover: Data?
+  ) {
+    guard let cover else { return }
+
+    if let i = mangas.valueOnMain.firstIndex(where: { $0.id == id }) {
+      mangas.valueOnMain[i].cover = cover
+    }
+  }
+
+  @MainActor func appendResults(
+    _ mangas: [MangaModel]
+  ) {
+    self.mangas.valueOnMain.append(contentsOf: mangas)
   }
 
 }
