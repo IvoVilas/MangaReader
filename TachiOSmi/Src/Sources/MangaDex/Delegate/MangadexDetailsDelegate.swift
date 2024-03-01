@@ -26,8 +26,8 @@ final class MangadexDetailsDelegate: DetailsDelegateType {
 
   func fetchDetails(
     _ mangaId: String
-  ) async throws -> MangaParser.MangaParsedData {
-    let json = try! await httpClient.makeJsonGetRequest(
+  ) async throws -> MangaParsedData {
+    let json = try await httpClient.makeJsonGetRequest(
       url: "https://api.mangadex.org/manga/\(mangaId)",
       parameters: [
         ("includes[]", "author"),

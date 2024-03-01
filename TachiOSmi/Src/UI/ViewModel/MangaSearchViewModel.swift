@@ -12,12 +12,19 @@ import CoreData
 
 final class MangaSearchViewModel: ObservableObject {
 
-  @Published var results: [MangaSearchData]
+  @Published var results: [MangaSearchResult]
   @Published var input: String
   @Published var isLoading: Bool
   @Published var error: DatasourceError?
 
   private let datasource: SearchDatasource
+  private var searchValue: MangaSearchType {
+    if input.isEmpty {
+      return .trending
+    } else {
+      return .query(input)
+    }
+  }
 
   private var observers = Set<AnyCancellable>()
 
@@ -32,7 +39,6 @@ final class MangaSearchViewModel: ObservableObject {
     error = nil
 
     datasource.mangasPublisher
-      .map { $0.map { MangaSearchData(id: $0.id, title: $0.title, cover: $0.cover) } }
       .receive(on: DispatchQueue.main)
       .sink { [weak self] in self?.results = $0 }
       .store(in: &observers)
@@ -55,19 +61,21 @@ final class MangaSearchViewModel: ObservableObject {
 extension MangaSearchViewModel {
 
   func doSearch() async {
-    await datasource.searchManga(input)
+    if input.isEmpty {
+      await datasource.searchManga(searchValue)
+    }
   }
 
   func loadNextIfNeeded(_ id: String) async {
     if id == results.last?.id {
       if await datasource.hasMorePages {
-        await datasource.loadNextPage(input)
+        await datasource.loadNextPage(searchValue)
       }
     }
   }
 
   func buildMangaDetailsViewModel(
-    _ manga: MangaSearchData
+    _ manga: MangaSearchResult
   ) -> MangaDetailsViewModel {
     return MangaDetailsViewModel(
       chaptersDatasource: ChaptersDatasource(

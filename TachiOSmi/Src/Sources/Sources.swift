@@ -10,11 +10,15 @@ import Foundation
 enum Source {
 
   case mangaDex
+  case mangaNelo
 
-  var pagesDelegate: any PagesDelegateType.Type {
+  var id: String {
     switch self {
     case .mangaDex:
-      return MangadexPagesDelegate.self
+      "0"
+
+    case .mangaNelo:
+      "1"
     }
   }
 

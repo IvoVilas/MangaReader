@@ -99,7 +99,7 @@ struct MangaSearchView: View {
             }
           }
         }
-        .navigationDestination(for: MangaSearchData.self) { manga in
+        .navigationDestination(for: MangaSearchResult.self) { manga in
           MangaDetailsView(viewModel: viewModel.buildMangaDetailsViewModel(manga))
         }
         .toastView(toast: $toast)

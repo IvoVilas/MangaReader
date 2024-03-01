@@ -12,7 +12,7 @@ protocol DetailsDelegateType {
 
   func fetchDetails(
     _ mangaId: String
-  ) async throws -> MangaParser.MangaParsedData
+  ) async throws -> MangaParsedData
 
   func fetchCover(
     mangaId: String,

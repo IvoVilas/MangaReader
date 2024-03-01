@@ -14,9 +14,8 @@ struct ContentView: View {
     MangaSearchView(
       viewModel: MangaSearchViewModel(
         datasource: SearchDatasource(
-          delegate: MangadexSearchDelegate(
-            httpClient: AppEnv.env.httpClient,
-            mangaParser: AppEnv.env.mangaParser
+          delegate: ManganeloSearchDelegate(
+            httpClient: AppEnv.env.httpClient
           ),
           mangaCrud: AppEnv.env.mangaCrud,
           coverCrud: AppEnv.env.coverCrud

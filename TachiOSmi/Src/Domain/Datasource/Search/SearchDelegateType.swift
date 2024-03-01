@@ -10,10 +10,14 @@ import CoreData
 
 protocol SearchDelegateType {
 
+  func fetchTrending(
+    page: Int
+  ) async throws -> [MangaParsedData]
+
   func fetchSearchResults(
     _ searchValue: String,
     page: Int
-  ) async throws -> [MangaParser.MangaParsedData]
+  ) async throws -> [MangaParsedData]
 
   func fetchCover(
     id: String,

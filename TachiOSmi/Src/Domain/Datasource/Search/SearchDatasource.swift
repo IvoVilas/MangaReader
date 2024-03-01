@@ -16,14 +16,14 @@ final class SearchDatasource {
   private let coverCrud: CoverCrud
   private let viewMoc: NSManagedObjectContext
 
-  private let mangas: CurrentValueSubject<[MangaModel], Never>
+  private let mangas: CurrentValueSubject<[MangaSearchResult], Never>
   private let state: CurrentValueSubject<DatasourceState, Never>
   private let error: CurrentValueSubject<DatasourceError?, Never>
 
   @MainActor var hasMorePages = true
   @MainActor private var currentPage = 0
 
-  var mangasPublisher: AnyPublisher<[MangaModel], Never> {
+  var mangasPublisher: AnyPublisher<[MangaSearchResult], Never> {
     mangas.eraseToAnyPublisher()
   }
 
@@ -54,7 +54,7 @@ final class SearchDatasource {
   }
 
   func searchManga(
-    _ searchValue: String
+    _ search: MangaSearchType
   ) async {
     if let fetchTask {
       fetchTask.cancel()
@@ -78,8 +78,15 @@ final class SearchDatasource {
       var erro: DatasourceError?
 
       do {
-        let results = try await self.delegate.fetchSearchResults(searchValue, page: 0)
-        let mangas = results.map { $0.convertToModel() }
+        let results = try await self.fetchSearchResults(search, page: 0)
+
+        let mangas = results.map {
+          MangaSearchResult(
+            id: $0.id,
+            title: $0.title,
+            cover: nil
+          )
+        }
 
         await MainActor.run { self.mangas.valueOnMain = mangas }
 
@@ -99,7 +106,7 @@ final class SearchDatasource {
   }
 
   func loadNextPage(
-    _ searchValue: String
+    _ search: MangaSearchType
   ) async {
     if let fetchTask {
       await fetchTask.value
@@ -119,10 +126,7 @@ final class SearchDatasource {
       var erro: DatasourceError?
 
       do {
-        let results = try await self.delegate.fetchSearchResults(
-          searchValue,
-          page: currentPage
-        )
+        let results = try await self.fetchSearchResults(search, page: page)
 
         if results.isEmpty {
           await MainActor.run { self.hasMorePages = false }
@@ -130,7 +134,13 @@ final class SearchDatasource {
           return
         }
 
-        await appendResults(results.map { $0.convertToModel() })
+        await appendResults(results.map {
+          MangaSearchResult(
+            id: $0.id,
+            title: $0.title,
+            cover: nil
+          )
+        })
 
         doFetchCoversTask(results)
       } catch {
@@ -146,8 +156,21 @@ final class SearchDatasource {
     }
   }
 
+  private func fetchSearchResults(
+    _ search: MangaSearchType,
+    page: Int
+  ) async throws -> [MangaParsedData] {
+    switch search {
+    case .query(let value):
+      return try await self.delegate.fetchSearchResults(value, page: page)
+
+    case .trending:
+      return try await self.delegate.fetchTrending(page: page)
+    }
+  }
+
   private func doFetchCoversTask(
-    _ results: [MangaParser.MangaParsedData]
+    _ results: [MangaParsedData]
   ) {
     Task(priority: .background) {
       let info = await self.fetchCovers(for: results)
@@ -157,7 +180,7 @@ final class SearchDatasource {
   }
 
   private func fetchCovers(
-    for mangas: [MangaParser.MangaParsedData]
+    for mangas: [MangaParsedData]
   ) async -> [(String, Data?)] {
     await withTaskGroup(of: (String, Data?).self, returning: [(String, Data?)].self) { taskGroup in
       for data in mangas {
@@ -223,20 +246,16 @@ final class SearchDatasource {
     if let i = mangas.valueOnMain.firstIndex(where: { $0.id == id }) {
       let manga = mangas.valueOnMain[i]
 
-      mangas.valueOnMain[i] = MangaModel(
+      mangas.valueOnMain[i] = MangaSearchResult(
         id: manga.id,
         title: manga.title,
-        description: manga.description,
-        status: manga.status,
-        cover: cover,
-        tags: manga.tags,
-        authors: manga.authors
+        cover: cover
       )
     }
   }
 
   @MainActor func appendResults(
-    _ mangas: [MangaModel]
+    _ mangas: [MangaSearchResult]
   ) {
     self.mangas.valueOnMain.append(contentsOf: mangas)
   }

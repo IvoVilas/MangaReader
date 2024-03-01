@@ -38,7 +38,7 @@ final class DetailsDatasource {
   }
 
   init(
-    manga: MangaSearchData,
+    manga: MangaSearchResult,
     delegate: DetailsDelegateType,
     mangaCrud: MangaCrud,
     coverCrud: CoverCrud,

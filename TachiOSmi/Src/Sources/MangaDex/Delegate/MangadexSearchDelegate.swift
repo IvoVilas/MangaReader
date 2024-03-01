@@ -21,10 +21,16 @@ final class MangadexSearchDelegate: SearchDelegateType {
     self.mangaParser = mangaParser
   }
   
+  func fetchTrending(
+    page: Int
+  ) async throws -> [MangaParsedData] {
+    try await fetchSearchResults("", page: page)
+  }
+
   func fetchSearchResults(
     _ searchValue: String,
     page: Int
-  ) async throws -> [MangaParser.MangaParsedData] {
+  ) async throws -> [MangaParsedData] {
     let limit  = 15
     let offset = page * limit
 
@@ -75,7 +81,7 @@ extension MangadexSearchDelegate {
     _ searchValue: String,
     limit: Int,
     offset: Int
-  ) async throws -> [MangaParser.MangaParsedData] {
+  ) async throws -> [MangaParsedData] {
     let data: [String: Any] = try await httpClient.makeJsonGetRequest(
       url: "https://api.mangadex.org/manga",
       parameters: [
