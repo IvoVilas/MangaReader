@@ -35,6 +35,7 @@
 		1EC8BD312B929CDD0017ACF0 /* ManganeloPagesDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EC8BD302B929CDD0017ACF0 /* ManganeloPagesDelegate.swift */; };
 		1EC8BD332B929D8B0017ACF0 /* ManganeloDetailsDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EC8BD322B929D8B0017ACF0 /* ManganeloDetailsDelegate.swift */; };
 		1EC8BD352B929D9C0017ACF0 /* ManganeloChaptersDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EC8BD342B929D9C0017ACF0 /* ManganeloChaptersDelegate.swift */; };
+		1EC8BD3A2B92D57B0017ACF0 /* ManganeloChapterDownloadInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EC8BD392B92D57B0017ACF0 /* ManganeloChapterDownloadInfo.swift */; };
 		1EE68A132B896E2D003B9037 /* ChapterReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EE68A122B896E2D003B9037 /* ChapterReaderView.swift */; };
 		1EE68A152B896F1D003B9037 /* ChapterReaderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EE68A142B896F1D003B9037 /* ChapterReaderViewModel.swift */; };
 		1EE68A192B8B6DF5003B9037 /* Datasource+Error.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EE68A182B8B6DF5003B9037 /* Datasource+Error.swift */; };
@@ -118,6 +119,7 @@
 		1EC8BD302B929CDD0017ACF0 /* ManganeloPagesDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManganeloPagesDelegate.swift; sourceTree = "<group>"; };
 		1EC8BD322B929D8B0017ACF0 /* ManganeloDetailsDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManganeloDetailsDelegate.swift; sourceTree = "<group>"; };
 		1EC8BD342B929D9C0017ACF0 /* ManganeloChaptersDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManganeloChaptersDelegate.swift; sourceTree = "<group>"; };
+		1EC8BD392B92D57B0017ACF0 /* ManganeloChapterDownloadInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManganeloChapterDownloadInfo.swift; sourceTree = "<group>"; };
 		1EE68A122B896E2D003B9037 /* ChapterReaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterReaderView.swift; sourceTree = "<group>"; };
 		1EE68A142B896F1D003B9037 /* ChapterReaderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterReaderViewModel.swift; sourceTree = "<group>"; };
 		1EE68A182B8B6DF5003B9037 /* Datasource+Error.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Datasource+Error.swift"; sourceTree = "<group>"; };
@@ -240,13 +242,6 @@
 				1EC8BD302B929CDD0017ACF0 /* ManganeloPagesDelegate.swift */,
 			);
 			path = Delegate;
-			sourceTree = "<group>";
-		};
-		1EC8BD362B92A6C20017ACF0 /* Parse */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Parse;
 			sourceTree = "<group>";
 		};
 		1EDACD462B83A9E7006FE956 /* App */ = {
@@ -436,8 +431,8 @@
 		1EF20A712B9253B200D17A65 /* MangaNelo */ = {
 			isa = PBXGroup;
 			children = (
-				1EC8BD362B92A6C20017ACF0 /* Parse */,
 				1EC8BD262B9278920017ACF0 /* Delegate */,
+				1EC8BD392B92D57B0017ACF0 /* ManganeloChapterDownloadInfo.swift */,
 			);
 			path = MangaNelo;
 			sourceTree = "<group>";
@@ -542,12 +537,12 @@
 			isa = PBXGroup;
 			children = (
 				1EF8161B2B83453400D9759F /* MangaDataModel.swift */,
+				1EF20A6F2B923BB500D17A65 /* MangaSearchResult.swift */,
 				1EF8161D2B83456900D9759F /* ChapterDataModel.swift */,
 				1EF20A302B8E443500D17A65 /* ChapterDownloadInfo.swift */,
 				1EF20A2E2B8DF9D500D17A65 /* PageDataModel.swift */,
 				1EE89F6F2B84DD65000CAA20 /* AuthorDataModel.swift */,
 				1EE89F6D2B84DD48000CAA20 /* TagDataModel.swift */,
-				1EF20A6F2B923BB500D17A65 /* MangaSearchResult.swift */,
 			);
 			path = DataModel;
 			sourceTree = "<group>";
@@ -667,6 +662,7 @@
 				1EC8BD352B929D9C0017ACF0 /* ManganeloChaptersDelegate.swift in Sources */,
 				1EF20A332B8E928E00D17A65 /* CoverMO.swift in Sources */,
 				1E12354D2B8534580022652F /* SystemDateTimeIntervalType.swift in Sources */,
+				1EC8BD3A2B92D57B0017ACF0 /* ManganeloChapterDownloadInfo.swift in Sources */,
 				1EF20A352B8E931A00D17A65 /* CoverCrud.swift in Sources */,
 				1EF20A582B91307900D17A65 /* DetailsDelegateType.swift in Sources */,
 				1EF20A372B8EA18D00D17A65 /* ToastView.swift in Sources */,

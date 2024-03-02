@@ -11,22 +11,20 @@ struct MangadexChapterDownloadInfo: ChapterDownloadInfo {
 
   let baseUrl: String
   let hash: String
-  let data: [String]
+  let pages: [String]
 
   var id: String { "\(baseUrl)_\(hash)" }
-
   var url: String { "\(baseUrl)/data/\(hash)" }
-
-  var numberOfPages: Int { data.count }
+  var numberOfPages: Int { pages.count }
 
   init(
     baseUrl: String,
     hash: String,
-    data: [String]
+    pages: [String]
   ) {
     self.baseUrl = baseUrl
-    self.hash    = hash
-    self.data    = data
+    self.hash = hash
+    self.pages = pages
   }
 
 }

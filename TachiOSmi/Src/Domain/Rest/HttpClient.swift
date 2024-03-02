@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Alamofire
 
 final class HttpClient {
 
@@ -87,6 +88,62 @@ final class HttpClient {
     } catch {
       throw HttpError.requestError(error)
     }
+  }
+
+  func makeHtmlGetRequest(
+    _ url: String
+  ) async throws -> String {
+    return try await withCheckedThrowingContinuation { continuation in
+      AF.request(url).responseString { response in
+        switch response.result {
+        case .success(let html):
+          continuation.resume(returning: html)
+
+        case .failure(let error):
+          continuation.resume(throwing: error)
+        }
+      }
+    }
+  }
+
+  func makeDataSafeGetRequest(
+    _ url: String = "https://bumn2.mkklcdnv6temp.com/img/tab_22/02/77/78/ba979135/chapter_252_the_decisive_battle_in_the_uninhabited_demoninfested_shinjuku/1-o.jpg",
+    hotLink: String = "https://chapmanganelo.com/manga-ba116346/chapter-252"
+  ) async throws -> Data {
+    guard let url = URL(string: url) else { throw HttpError.invalidUrl }
+
+    var request = URLRequest(url: url)
+
+    request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36", forHTTPHeaderField: "User-Agent")
+    request.setValue(hotLink, forHTTPHeaderField: "Referer")
+    request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8", forHTTPHeaderField: "Accept")
+    request.setValue("en-US,en;q=0.5", forHTTPHeaderField: "Accept-Language")
+
+    do {
+      let (data, response) = try await URLSession.shared.data(for: request)
+
+      guard
+        let response = response as? HTTPURLResponse,
+        response.statusCode == 200
+      else {
+        let code = (response as? HTTPURLResponse)?.statusCode ?? -1
+
+        throw HttpError.responseNotOk(code)
+      }
+
+      return data
+    } catch let error as URLError {
+      if error.code == URLError.cancelled {
+        throw CancellationError()
+      } else {
+        throw HttpError.requestError(error)
+      }
+    } catch let error as HttpError {
+      throw error
+    } catch {
+      throw HttpError.requestError(error)
+    }
+
   }
 
 }

@@ -10,7 +10,7 @@ import Combine
 
 final class PagesDatasource<Source: SourceType> {
 
-  private let chapterId: String
+  private let chapter: ChapterModel
   private let delegate: Source.PagesDelegate
 
   private let pages: CurrentValueSubject<[PageModel], Never>
@@ -36,10 +36,10 @@ final class PagesDatasource<Source: SourceType> {
   @MainActor private var chapterInfo: Source.PagesDelegate.Info?
 
   init(
-    chapterId: String,
+    chapter: ChapterModel,
     delegate: Source.PagesDelegate
   ) {
-    self.chapterId = chapterId
+    self.chapter = chapter
     self.delegate = delegate
 
     pages = CurrentValueSubject([])
@@ -109,7 +109,13 @@ final class PagesDatasource<Source: SourceType> {
           let page: PageModel
 
           do {
-            let data = try await self.delegate.fetchPage(url)
+            let info = try await self.getDownloadInfo()
+
+            guard let index = info.pages.firstIndex(where: { $0 == url }) else {
+              throw DatasourceError.otherError("Page not found")
+            }
+
+            let data = try await self.delegate.fetchPage(index: index, info: info)
 
             page = .remote(id, data)
           } catch {
@@ -131,7 +137,7 @@ final class PagesDatasource<Source: SourceType> {
       return local
     }
 
-    let remote = try await delegate.fetchDownloadInfo(chapterId: chapterId)
+    let remote = try await delegate.fetchDownloadInfo(using: chapter.urlInfo)
 
     await MainActor.run { chapterInfo = remote }
 

@@ -7,7 +7,6 @@
 
 import Foundation
 import CoreData
-import UIKit
 
 final class ChapterParser {
 
@@ -15,7 +14,9 @@ final class ChapterParser {
 
   init() {
     dateFormatter = DateFormatter()
+    
     dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+    dateFormatter.locale = Locale(identifier: "en_US_POSIX")
   }
 
   func parseChapterData(
@@ -69,7 +70,8 @@ final class ChapterParser {
       title: title,
       number: number,
       numberOfPages: numberOfPages,
-      publishAt: publishAt
+      publishAt: publishAt,
+      urlInfo: id
     )
   }
 

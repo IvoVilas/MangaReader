@@ -7,7 +7,6 @@
 
 import Foundation
 import SwiftSoup
-import Alamofire
 
 final class ManganeloSearchDelegate: SearchDelegateType {
 
@@ -24,7 +23,7 @@ final class ManganeloSearchDelegate: SearchDelegateType {
     page: Int
   ) async throws -> [MangaParsedData] {
     let url = "https://m.manganelo.com/genre-all/\(page + 1)?type=topview"
-    let html = try await fetchHtml(from: url)
+    let html = try await httpClient.makeHtmlGetRequest(url)
 
     guard
       let doc: Document = try? SwiftSoup.parse(html),
@@ -63,6 +62,7 @@ final class ManganeloSearchDelegate: SearchDelegateType {
       )
     }
 
+    // TODO: Change this to MangaSearchResult
     return results.map {
       MangaParsedData(
         id: $0.id,
@@ -71,7 +71,7 @@ final class ManganeloSearchDelegate: SearchDelegateType {
         status: .unknown,
         tags: [],
         authors: [],
-        coverFileName: $0.coverUrl
+        coverInfo: $0.coverUrl
       )
     }
   }
@@ -92,7 +92,7 @@ final class ManganeloSearchDelegate: SearchDelegateType {
       url = "https://m.manganelo.com/genre-all?type=topview"
     }
 
-    let html = try await fetchHtml(from: url)
+    let html = try await httpClient.makeHtmlGetRequest(url)
 
     guard
       let doc: Document = try? SwiftSoup.parse(html),
@@ -139,7 +139,7 @@ final class ManganeloSearchDelegate: SearchDelegateType {
         status: .unknown,
         tags: [],
         authors: [],
-        coverFileName: $0.coverUrl
+        coverInfo: $0.coverUrl
       )
     }
   }
@@ -156,20 +156,6 @@ extension ManganeloSearchDelegate {
     let id: String
     let title: String
     let coverUrl: String
-  }
-
-  private func fetchHtml(from url: String) async throws -> String {
-    return try await withCheckedThrowingContinuation { continuation in
-      AF.request(url).responseString { response in
-        switch response.result {
-        case .success(let html):
-          continuation.resume(returning: html)
-
-        case .failure(let error):
-          continuation.resume(throwing: error)
-        }
-      }
-    }
   }
 
 }

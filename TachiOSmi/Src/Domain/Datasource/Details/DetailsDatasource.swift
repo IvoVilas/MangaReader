@@ -116,7 +116,7 @@ final class DetailsDatasource<Source: SourceType> {
 
         let cover = try await delegate.fetchCover(
           mangaId: mangaId,
-          fileName: data.coverFileName
+          coverInfo: data.coverInfo
         )
 
         await update(cover: cover)
@@ -158,7 +158,7 @@ final class DetailsDatasource<Source: SourceType> {
 
       let cover = try await delegate.fetchCover(
         mangaId: mangaId,
-        fileName: data.coverFileName
+        coverInfo: data.coverInfo
       )
 
       await update(cover: cover)

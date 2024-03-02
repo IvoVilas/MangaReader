@@ -41,32 +41,11 @@ final class MangadexDetailsDelegate: DetailsDelegateType {
 
   func fetchCover(
     mangaId: String,
-    fileName: String
+    coverInfo: String
   ) async throws -> Data {
     return try await httpClient.makeDataGetRequest(
-      url: "https://uploads.mangadex.org/covers/\(mangaId)/\(fileName).256.jpg"
+      url: "https://uploads.mangadex.org/covers/\(mangaId)/\(coverInfo).256.jpg"
     )
-  }
-
-  func catchError(_ error: Error) -> DatasourceError? {
-    switch error {
-    case is CancellationError:
-      print("MangaDetailsDelegate -> Task cancelled")
-
-    case let error as ParserError:
-      return .errorParsingResponse(error.localizedDescription)
-
-    case let error as HttpError:
-      return .networkError(error.localizedDescription)
-
-    case let error as CrudError:
-      print("MangaDetailsDelegate -> Error during database operation: \(error.localizedDescription)")
-
-    default:
-      return .unexpectedError(error.localizedDescription)
-    }
-
-    return nil
   }
 
 }

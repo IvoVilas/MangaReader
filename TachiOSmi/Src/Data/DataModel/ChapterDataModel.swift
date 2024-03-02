@@ -15,6 +15,23 @@ struct ChapterModel: Identifiable, Hashable {
   let numberOfPages: Int
   let publishAt: Date
   let isRead: Bool = false
+  let urlInfo: String
+
+  init(
+    id: String,
+    title: String?,
+    number: Double?,
+    numberOfPages: Int,
+    publishAt: Date,
+    urlInfo: String
+  ) {
+    self.id = id
+    self.title = title
+    self.number = number
+    self.numberOfPages = numberOfPages
+    self.publishAt = publishAt
+    self.urlInfo = urlInfo
+  }
 
   var description: String {
     let identifier: String
@@ -90,7 +107,8 @@ struct ChapterModel: Identifiable, Hashable {
       title: chapter.title,
       number: chapterNumber,
       numberOfPages: Int(chapter.numberOfPages),
-      publishAt: chapter.publishAt
+      publishAt: chapter.publishAt,
+      urlInfo: chapter.id
     )
   }
 

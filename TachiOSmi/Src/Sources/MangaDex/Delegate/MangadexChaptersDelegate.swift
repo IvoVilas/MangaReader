@@ -12,16 +12,13 @@ final class MangadexChaptersDelegate: ChaptersDelegateType {
 
   private let httpClient: HttpClient
   private let chapterParser: ChapterParser
-  private let systemDateTime: SystemDateTimeType
 
   init(
     httpClient: HttpClient,
-    chapterParser: ChapterParser,
-    systemDateTime: SystemDateTimeType
+    chapterParser: ChapterParser
   ) {
     self.httpClient = httpClient
     self.chapterParser = chapterParser
-    self.systemDateTime = systemDateTime
   }
   
   func fetchChapters(

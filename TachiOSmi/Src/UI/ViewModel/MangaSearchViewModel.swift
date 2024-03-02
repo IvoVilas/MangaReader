@@ -80,8 +80,7 @@ extension MangaSearchViewModel {
         mangaId: manga.id,
         delegate: Source.ChaptersDelegate.init(
           httpClient: AppEnv.env.httpClient,
-          chapterParser: AppEnv.env.chapterParser,
-          systemDateTime: AppEnv.env.systemDateTime
+          chapterParser: AppEnv.env.chapterParser
         ),
         mangaCrud: AppEnv.env.mangaCrud,
         chapterCrud: AppEnv.env.chapterCrud,

@@ -10,5 +10,6 @@ import Foundation
 protocol ChapterDownloadInfo: Identifiable {
 
   var numberOfPages: Int { get }
+  var pages: [String] { get }
 
 }

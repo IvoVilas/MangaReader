@@ -12,8 +12,7 @@ protocol ChaptersDelegateType {
 
   init(
     httpClient: HttpClient,
-    chapterParser: ChapterParser,
-    systemDateTime: SystemDateTimeType
+    chapterParser: ChapterParser
   )
 
   func fetchChapters(

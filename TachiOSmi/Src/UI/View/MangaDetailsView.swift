@@ -261,8 +261,7 @@ extension MangaDetailsView {
         mangaId: manga.id,
         delegate: MangadexChaptersDelegate(
           httpClient: httpClient,
-          chapterParser: ChapterParser(),
-          systemDateTime: systemDateTime
+          chapterParser: ChapterParser()
         ),
         mangaCrud: mangaCrud,
         chapterCrud: chapterCrud,

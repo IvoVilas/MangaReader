@@ -90,7 +90,7 @@ final class MangaParser {
       status: status,
       tags: tags,
       authors: authors,
-      coverFileName: coverFileName
+      coverInfo: coverFileName
     )
   }
 

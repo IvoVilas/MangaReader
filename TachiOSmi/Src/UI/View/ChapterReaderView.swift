@@ -155,7 +155,14 @@ struct ChapterReaderView<Source: SourceType>: View {
   ChapterReaderView<MangadexMangaSource>(
     viewModel: ChapterReaderViewModel(
       datasource: PagesDatasource(
-        chapterId: "556c3feb-8c62-43de-b872-4657730d31a1",
+        chapter: ChapterModel(
+          id: "556c3feb-8c62-43de-b872-4657730d31a1",
+          title: nil,
+          number: nil,
+          numberOfPages: 25,
+          publishAt: Date(),
+          urlInfo: "556c3feb-8c62-43de-b872-4657730d31a1"
+        ),
         delegate: MangadexPagesDelegate(
           httpClient: HttpClient()
         )

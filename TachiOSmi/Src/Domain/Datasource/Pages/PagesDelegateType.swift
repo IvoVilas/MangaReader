@@ -14,16 +14,12 @@ protocol PagesDelegateType {
   init(httpClient: HttpClient)
 
   func fetchDownloadInfo(
-    chapterId: String
+    using: String
   ) async throws -> Info
 
   func fetchPage(
     index: Int,
     info: Info
-  ) async throws -> Data
-
-  func fetchPage(
-    _ url: String
   ) async throws -> Data
 
   func buildUrl(

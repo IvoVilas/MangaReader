@@ -53,6 +53,7 @@ final class ChapterCrud {
     title: String?,
     numberOfPages: Int,
     publishAt: Date,
+    urlInfo: String,
     manga: MangaMO,
     moc: NSManagedObjectContext
   ) throws -> ChapterMO {
@@ -62,7 +63,8 @@ final class ChapterCrud {
         chapterNumber: chapterNumber,
         title: title,
         numberOfPages: numberOfPages,
-        publishAt: publishAt
+        publishAt: publishAt,
+        urlInfo: urlInfo
       )
 
       return local
@@ -73,6 +75,7 @@ final class ChapterCrud {
         title: title,
         numberOfPages: numberOfPages,
         publishAt: publishAt,
+        urlInfo: urlInfo,
         manga: manga,
         moc: moc
       )
@@ -85,6 +88,7 @@ final class ChapterCrud {
     title: String?,
     numberOfPages: Int,
     publishAt: Date,
+    urlInfo: String,
     manga: MangaMO,
     moc: NSManagedObjectContext
   ) throws -> ChapterMO {
@@ -94,6 +98,7 @@ final class ChapterCrud {
       title: title,
       numberOfPages: Int16(numberOfPages),
       publishAt: publishAt,
+      urlInfo: urlInfo,
       manga: manga,
       moc: moc
     ) else { throw CrudError.failedEntityCreation }
@@ -106,12 +111,14 @@ final class ChapterCrud {
     chapterNumber: Double?,
     title: String?,
     numberOfPages: Int,
-    publishAt: Date
+    publishAt: Date,
+    urlInfo: String
   ) {
     chapter.chapter       = chapterNumber as? NSNumber
     chapter.title         = title
     chapter.numberOfPages = Int16(numberOfPages)
     chapter.publishAt     = publishAt
+    chapter.urlInfo       = urlInfo
   }
 
 }

@@ -21,7 +21,7 @@ protocol DetailsDelegateType {
 
   func fetchCover(
     mangaId: String,
-    fileName: String
+    coverInfo: String
   ) async throws -> Data
 
 }

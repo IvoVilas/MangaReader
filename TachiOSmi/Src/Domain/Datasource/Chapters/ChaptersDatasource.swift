@@ -309,6 +309,7 @@ extension ChaptersDatasource {
           title: chapter.title,
           numberOfPages: chapter.numberOfPages,
           publishAt: chapter.publishAt,
+          urlInfo: chapter.urlInfo,
           manga: manga,
           moc: self.viewMoc
         )

@@ -189,7 +189,7 @@ final class SearchDatasource<Source: SourceType> {
 
           let cover = await self.fetchCover(
             mangaId: id,
-            fileName: data.coverFileName
+            fileName: data.coverInfo
           )
 
           await self.updateCover(id, cover: cover)

@@ -151,7 +151,7 @@ extension MangaDetailsViewModel {
   ) -> ChapterReaderViewModel<Source> {
     return ChapterReaderViewModel(
       datasource: PagesDatasource(
-        chapterId: chapter.id,
+        chapter: chapter,
         delegate: Source.PagesDelegate.init(
           httpClient: AppEnv.env.httpClient
         )

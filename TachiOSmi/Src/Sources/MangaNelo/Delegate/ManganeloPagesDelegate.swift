@@ -5,8 +5,8 @@
 //  Created by Ivo Vilas on 01/03/2024.
 //
 
-// REDO
 import Foundation
+import SwiftSoup
 
 final class ManganeloPagesDelegate: PagesDelegateType {
 
@@ -19,29 +19,48 @@ final class ManganeloPagesDelegate: PagesDelegateType {
   }
 
   func fetchDownloadInfo(
-    chapterId: String
-  ) async throws -> MangadexChapterDownloadInfo {
-    throw DatasourceError.otherError("TODO")
+    using url: String
+  ) async throws -> ManganeloChapterDownloadInfo {
+    let html = try await httpClient.makeHtmlGetRequest(url)
+
+    guard let doc: Document = try? SwiftSoup.parse(html) else {
+      throw ParserError.parsingError
+    }
+
+    guard
+      let info = try? doc.select("div.container-chapter-reader").first(),
+      let pages = try? info.select("img.reader-content").array()
+    else {
+      throw ParserError.parsingError
+    }
+
+    return ManganeloChapterDownloadInfo(
+      chapterUrl: url,
+      pages: pages.compactMap { try? $0.attr("src") }
+    )
   }
 
   func fetchPage(
     index: Int,
-    info: MangadexChapterDownloadInfo
+    info: ManganeloChapterDownloadInfo
   ) async throws -> Data {
-    throw DatasourceError.otherError("TODO")
-  }
+    guard info.pages.indices.contains(index) else { throw DatasourceError.unexpectedError("Page index out of bounds") }
 
-  func fetchPage(
-    _ url: String
-  ) async throws -> Data {
-    throw DatasourceError.otherError("TODO")
+    return try await httpClient.makeDataSafeGetRequest(
+      info.pages[index],
+      hotLink: info.chapterUrl
+    )
   }
 
   func buildUrl(
     index: Int,
-    info: MangadexChapterDownloadInfo
+    info: ManganeloChapterDownloadInfo
   ) throws -> String {
-    throw DatasourceError.otherError("TODO")
+    let pages = info.pages
+
+    guard pages.indices.contains(index) else { throw DatasourceError.otherError("Page index out of bounds") }
+
+    return pages[index]
   }
   
 }

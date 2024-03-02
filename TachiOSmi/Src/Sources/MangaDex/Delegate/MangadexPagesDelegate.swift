@@ -18,7 +18,7 @@ final class MangadexPagesDelegate: PagesDelegateType {
   }
 
   func fetchDownloadInfo(
-    chapterId: String
+    using chapterId: String
   ) async throws -> MangadexChapterDownloadInfo {
     return try await makeChapterInfoRequest(chapterId: chapterId)
   }
@@ -45,7 +45,7 @@ final class MangadexPagesDelegate: PagesDelegateType {
     index: Int,
     info: MangadexChapterDownloadInfo
   ) throws -> String {
-    let dataArray = info.data
+    let dataArray = info.pages
 
     guard dataArray.indices.contains(index) else { throw DatasourceError.otherError("Page index out of bounds") }
 
@@ -106,7 +106,7 @@ extension MangadexPagesDelegate {
     return MangadexChapterDownloadInfo(
       baseUrl: baseUrl,
       hash: hash,
-      data: dataArray
+      pages: dataArray
     )
   }
 

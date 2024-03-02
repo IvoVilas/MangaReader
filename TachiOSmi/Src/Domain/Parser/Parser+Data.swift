@@ -8,13 +8,14 @@
 import Foundation
 
 struct MangaParsedData {
+
   let id: String
   let title: String
   let description: String?
   let status: MangaStatus
   let tags: [TagModel]
   let authors: [AuthorModel]
-  let coverFileName: String
+  let coverInfo: String
 
   func convertToModel(cover: Data? = nil) -> MangaModel {
     return MangaModel(
@@ -27,4 +28,5 @@ struct MangaParsedData {
       authors: authors
     )
   }
+
 }

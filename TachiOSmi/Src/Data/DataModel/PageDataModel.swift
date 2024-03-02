@@ -8,6 +8,7 @@
 import Foundation
 
 enum PageModel: Identifiable {
+  
   case remote(Int, Data)
   case loading(Int)
   case notFound(Int, String?)
