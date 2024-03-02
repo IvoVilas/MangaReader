@@ -10,6 +10,11 @@ import CoreData
 
 protocol DetailsDelegateType {
 
+  init(
+    httpClient: HttpClient,
+    mangaParser: MangaParser
+  )
+
   func fetchDetails(
     _ mangaId: String
   ) async throws -> MangaParsedData
@@ -18,9 +23,5 @@ protocol DetailsDelegateType {
     mangaId: String,
     fileName: String
   ) async throws -> Data
-
-  func catchError(
-    _ error: Error
-  ) -> DatasourceError?
 
 }

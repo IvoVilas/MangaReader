@@ -7,16 +7,16 @@
 
 import SwiftUI
 
-struct MangaDetailsView: View {
+struct MangaDetailsView<Source: SourceType>: View {
 
-  @ObservedObject var viewModel: MangaDetailsViewModel
+  @ObservedObject var viewModel: MangaDetailsViewModel<Source>
   @State private var toast: Toast?
 
   private let backgroundColor: Color = .white
   private let foregroundColor: Color = .black
 
   init(
-    viewModel: MangaDetailsViewModel
+    viewModel: MangaDetailsViewModel<Source>
   ) {
     self.viewModel = viewModel
 
@@ -78,7 +78,7 @@ struct MangaDetailsView: View {
     }
     .navigationDestination(for: ChapterModel.self) { chapter in
       ChapterReaderView(
-        viewModel: viewModel.buildReaderViewModel(chapter, delegateType: MangadexPagesDelegate.self)
+        viewModel: viewModel.buildReaderViewModel(chapter)
       )
     }
     .toastView(toast: $toast)
@@ -236,19 +236,20 @@ struct MangaDetailsView: View {
 
 #Preview {
   MangaDetailsView(
-    viewModel: MangaDetailsView.buildPreviewViewModel()
+    viewModel: MangaDetailsView<MangadexMangaSource>.buildPreviewViewModel()
   )
 }
 
 extension MangaDetailsView {
 
-  static func buildPreviewViewModel() -> MangaDetailsViewModel {
+  static func buildPreviewViewModel(
+  ) -> MangaDetailsViewModel<MangadexMangaSource> {
     let systemDateTime = SystemDateTime()
     let mangaCrud = MangaCrud()
     let coverCrud = CoverCrud()
     let chapterCrud = ChapterCrud()
     let httpClient = HttpClient()
-    let moc = PersistenceController.preview.container.viewContext
+    let moc = PersistenceController.preview.mangaDex.viewMoc
     let manga = MangaSearchResult(
       id: "c52b2ce3-7f95-469c-96b0-479524fb7a1a",
       title: "Jujutsu Kaisen",
@@ -272,7 +273,6 @@ extension MangaDetailsView {
         manga: manga,
         delegate: MangadexDetailsDelegate(
           httpClient: httpClient,
-          coverCrud: coverCrud,
           mangaParser: MangaParser()
         ),
         mangaCrud: mangaCrud,

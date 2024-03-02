@@ -10,11 +10,11 @@ import Combine
 import CoreData
 import UIKit
 
-final class DetailsDatasource {
+final class DetailsDatasource<Source: SourceType> {
 
   let mangaId: String
 
-  private let delegate: DetailsDelegateType
+  private let delegate: Source.DetailsDelegate
   private let mangaCrud: MangaCrud
   private let coverCrud: CoverCrud
   private let authorCrud: AuthorCrud
@@ -39,12 +39,12 @@ final class DetailsDatasource {
 
   init(
     manga: MangaSearchResult,
-    delegate: DetailsDelegateType,
+    delegate: Source.DetailsDelegate,
     mangaCrud: MangaCrud,
     coverCrud: CoverCrud,
     authorCrud: AuthorCrud,
     tagCrud: TagCrud,
-    viewMoc: NSManagedObjectContext = PersistenceController.shared.container.viewContext
+    viewMoc: NSManagedObjectContext = Source.database.viewMoc
   ) {
     mangaId = manga.id
 
@@ -129,7 +129,7 @@ final class DetailsDatasource {
         try await updateDatabase(mangaModel)
       }
     } catch {
-      erro = delegate.catchError(error)
+      erro = catchError(error)
     }
 
     await MainActor.run { [erro] in
@@ -165,7 +165,7 @@ final class DetailsDatasource {
 
       try await updateDatabase(data.convertToModel(cover: cover))
     } catch {
-      erro = delegate.catchError(error)
+      erro = catchError(error)
     }
 
     await MainActor.run { [erro] in
@@ -174,6 +174,27 @@ final class DetailsDatasource {
     }
 
     print("MangaDetailsDatasource -> Ended manga details refresh")
+  }
+
+  private func catchError(_ error: Error) -> DatasourceError? {
+    switch error {
+    case is CancellationError:
+      print("MangaSearchDelegate -> Task cancelled")
+
+    case let error as ParserError:
+      return .errorParsingResponse(error.localizedDescription)
+
+    case let error as HttpError:
+      return .networkError(error.localizedDescription)
+
+    case let error as CrudError:
+      print("MangaSearchDelegate -> Error during database operation: \(error.localizedDescription)")
+
+    default:
+      return .unexpectedError(error.localizedDescription)
+    }
+
+    return nil
   }
 
   @MainActor

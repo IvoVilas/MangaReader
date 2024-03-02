@@ -9,9 +9,9 @@ import Foundation
 import Combine
 import CoreData
 
-final class SearchDatasource {
+final class SearchDatasource<Source: SourceType> {
 
-  private let delegate: SearchDelegateType
+  private let delegate: Source.SearchDelegate
   private let mangaCrud: MangaCrud
   private let coverCrud: CoverCrud
   private let viewMoc: NSManagedObjectContext
@@ -38,10 +38,10 @@ final class SearchDatasource {
   private var fetchTask: Task<Void, Never>?
 
   init(
-    delegate: SearchDelegateType,
+    delegate: Source.SearchDelegate,
     mangaCrud: MangaCrud,
     coverCrud: CoverCrud,
-    viewMoc: NSManagedObjectContext = PersistenceController.shared.container.viewContext
+    viewMoc: NSManagedObjectContext = Source.database.viewMoc
   ) {
     self.delegate = delegate
     self.mangaCrud = mangaCrud
@@ -92,7 +92,7 @@ final class SearchDatasource {
 
         doFetchCoversTask(results)
       } catch {
-        erro = self.delegate.catchError(error)
+        erro = self.catchError(error)
       }
 
       await MainActor.run { [erro] in
@@ -144,7 +144,7 @@ final class SearchDatasource {
 
         doFetchCoversTask(results)
       } catch {
-        erro = self.delegate.catchError(error)
+        erro = self.catchError(error)
       }
 
       await MainActor.run { [erro] in
@@ -221,9 +221,30 @@ final class SearchDatasource {
 
       return remoteCoverData
     } catch {
-      if let erro = delegate.catchError(error) {
+      if let erro = catchError(error) {
         print("MangaSearchDelegate -> Error: \(erro.localizedDescription)")
       }
+    }
+
+    return nil
+  }
+
+  private func catchError(_ error: Error) -> DatasourceError? {
+    switch error {
+    case is CancellationError:
+      print("MangaSearchDelegate -> Task cancelled")
+
+    case let error as ParserError:
+      return .errorParsingResponse(error.localizedDescription)
+
+    case let error as HttpError:
+      return .networkError(error.localizedDescription)
+
+    case let error as CrudError:
+      print("MangaSearchDelegate -> Error during database operation: \(error.localizedDescription)")
+
+    default:
+      return .unexpectedError(error.localizedDescription)
     }
 
     return nil

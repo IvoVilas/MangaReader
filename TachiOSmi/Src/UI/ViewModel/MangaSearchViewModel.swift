@@ -10,14 +10,14 @@ import SwiftUI
 import Combine
 import CoreData
 
-final class MangaSearchViewModel: ObservableObject {
+final class MangaSearchViewModel<Source: SourceType>: ObservableObject {
 
   @Published var results: [MangaSearchResult]
   @Published var input: String
   @Published var isLoading: Bool
   @Published var error: DatasourceError?
 
-  private let datasource: SearchDatasource
+  private let datasource: SearchDatasource<Source>
   private var searchValue: MangaSearchType {
     if input.isEmpty {
       return .trending
@@ -29,7 +29,7 @@ final class MangaSearchViewModel: ObservableObject {
   private var observers = Set<AnyCancellable>()
 
   init(
-    datasource: SearchDatasource
+    datasource: SearchDatasource<Source>
   ) {
     self.datasource = datasource
 
@@ -61,9 +61,7 @@ final class MangaSearchViewModel: ObservableObject {
 extension MangaSearchViewModel {
 
   func doSearch() async {
-    if input.isEmpty {
-      await datasource.searchManga(searchValue)
-    }
+    await datasource.searchManga(searchValue)
   }
 
   func loadNextIfNeeded(_ id: String) async {
@@ -76,11 +74,11 @@ extension MangaSearchViewModel {
 
   func buildMangaDetailsViewModel(
     _ manga: MangaSearchResult
-  ) -> MangaDetailsViewModel {
+  ) -> MangaDetailsViewModel<Source> {
     return MangaDetailsViewModel(
       chaptersDatasource: ChaptersDatasource(
         mangaId: manga.id,
-        delegate: MangadexChaptersDelegate(
+        delegate: Source.ChaptersDelegate.init(
           httpClient: AppEnv.env.httpClient,
           chapterParser: AppEnv.env.chapterParser,
           systemDateTime: AppEnv.env.systemDateTime
@@ -91,9 +89,8 @@ extension MangaSearchViewModel {
       ),
       detailsDatasource: DetailsDatasource(
         manga: manga,
-        delegate: MangadexDetailsDelegate(
+        delegate: Source.DetailsDelegate.init(
           httpClient: AppEnv.env.httpClient,
-          coverCrud: AppEnv.env.coverCrud,
           mangaParser: AppEnv.env.mangaParser
         ),
         mangaCrud: AppEnv.env.mangaCrud,

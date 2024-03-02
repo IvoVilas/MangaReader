@@ -31,8 +31,4 @@ protocol PagesDelegateType {
     info: Info
   ) throws -> String
 
-  func catchError(
-    _ error: Error
-  ) -> DatasourceError?
-
 }

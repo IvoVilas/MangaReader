@@ -15,7 +15,7 @@ struct TachiOSmiApp: App {
   init() {
     persistenceController = PersistenceController.shared
 
-    let env = AppEnvironment(moc: persistenceController.container.viewContext)
+    let env = AppEnvironment()
 
     AppEnv.env = env
   }

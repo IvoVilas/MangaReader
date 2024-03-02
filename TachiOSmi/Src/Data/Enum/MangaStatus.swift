@@ -72,6 +72,7 @@ enum MangaStatus {
     }
   }
 
+  // TODO: Move to parser
   static func safeInit(from value: String) -> MangaStatus {
     switch value {
     case "completed":

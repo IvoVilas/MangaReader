@@ -10,6 +10,11 @@ import CoreData
 
 protocol SearchDelegateType {
 
+  init(
+    httpClient: HttpClient,
+    mangaParser: MangaParser
+  )
+
   func fetchTrending(
     page: Int
   ) async throws -> [MangaParsedData]
@@ -23,9 +28,5 @@ protocol SearchDelegateType {
     id: String,
     fileName: String
   ) async throws -> Data
-
-  func catchError(
-    _ error: Error
-  ) -> DatasourceError?
 
 }

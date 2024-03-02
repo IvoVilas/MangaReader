@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22522" systemVersion="22G91" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="Author" representedClassName=".AuthorMO" syncable="YES">
+        <attribute name="id" attributeType="String"/>
+        <attribute name="name" attributeType="String"/>
+        <relationship name="mangas" toMany="YES" deletionRule="Nullify" destinationEntity="Manga" inverseName="authors" inverseEntity="Manga"/>
+    </entity>
+    <entity name="Chapter" representedClassName=".ChapterMO" syncable="YES">
+        <attribute name="chapter" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="id" attributeType="String"/>
+        <attribute name="numberOfPages" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="publishAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="title" optional="YES" attributeType="String"/>
+        <relationship name="manga" maxCount="1" deletionRule="Nullify" destinationEntity="Manga" inverseName="chapters" inverseEntity="Manga"/>
+    </entity>
+    <entity name="Cover" representedClassName=".CoverMO" syncable="YES">
+        <attribute name="data" attributeType="Binary"/>
+        <attribute name="mangaId" attributeType="String"/>
+    </entity>
+    <entity name="Manga" representedClassName=".MangaMO" syncable="YES">
+        <attribute name="id" attributeType="String"/>
+        <attribute name="lastUpdateAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="statusId" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="synopsis" optional="YES" attributeType="String"/>
+        <attribute name="title" attributeType="String"/>
+        <relationship name="authors" toMany="YES" deletionRule="Nullify" destinationEntity="Author" inverseName="mangas" inverseEntity="Author"/>
+        <relationship name="chapters" toMany="YES" deletionRule="Cascade" destinationEntity="Chapter" inverseName="manga" inverseEntity="Chapter"/>
+        <relationship name="tags" toMany="YES" deletionRule="Nullify" destinationEntity="Tag" inverseName="mangas" inverseEntity="Tag"/>
+    </entity>
+    <entity name="Tag" representedClassName=".TagMO" syncable="YES">
+        <attribute name="id" attributeType="String"/>
+        <attribute name="title" attributeType="String"/>
+        <relationship name="mangas" toMany="YES" deletionRule="Nullify" destinationEntity="Manga" inverseName="tags" inverseEntity="Manga"/>
+    </entity>
+</model>

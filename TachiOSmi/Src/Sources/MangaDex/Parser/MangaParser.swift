@@ -29,7 +29,7 @@ final class MangaParser {
     var status: MangaStatus?
     var coverFileName: String?
 
-    var tags    = [TagModel]()
+    var tags = [TagModel]()
     var authors = [AuthorModel]()
 
     // Get id

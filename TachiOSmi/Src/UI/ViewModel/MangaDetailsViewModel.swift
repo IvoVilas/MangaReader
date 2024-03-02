@@ -9,10 +9,10 @@ import Foundation
 import SwiftUI
 import Combine
 
-final class MangaDetailsViewModel: ObservableObject {
+final class MangaDetailsViewModel<Source: SourceType>: ObservableObject {
 
-  private let chaptersDatasource: ChaptersDatasource
-  private let detailsDatasource: DetailsDatasource
+  private let chaptersDatasource: ChaptersDatasource<Source>
+  private let detailsDatasource: DetailsDatasource<Source>
 
   @Published var title: String
   @Published var cover: UIImage?
@@ -29,8 +29,8 @@ final class MangaDetailsViewModel: ObservableObject {
   private var observers = Set<AnyCancellable>()
 
   init(
-    chaptersDatasource: ChaptersDatasource,
-    detailsDatasource: DetailsDatasource
+    chaptersDatasource: ChaptersDatasource<Source>,
+    detailsDatasource: DetailsDatasource<Source>
   ) {
     self.chaptersDatasource = chaptersDatasource
     self.detailsDatasource = detailsDatasource
@@ -146,14 +146,15 @@ extension MangaDetailsViewModel {
     }
   }
 
-  func buildReaderViewModel<Delegate: PagesDelegateType>(
-    _ chapter: ChapterModel,
-    delegateType: Delegate.Type
-  ) -> ChapterReaderViewModel<Delegate> {
+  func buildReaderViewModel(
+    _ chapter: ChapterModel
+  ) -> ChapterReaderViewModel<Source> {
     return ChapterReaderViewModel(
-      datasource: PagesDatasource<Delegate>(
+      datasource: PagesDatasource(
         chapterId: chapter.id,
-        delegate: delegateType.init(httpClient: AppEnv.env.httpClient)
+        delegate: Source.PagesDelegate.init(
+          httpClient: AppEnv.env.httpClient
+        )
       )
     )
   }

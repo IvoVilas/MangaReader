@@ -35,13 +35,7 @@ final class AppEnvironment {
   // Tools
   let systemDateTime: SystemDateTimeType
 
-  private let moc: NSManagedObjectContext
-
-  init(
-    moc: NSManagedObjectContext
-  ) {
-    self.moc = moc
-
+  init() {
     httpClient = HttpClient()
 
     mangaCrud   = MangaCrud()

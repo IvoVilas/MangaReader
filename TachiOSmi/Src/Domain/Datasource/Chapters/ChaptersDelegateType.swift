@@ -10,12 +10,14 @@ import CoreData
 
 protocol ChaptersDelegateType {
 
+  init(
+    httpClient: HttpClient,
+    chapterParser: ChapterParser,
+    systemDateTime: SystemDateTimeType
+  )
+
   func fetchChapters(
     mangaId: String
   ) async throws -> [ChapterModel]
-
-  func catchError(
-    _ error: Error
-  ) -> DatasourceError?
 
 }

@@ -8,10 +8,10 @@
 import Foundation
 import Combine
 
-final class PagesDatasource<Delegate: PagesDelegateType> {
+final class PagesDatasource<Source: SourceType> {
 
   private let chapterId: String
-  private let delegate: Delegate
+  private let delegate: Source.PagesDelegate
 
   private let pages: CurrentValueSubject<[PageModel], Never>
   private let state: CurrentValueSubject<DatasourceState, Never>
@@ -33,11 +33,11 @@ final class PagesDatasource<Delegate: PagesDelegateType> {
 
   @MainActor var hasMorePages = true
   @MainActor private var currentPage = 0
-  @MainActor private var chapterInfo: Delegate.Info?
+  @MainActor private var chapterInfo: Source.PagesDelegate.Info?
 
   init(
     chapterId: String,
-    delegate: Delegate
+    delegate: Source.PagesDelegate
   ) {
     self.chapterId = chapterId
     self.delegate = delegate
@@ -62,7 +62,7 @@ final class PagesDatasource<Delegate: PagesDelegateType> {
 
       await makePagesRequest(using: chapterInfo)
     } catch {
-      erro = delegate.catchError(error)
+      erro = catchError(error)
     }
 
     await MainActor.run { [erro] in
@@ -80,7 +80,7 @@ final class PagesDatasource<Delegate: PagesDelegateType> {
 
       await makePagesRequest(using: chapterInfo)
     } catch {
-      erro = delegate.catchError(error)
+      erro = catchError(error)
     }
 
     await MainActor.run { [erro] in
@@ -113,7 +113,7 @@ final class PagesDatasource<Delegate: PagesDelegateType> {
 
             page = .remote(id, data)
           } catch {
-            erro = self.delegate.catchError(error)
+            erro = self.catchError(error)
             page = .notFound(id, url)
           }
 
@@ -126,7 +126,7 @@ final class PagesDatasource<Delegate: PagesDelegateType> {
     }
   }
 
-  private func getDownloadInfo() async throws -> Delegate.Info {
+  private func getDownloadInfo() async throws -> Source.PagesDelegate.Info {
     if let local = await chapterInfo {
       return local
     }
@@ -136,6 +136,27 @@ final class PagesDatasource<Delegate: PagesDelegateType> {
     await MainActor.run { chapterInfo = remote }
 
     return remote
+  }
+
+  private func catchError(_ error: Error) -> DatasourceError? {
+    switch error {
+    case is CancellationError:
+      print("MangaSearchDelegate -> Task cancelled")
+
+    case let error as ParserError:
+      return .errorParsingResponse(error.localizedDescription)
+
+    case let error as HttpError:
+      return .networkError(error.localizedDescription)
+
+    case let error as CrudError:
+      print("MangaSearchDelegate -> Error during database operation: \(error.localizedDescription)")
+
+    default:
+      return .unexpectedError(error.localizedDescription)
+    }
+
+    return nil
   }
 
   @MainActor
@@ -190,7 +211,7 @@ final class PagesDatasource<Delegate: PagesDelegateType> {
 
   @MainActor
   private func preparePageRequest(
-    _ info: Delegate.Info
+    _ info: Source.PagesDelegate.Info
   ) -> [Int] {
     let limit = 10
     let offset = limit * currentPage
@@ -217,7 +238,7 @@ final class PagesDatasource<Delegate: PagesDelegateType> {
 extension PagesDatasource {
 
   private func makePagesRequest(
-    using info: Delegate.Info
+    using info: Source.PagesDelegate.Info
   ) async {
     let pages = await preparePageRequest(info)
 

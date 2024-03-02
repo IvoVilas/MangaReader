@@ -9,11 +9,11 @@ import Foundation
 import Combine
 import CoreData
 
-final class ChaptersDatasource {
+final class ChaptersDatasource<Source: SourceType> {
 
   private let mangaId: String
 
-  private let delegate: ChaptersDelegateType
+  private let delegate: Source.ChaptersDelegate
   private let mangaCrud: MangaCrud
   private let chapterCrud: ChapterCrud
   private let systemDateTime: SystemDateTimeType
@@ -52,7 +52,7 @@ final class ChaptersDatasource {
 
   private var fetchTask: Task<Void, Never>?
 
-  private static let sortByNumber: (ChapterModel, ChapterModel) -> Bool = {
+  let sortByNumber: (ChapterModel, ChapterModel) -> Bool = {
     guard
       let lhs = $0.number,
       let rhs = $01.number
@@ -65,11 +65,11 @@ final class ChaptersDatasource {
 
   init(
     mangaId: String,
-    delegate: ChaptersDelegateType,
+    delegate: Source.ChaptersDelegate,
     mangaCrud: MangaCrud,
     chapterCrud: ChapterCrud,
     systemDateTime: SystemDateTimeType,
-    viewMoc: NSManagedObjectContext = PersistenceController.shared.container.viewContext
+    viewMoc: NSManagedObjectContext = Source.database.viewMoc
   ) {
     self.mangaId = mangaId
     self.delegate = delegate
@@ -135,7 +135,7 @@ final class ChaptersDatasource {
           )
         }
       } catch {
-        erro = self.delegate.catchError(error)
+        erro = self.catchError(error)
       }
 
       await MainActor.run { [erro] in
@@ -177,7 +177,7 @@ final class ChaptersDatasource {
           updatedAt: self.systemDateTime.now
         )
       } catch {
-        erro = self.delegate.catchError(error)
+        erro = self.catchError(error)
       }
 
       await MainActor.run { [erro] in
@@ -223,7 +223,28 @@ final class ChaptersDatasource {
     return try chapterCrud
       .getAllChapters(mangaId: mangaId, moc: viewMoc)
       .map { ChapterModel.from($0) }
-      .sorted(by: ChaptersDatasource.sortByNumber)
+      .sorted(by: sortByNumber)
+  }
+
+  private func catchError(_ error: Error) -> DatasourceError? {
+    switch error {
+    case is CancellationError:
+      print("MangaSearchDelegate -> Task cancelled")
+
+    case let error as ParserError:
+      return .errorParsingResponse(error.localizedDescription)
+
+    case let error as HttpError:
+      return .networkError(error.localizedDescription)
+
+    case let error as CrudError:
+      print("MangaSearchDelegate -> Error during database operation: \(error.localizedDescription)")
+
+    default:
+      return .unexpectedError(error.localizedDescription)
+    }
+
+    return nil
   }
 
 }

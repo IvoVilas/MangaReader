@@ -14,7 +14,8 @@ final class ManganeloSearchDelegate: SearchDelegateType {
   private let httpClient: HttpClient
 
   init(
-    httpClient: HttpClient
+    httpClient: HttpClient,
+    mangaParser: MangaParser // TODO: Change
   ) {
     self.httpClient = httpClient
   }
@@ -145,27 +146,6 @@ final class ManganeloSearchDelegate: SearchDelegateType {
   
   func fetchCover(id: String, fileName: String) async throws -> Data {
     try await httpClient.makeDataGetRequest(url: fileName)
-  }
-  
-  func catchError(_ error: Error) -> DatasourceError? {
-    switch error {
-    case is CancellationError:
-      print("MangaSearchDelegate -> Task cancelled")
-
-    case let error as ParserError:
-      return .errorParsingResponse(error.localizedDescription)
-
-    case let error as HttpError:
-      return .networkError(error.localizedDescription)
-
-    case let error as CrudError:
-      print("MangaSearchDelegate -> Error during database operation: \(error.localizedDescription)")
-
-    default:
-      return .unexpectedError(error.localizedDescription)
-    }
-
-    return nil
   }
 
 }

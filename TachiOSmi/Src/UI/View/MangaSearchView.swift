@@ -9,7 +9,7 @@ import SwiftUI
 import CoreData
 
 // MARK: Search
-struct MangaSearchView: View {
+struct MangaSearchView<Source: SourceType>: View {
 
   enum ResultLayout {
     case normal
@@ -35,7 +35,7 @@ struct MangaSearchView: View {
     }
   }
 
-  @ObservedObject var viewModel: MangaSearchViewModel
+  @ObservedObject var viewModel: MangaSearchViewModel<Source>
   @State private var toast: Toast?
   @State private var listLayout = ResultLayout.compact
 
@@ -52,10 +52,11 @@ struct MangaSearchView: View {
     NavigationStack {
       VStack(spacing: 0) {
         HeaderView(
-          input: $viewModel.input,
+          name: Source.name,
           tintColor: foregroundColor,
           textColor: secondaryColor,
-          doSearch: viewModel.doSearch
+          doSearch: viewModel.doSearch,
+          input: $viewModel.input
         )
         .padding(.horizontal, 16)
 
@@ -121,19 +122,20 @@ struct MangaSearchView: View {
 // MARK: Header
 private struct HeaderView: View {
 
+  let name: String
+  let tintColor: Color
+  let textColor: Color
+  let doSearch: (() async -> Void)?
+
   @State var didSearch = false
   @State var isSearching: Bool = false
   @Binding var input: String
   @FocusState private var inputFieldIsFocused: Bool
 
-  let tintColor: Color
-  let textColor: Color
-  let doSearch: (() async -> Void)?
-
   var body: some View {
     HStack(spacing: 16) {
       ZStack(alignment: .leading) {
-        Text("MangaDex")
+        Text(name)
           .foregroundStyle(tintColor)
           .font(.title)
           .padding(.vertical, 16)
@@ -285,18 +287,8 @@ private struct MangaResultView: View, Equatable {
 }
 
 #Preview {
-  MangaSearchView(
-    viewModel: MangaSearchView.buildPreviewViewModel()
-  )
-}
-
-extension MangaSearchView {
-
-  static func buildPreviewViewModel(
-  ) -> MangaSearchViewModel {
-    let moc = PersistenceController.preview.container.viewContext
-
-    return MangaSearchViewModel(
+  MangaSearchView<MangadexMangaSource>(
+    viewModel: MangaSearchViewModel(
       datasource: SearchDatasource(
         delegate: MangadexSearchDelegate(
           httpClient: HttpClient(),
@@ -304,9 +296,8 @@ extension MangaSearchView {
         ),
         mangaCrud: MangaCrud(),
         coverCrud: CoverCrud(),
-        viewMoc: moc
+        viewMoc: PersistenceController.preview.mangaDex.viewMoc
       )
     )
-  }
-
+  )
 }
