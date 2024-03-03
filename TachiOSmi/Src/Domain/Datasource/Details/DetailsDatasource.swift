@@ -129,7 +129,7 @@ final class DetailsDatasource<Source: SourceType> {
         try await updateDatabase(mangaModel)
       }
     } catch {
-      erro = catchError(error)
+      erro = .catchError(error)
     }
 
     await MainActor.run { [erro] in
@@ -165,7 +165,7 @@ final class DetailsDatasource<Source: SourceType> {
 
       try await updateDatabase(data.convertToModel(cover: cover))
     } catch {
-      erro = catchError(error)
+      erro = .catchError(error)
     }
 
     await MainActor.run { [erro] in
@@ -174,27 +174,6 @@ final class DetailsDatasource<Source: SourceType> {
     }
 
     print("MangaDetailsDatasource -> Ended manga details refresh")
-  }
-
-  private func catchError(_ error: Error) -> DatasourceError? {
-    switch error {
-    case is CancellationError:
-      print("MangaSearchDelegate -> Task cancelled")
-
-    case let error as ParserError:
-      return .errorParsingResponse(error.localizedDescription)
-
-    case let error as HttpError:
-      return .networkError(error.localizedDescription)
-
-    case let error as CrudError:
-      print("MangaSearchDelegate -> Error during database operation: \(error.localizedDescription)")
-
-    default:
-      return .unexpectedError(error.localizedDescription)
-    }
-
-    return nil
   }
 
   @MainActor

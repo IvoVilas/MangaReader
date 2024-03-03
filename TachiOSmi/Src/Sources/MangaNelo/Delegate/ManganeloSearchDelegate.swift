@@ -21,7 +21,7 @@ final class ManganeloSearchDelegate: SearchDelegateType {
 
   func fetchTrending(
     page: Int
-  ) async throws -> [MangaParsedData] {
+  ) async throws -> [MangaSearchResultParsedData] {
     let url = "https://m.manganelo.com/genre-all/\(page + 1)?type=topview"
     let html = try await httpClient.makeHtmlGetRequest(url)
 
@@ -62,16 +62,11 @@ final class ManganeloSearchDelegate: SearchDelegateType {
       )
     }
 
-    // TODO: Change this to MangaSearchResult
     return results.map {
-      MangaParsedData(
+      MangaSearchResultParsedData(
         id: $0.id,
         title: $0.title,
-        description: nil,
-        status: .unknown,
-        tags: [],
-        authors: [],
-        coverInfo: $0.coverUrl
+        coverDownloadInfo: $0.coverUrl
       )
     }
   }
@@ -79,7 +74,7 @@ final class ManganeloSearchDelegate: SearchDelegateType {
   func fetchSearchResults(
     _ searchValue: String,
     page: Int
-  ) async throws -> [MangaParsedData] {
+  ) async throws -> [MangaSearchResultParsedData] {
     let url: String
     var set = CharacterSet.alphanumerics
     set.insert("_")
@@ -132,20 +127,19 @@ final class ManganeloSearchDelegate: SearchDelegateType {
     }
 
     return results.map {
-      MangaParsedData(
+      MangaSearchResultParsedData(
         id: $0.id,
         title: $0.title,
-        description: nil,
-        status: .unknown,
-        tags: [],
-        authors: [],
-        coverInfo: $0.coverUrl
+        coverDownloadInfo: $0.coverUrl
       )
     }
   }
   
-  func fetchCover(id: String, fileName: String) async throws -> Data {
-    try await httpClient.makeDataGetRequest(url: fileName)
+  func fetchCover(
+    mangaId: String,
+    coverInfo url: String
+  ) async throws -> Data {
+    try await httpClient.makeDataGetRequest(url: url)
   }
 
 }

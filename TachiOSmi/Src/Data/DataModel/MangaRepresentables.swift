@@ -1,12 +1,13 @@
 //
-//  MangaDataModel.swift
+//  MangaRepresentables.swift
 //  TachiOSmi
 //
-//  Created by Ivo Vilas on 19/02/2024.
+//  Created by Ivo Vilas on 02/03/2024.
 //
 
 import Foundation
 
+// MARK: Model
 struct MangaModel: Identifiable, Hashable {
 
   let id: String
@@ -41,6 +42,48 @@ struct MangaModel: Identifiable, Hashable {
       cover: cover,
       tags: manga.tags.map { .from($0) }.sorted { $0.title < $1.title },
       authors: manga.authors.map { .from($0) }
+    )
+  }
+
+}
+
+// MARK: Search
+struct MangaSearchResultParsedData: Identifiable, Hashable {
+
+  let id: String
+  let title: String
+  let coverDownloadInfo: String
+
+}
+
+struct MangaSearchResult: Identifiable, Hashable {
+
+  let id: String
+  let title: String
+  let cover: Data?
+
+}
+
+// MARK: Details
+struct MangaDetailsParsedData {
+
+  let id: String
+  let title: String
+  let description: String?
+  let status: MangaStatus
+  let tags: [TagModel]
+  let authors: [AuthorModel]
+  let coverInfo: String
+
+  func convertToModel(cover: Data? = nil) -> MangaModel {
+    return MangaModel(
+      id: id,
+      title: title,
+      description: description,
+      status: status,
+      cover: cover,
+      tags: tags.sorted { $0.title < $1.title },
+      authors: authors
     )
   }
 

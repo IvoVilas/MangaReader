@@ -23,7 +23,7 @@ final class MangadexDetailsDelegate: DetailsDelegateType {
 
   func fetchDetails(
     _ mangaId: String
-  ) async throws -> MangaParsedData {
+  ) async throws -> MangaDetailsParsedData {
     let json = try await httpClient.makeJsonGetRequest(
       url: "https://api.mangadex.org/manga/\(mangaId)",
       parameters: [
@@ -36,7 +36,7 @@ final class MangadexDetailsDelegate: DetailsDelegateType {
       throw ParserError.parameterNotFound("data")
     }
 
-    return try mangaParser.parseMangaIndexResponse(data)
+    return try mangaParser.parseMangaDetailsResponse(data)
   }
 
   func fetchCover(

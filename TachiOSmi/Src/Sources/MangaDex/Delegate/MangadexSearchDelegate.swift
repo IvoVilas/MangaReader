@@ -23,14 +23,14 @@ final class MangadexSearchDelegate: SearchDelegateType {
   
   func fetchTrending(
     page: Int
-  ) async throws -> [MangaParsedData] {
+  ) async throws -> [MangaSearchResultParsedData] {
     try await fetchSearchResults("", page: page)
   }
 
   func fetchSearchResults(
     _ searchValue: String,
     page: Int
-  ) async throws -> [MangaParsedData] {
+  ) async throws -> [MangaSearchResultParsedData] {
     let limit  = 15
     let offset = page * limit
 
@@ -44,33 +44,12 @@ final class MangadexSearchDelegate: SearchDelegateType {
   }
 
   func fetchCover(
-    id: String,
-    fileName: String
+    mangaId: String,
+    coverInfo filename: String
   ) async throws -> Data {
     return try await httpClient.makeDataGetRequest(
-      url: "https://uploads.mangadex.org/covers/\(id)/\(fileName).256.jpg"
+      url: "https://uploads.mangadex.org/covers/\(mangaId)/\(filename).256.jpg"
     )
-  }
-
-  func catchError(_ error: Error) -> DatasourceError? {
-    switch error {
-    case is CancellationError:
-      print("MangaSearchDelegate -> Task cancelled")
-
-    case let error as ParserError:
-      return .errorParsingResponse(error.localizedDescription)
-
-    case let error as HttpError:
-      return .networkError(error.localizedDescription)
-
-    case let error as CrudError:
-      print("MangaSearchDelegate -> Error during database operation: \(error.localizedDescription)")
-
-    default:
-      return .unexpectedError(error.localizedDescription)
-    }
-
-    return nil
   }
 
 }
@@ -81,7 +60,7 @@ extension MangadexSearchDelegate {
     _ searchValue: String,
     limit: Int,
     offset: Int
-  ) async throws -> [MangaParsedData] {
+  ) async throws -> [MangaSearchResultParsedData] {
     let data: [String: Any] = try await httpClient.makeJsonGetRequest(
       url: "https://api.mangadex.org/manga",
       parameters: [

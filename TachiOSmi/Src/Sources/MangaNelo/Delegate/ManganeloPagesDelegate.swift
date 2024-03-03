@@ -20,7 +20,7 @@ final class ManganeloPagesDelegate: PagesDelegateType {
 
   func fetchDownloadInfo(
     using url: String
-  ) async throws -> ManganeloChapterDownloadInfo {
+  ) async throws -> ChapterDownloadInfo {
     let html = try await httpClient.makeHtmlGetRequest(url)
 
     guard let doc: Document = try? SwiftSoup.parse(html) else {
@@ -34,27 +34,27 @@ final class ManganeloPagesDelegate: PagesDelegateType {
       throw ParserError.parsingError
     }
 
-    return ManganeloChapterDownloadInfo(
-      chapterUrl: url,
+    return ChapterDownloadInfo(
+      downloadUrl: url,
       pages: pages.compactMap { try? $0.attr("src") }
     )
   }
 
   func fetchPage(
     index: Int,
-    info: ManganeloChapterDownloadInfo
+    info: ChapterDownloadInfo
   ) async throws -> Data {
     guard info.pages.indices.contains(index) else { throw DatasourceError.unexpectedError("Page index out of bounds") }
 
     return try await httpClient.makeDataSafeGetRequest(
       info.pages[index],
-      hotLink: info.chapterUrl
+      comingFrom: info.downloadUrl
     )
   }
 
-  func buildUrl(
+  func buildPageUrl(
     index: Int,
-    info: ManganeloChapterDownloadInfo
+    info: ChapterDownloadInfo
   ) throws -> String {
     let pages = info.pages
 

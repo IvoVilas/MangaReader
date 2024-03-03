@@ -26,7 +26,7 @@ final class ManganeloChaptersDelegate: ChaptersDelegateType {
 
   func fetchChapters(
     mangaId: String
-  ) async throws -> [ChapterModel] {
+  ) async throws -> [ChapterIndexResult] {
     let url = "https://chapmanganelo.com/manga-\(mangaId)"
     let html = try await httpClient.makeHtmlGetRequest(url)
 
@@ -45,7 +45,7 @@ final class ManganeloChaptersDelegate: ChaptersDelegateType {
     // So the chapter Id is {mangaId}%{chapterId}
     // Futhrmore we cant get the number of pages
     // So we use 1 to go throught the numberOfPages > 0 filter later on
-    return chaptersInfo.compactMap { element -> ChapterModel? in
+    return chaptersInfo.compactMap { element -> ChapterIndexResult? in
       guard
         let id = try? element.attr("id"),
         let info = try? element.select("a.chapter-name").first,
@@ -66,13 +66,13 @@ final class ManganeloChaptersDelegate: ChaptersDelegateType {
         date = dateFormatter.date(from: dateString)
       }
 
-      return ChapterModel(
+      return ChapterIndexResult(
         id: "\(mangaId)%\(id)",
         title: title,
         number: number,
         numberOfPages: 1, // TODO: Do something about this
         publishAt: date ?? Date.distantPast, // TODO: And this
-        urlInfo: url
+        downloadInfo: url
       )
     }
   }

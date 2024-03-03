@@ -19,15 +19,15 @@ final class MangadexPagesDelegate: PagesDelegateType {
 
   func fetchDownloadInfo(
     using chapterId: String
-  ) async throws -> MangadexChapterDownloadInfo {
+  ) async throws -> ChapterDownloadInfo {
     return try await makeChapterInfoRequest(chapterId: chapterId)
   }
   
   func fetchPage(
     index: Int,
-    info: MangadexChapterDownloadInfo
+    info: ChapterDownloadInfo
   ) async throws -> Data {
-    let url = try buildUrl(
+    let url = try buildPageUrl(
       index: index,
       info: info
     )
@@ -41,41 +41,17 @@ final class MangadexPagesDelegate: PagesDelegateType {
     return try await makePageRequest(url)
   }
 
-  func buildUrl(
+  func buildPageUrl(
     index: Int,
-    info: MangadexChapterDownloadInfo
+    info: ChapterDownloadInfo
   ) throws -> String {
-    let dataArray = info.pages
+    let pages = info.pages
 
-    guard dataArray.indices.contains(index) else { throw DatasourceError.otherError("Page index out of bounds") }
+    guard pages.indices.contains(index) else { throw DatasourceError.otherError("Page index out of bounds") }
 
-    let data = dataArray[index]
+    let page = pages[index]
 
-    return "\(info.url)/\(data)"
-  }
-
-  func catchError(_ error: Error) -> DatasourceError? {
-    switch error {
-    case is CancellationError:
-      return .unexpectedError("Task was unexpectedly canceled")
-
-    case let error as ParserError:
-      return .errorParsingResponse(error.localizedDescription)
-
-    case let error as HttpError:
-      return .networkError(error.localizedDescription)
-
-    case let error as CrudError:
-      print("ChapterPagesDatasource -> Error during database operation: \(error)")
-
-    case let error as DatasourceError:
-      return error
-
-    default:
-      return .unexpectedError(error.localizedDescription)
-    }
-
-    return nil
+    return "\(info.downloadUrl)/\(page)"
   }
 
 }
@@ -85,7 +61,7 @@ extension MangadexPagesDelegate {
 
   private func makeChapterInfoRequest(
     chapterId: String
-  ) async throws -> MangadexChapterDownloadInfo {
+  ) async throws -> ChapterDownloadInfo {
     print("MangaReaderViewModel -> Starting chapter page download info")
 
     let json = try await httpClient.makeJsonGetRequest(
@@ -96,17 +72,16 @@ extension MangadexPagesDelegate {
       let baseUrl = json["baseUrl"] as? String,
       let chapterJson = json["chapter"] as? [String: Any],
       let hash = chapterJson["hash"] as? String,
-      let dataArray = chapterJson["data"] as? [String]
+      let pages = chapterJson["data"] as? [String]
     else {
       throw ParserError.parsingError
     }
 
     print("MangaReaderViewModel -> Ended chapter page download info")
 
-    return MangadexChapterDownloadInfo(
-      baseUrl: baseUrl,
-      hash: hash,
-      pages: dataArray
+    return ChapterDownloadInfo(
+      downloadUrl: "\(baseUrl)/data/\(hash)",
+      pages: pages
     )
   }
 

@@ -13,16 +13,16 @@ final class MangaParser {
 
   func parseMangaSearchResponse(
     _ data: [[String: Any]]
-  ) throws -> [MangaParsedData] {
+  ) throws -> [MangaSearchResultParsedData] {
     return try data.compactMap {
-      try parseMangaIndexResponse($0)
+      try parseMangaSearchResult($0)
     }
   }
 
 
-  func parseMangaIndexResponse(
+  func parseMangaDetailsResponse(
     _ data: [String: Any]
-  ) throws -> MangaParsedData {
+  ) throws -> MangaDetailsParsedData {
     var id: String?
     var title: String?
     var description: String?
@@ -83,7 +83,7 @@ final class MangaParser {
       throw ParserError.parsingError
     }
 
-    return MangaParsedData(
+    return MangaDetailsParsedData(
       id: id,
       title: title,
       description: description,
@@ -97,6 +97,56 @@ final class MangaParser {
 }
 
 extension MangaParser {
+
+  private func parseMangaSearchResult(
+    _ data: [String: Any]
+  ) throws -> MangaSearchResultParsedData {
+    var id: String?
+    var title: String?
+    var coverFileName: String?
+
+    // Get id
+    id = data["id"] as? String
+
+    // Get title, description, status and tags
+    if let attributesJson = data["attributes"] as? [String: Any] {
+      if let titlesJson = attributesJson["title"] as? [String: Any] {
+        title = getBestTitle(from: titlesJson)
+      }
+    }
+
+    // Get authors and coverFileName
+    if let relationshipsJson = data["relationships"] as? [[String: Any]] {
+      for relationshipJson in relationshipsJson {
+        if relationshipJson["type"] as? String == "cover_art" {
+          if let attributesJson = relationshipJson["attributes"] as? [String: Any] {
+            coverFileName = attributesJson["fileName"] as? String
+
+            break
+          }
+        }
+      }
+    }
+
+    guard
+      let id,
+      let title,
+      let coverFileName
+    else {
+      if id == nil { throw ParserError.parameterNotFound("id") }
+      if title == nil { throw ParserError.parameterNotFound("title") }
+      if coverFileName == nil { throw ParserError.parameterNotFound("coverFileName") }
+
+      throw ParserError.parsingError
+    }
+
+    return MangaSearchResultParsedData(
+      id: id,
+      title: title,
+      coverDownloadInfo: coverFileName
+    )
+
+  }
 
   private func parseTags(
     from tagsJson: [[String: Any]]

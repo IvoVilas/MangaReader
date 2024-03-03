@@ -9,6 +9,7 @@ import Foundation
 import CoreData
 
 final class MangadexChaptersDelegate: ChaptersDelegateType {
+  
 
   private let httpClient: HttpClient
   private let chapterParser: ChapterParser
@@ -23,8 +24,8 @@ final class MangadexChaptersDelegate: ChaptersDelegateType {
   
   func fetchChapters(
     mangaId: String
-  ) async throws -> [ChapterModel] {
-    var results = [ChapterModel]()
+  ) async throws -> [ChapterIndexResult] {
+    var results = [ChapterIndexResult]()
     let limit   = 25
     var offset  = 0
 
@@ -47,27 +48,6 @@ final class MangadexChaptersDelegate: ChaptersDelegateType {
     return results
   }
 
-  func catchError(_ error: Error) -> DatasourceError? {
-    switch error {
-    case is CancellationError:
-      print("MangaChapterDelegate -> Task cancelled")
-
-    case let error as ParserError:
-      return .errorParsingResponse(error.localizedDescription)
-
-    case let error as HttpError:
-      return .networkError(error.localizedDescription)
-
-    case let error as CrudError:
-      print("MangaChapterDelegate -> Error during database operation: \(error.localizedDescription)")
-
-    default:
-      return .unexpectedError(error.localizedDescription)
-    }
-
-    return nil
-  }
-
 }
 
 extension MangadexChaptersDelegate {
@@ -76,7 +56,7 @@ extension MangadexChaptersDelegate {
     mangaId: String,
     limit: Int,
     offset: Int
-  ) async throws -> [ChapterModel] {
+  ) async throws -> [ChapterIndexResult] {
     let json = try await httpClient.makeJsonGetRequest(
       url: "https://api.mangadex.org/manga/\(mangaId)/feed",
       parameters: [
@@ -92,7 +72,7 @@ extension MangadexChaptersDelegate {
       throw ParserError.parameterNotFound("data")
     }
 
-    return chapterParser
+    return try chapterParser
       .parseChapterData(mangaId: mangaId, data: dataJson)
       .filter { $0.numberOfPages > 0 }
   }

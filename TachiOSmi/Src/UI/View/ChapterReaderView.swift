@@ -161,7 +161,8 @@ struct ChapterReaderView<Source: SourceType>: View {
           number: nil,
           numberOfPages: 25,
           publishAt: Date(),
-          urlInfo: "556c3feb-8c62-43de-b872-4657730d31a1"
+          isRead: false,
+          downloadInfo: "556c3feb-8c62-43de-b872-4657730d31a1"
         ),
         delegate: MangadexPagesDelegate(
           httpClient: HttpClient()

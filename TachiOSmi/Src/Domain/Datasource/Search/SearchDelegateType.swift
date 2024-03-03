@@ -17,16 +17,16 @@ protocol SearchDelegateType {
 
   func fetchTrending(
     page: Int
-  ) async throws -> [MangaParsedData]
+  ) async throws -> [MangaSearchResultParsedData]
 
   func fetchSearchResults(
     _ searchValue: String,
     page: Int
-  ) async throws -> [MangaParsedData]
+  ) async throws -> [MangaSearchResultParsedData]
 
   func fetchCover(
-    id: String,
-    fileName: String
+    mangaId: String,
+    coverInfo: String
   ) async throws -> Data
 
 }

@@ -1,12 +1,13 @@
 //
-//  ChapterDataModel.swift
+//  ChapterRepresentables.swift
 //  TachiOSmi
 //
-//  Created by Ivo Vilas on 19/02/2024.
+//  Created by Ivo Vilas on 02/03/2024.
 //
 
 import Foundation
 
+// MARK: Model
 struct ChapterModel: Identifiable, Hashable {
 
   let id: String
@@ -14,24 +15,8 @@ struct ChapterModel: Identifiable, Hashable {
   let number: Double?
   let numberOfPages: Int
   let publishAt: Date
-  let isRead: Bool = false
-  let urlInfo: String
-
-  init(
-    id: String,
-    title: String?,
-    number: Double?,
-    numberOfPages: Int,
-    publishAt: Date,
-    urlInfo: String
-  ) {
-    self.id = id
-    self.title = title
-    self.number = number
-    self.numberOfPages = numberOfPages
-    self.publishAt = publishAt
-    self.urlInfo = urlInfo
-  }
+  let isRead: Bool
+  let downloadInfo: String
 
   var description: String {
     let identifier: String
@@ -53,7 +38,7 @@ struct ChapterModel: Identifiable, Hashable {
     }
   }
 
-  // DateFormatter and Calendar operations are heavy, one should not be created everytime this is called
+  // TODO: DateFormatter and Calendar operations are heavy, one should not be created everytime this is called
   var createdAtDescription: String {
     let calendar = Calendar.current
 
@@ -108,8 +93,43 @@ struct ChapterModel: Identifiable, Hashable {
       number: chapterNumber,
       numberOfPages: Int(chapter.numberOfPages),
       publishAt: chapter.publishAt,
-      urlInfo: chapter.id
+      isRead: false,
+      downloadInfo: chapter.urlInfo
     )
   }
+
+}
+
+// MARK: Index
+struct ChapterIndexResult: Identifiable {
+
+  let id: String
+  let title: String?
+  let number: Double?
+  let numberOfPages: Int
+  let publishAt: Date
+  let downloadInfo: String
+
+  func converToModel(isRead: Bool = false) -> ChapterModel {
+    return ChapterModel(
+      id: id,
+      title: title, 
+      number: number,
+      numberOfPages: numberOfPages,
+      publishAt: publishAt,
+      isRead: isRead,
+      downloadInfo: downloadInfo
+    )
+  }
+
+}
+
+// MARK: Download
+struct ChapterDownloadInfo: Identifiable {
+
+  let downloadUrl: String
+  let pages: [String]
+
+  var id: String { downloadUrl }
 
 }

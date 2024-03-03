@@ -33,7 +33,7 @@ final class PagesDatasource<Source: SourceType> {
 
   @MainActor var hasMorePages = true
   @MainActor private var currentPage = 0
-  @MainActor private var chapterInfo: Source.PagesDelegate.Info?
+  @MainActor private var chapterInfo: ChapterDownloadInfo?
 
   init(
     chapter: ChapterModel,
@@ -62,7 +62,7 @@ final class PagesDatasource<Source: SourceType> {
 
       await makePagesRequest(using: chapterInfo)
     } catch {
-      erro = catchError(error)
+      erro = .catchError(error)
     }
 
     await MainActor.run { [erro] in
@@ -80,7 +80,7 @@ final class PagesDatasource<Source: SourceType> {
 
       await makePagesRequest(using: chapterInfo)
     } catch {
-      erro = catchError(error)
+      erro = .catchError(error)
     }
 
     await MainActor.run { [erro] in
@@ -119,7 +119,7 @@ final class PagesDatasource<Source: SourceType> {
 
             page = .remote(id, data)
           } catch {
-            erro = self.catchError(error)
+            erro = .catchError(error)
             page = .notFound(id, url)
           }
 
@@ -132,37 +132,16 @@ final class PagesDatasource<Source: SourceType> {
     }
   }
 
-  private func getDownloadInfo() async throws -> Source.PagesDelegate.Info {
+  private func getDownloadInfo() async throws -> ChapterDownloadInfo {
     if let local = await chapterInfo {
       return local
     }
 
-    let remote = try await delegate.fetchDownloadInfo(using: chapter.urlInfo)
+    let remote = try await delegate.fetchDownloadInfo(using: chapter.downloadInfo)
 
     await MainActor.run { chapterInfo = remote }
 
     return remote
-  }
-
-  private func catchError(_ error: Error) -> DatasourceError? {
-    switch error {
-    case is CancellationError:
-      print("MangaSearchDelegate -> Task cancelled")
-
-    case let error as ParserError:
-      return .errorParsingResponse(error.localizedDescription)
-
-    case let error as HttpError:
-      return .networkError(error.localizedDescription)
-
-    case let error as CrudError:
-      print("MangaSearchDelegate -> Error during database operation: \(error.localizedDescription)")
-
-    default:
-      return .unexpectedError(error.localizedDescription)
-    }
-
-    return nil
   }
 
   @MainActor
@@ -217,11 +196,11 @@ final class PagesDatasource<Source: SourceType> {
 
   @MainActor
   private func preparePageRequest(
-    _ info: Source.PagesDelegate.Info
+    _ info: ChapterDownloadInfo
   ) -> [Int] {
     let limit = 10
     let offset = limit * currentPage
-    let count = info.numberOfPages
+    let count = info.pages.count
 
     if offset >= count {
       hasMorePages = false
@@ -244,7 +223,7 @@ final class PagesDatasource<Source: SourceType> {
 extension PagesDatasource {
 
   private func makePagesRequest(
-    using info: Source.PagesDelegate.Info
+    using info: ChapterDownloadInfo
   ) async {
     let pages = await preparePageRequest(info)
 
@@ -258,7 +237,7 @@ extension PagesDatasource {
               await self.updateOrAppend(.remote(index, data))
             } catch {
               print("MangaReaderViewModel -> Page \(index) failed download: \(error)")
-              let url = try? self.delegate.buildUrl(index: index, info: info)
+              let url = try? self.delegate.buildPageUrl(index: index, info: info)
 
               await self.updateOrAppend(.notFound(index, url))
             }

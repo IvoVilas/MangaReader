@@ -22,16 +22,16 @@ final class ChapterParser {
   func parseChapterData(
     mangaId: String,
     data: [[String: Any]]
-  ) -> [ChapterModel] {
-    return data.compactMap {
-      parseChapterData(mangaId: mangaId, data: $0)
+  ) throws -> [ChapterIndexResult] {
+    return try data.compactMap {
+      try parseChapterData(mangaId: mangaId, data: $0)
     }
   }
 
   func parseChapterData(
     mangaId: String,
     data: [String: Any]
-  ) -> ChapterModel? {
+  ) throws -> ChapterIndexResult {
     var id: String?
     var number: Double?
     var title: String?
@@ -60,18 +60,16 @@ final class ChapterParser {
       let numberOfPages,
       let publishAt
     else {
-      print("ChapterParser Error -> Chapter parameter was not parsed")
-
-      return nil
+      throw ParserError.parsingError
     }
 
-    return ChapterModel(
+    return ChapterIndexResult(
       id: id,
       title: title,
       number: number,
       numberOfPages: numberOfPages,
       publishAt: publishAt,
-      urlInfo: id
+      downloadInfo: id
     )
   }
 

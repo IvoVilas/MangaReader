@@ -107,15 +107,15 @@ final class HttpClient {
   }
 
   func makeDataSafeGetRequest(
-    _ url: String = "https://bumn2.mkklcdnv6temp.com/img/tab_22/02/77/78/ba979135/chapter_252_the_decisive_battle_in_the_uninhabited_demoninfested_shinjuku/1-o.jpg",
-    hotLink: String = "https://chapmanganelo.com/manga-ba116346/chapter-252"
+    _ url: String,
+    comingFrom referer: String
   ) async throws -> Data {
     guard let url = URL(string: url) else { throw HttpError.invalidUrl }
 
     var request = URLRequest(url: url)
 
     request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36", forHTTPHeaderField: "User-Agent")
-    request.setValue(hotLink, forHTTPHeaderField: "Referer")
+    request.setValue(referer, forHTTPHeaderField: "Referer")
     request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8", forHTTPHeaderField: "Accept")
     request.setValue("en-US,en;q=0.5", forHTTPHeaderField: "Accept-Language")
 

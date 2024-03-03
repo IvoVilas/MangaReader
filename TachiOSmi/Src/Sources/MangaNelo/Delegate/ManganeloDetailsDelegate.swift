@@ -23,7 +23,7 @@ final class ManganeloDetailsDelegate: DetailsDelegateType {
 
   func fetchDetails(
     _ mangaId: String
-  ) async throws -> MangaParsedData {
+  ) async throws -> MangaDetailsParsedData {
     let url = "https://chapmanganelo.com/manga-\(mangaId)"
     let html = try await httpClient.makeHtmlGetRequest(url)
 
@@ -65,7 +65,7 @@ final class ManganeloDetailsDelegate: DetailsDelegateType {
       return nil
     }.map { TagModel(id: $0.0, title: $0.1) }
 
-    return MangaParsedData(
+    return MangaDetailsParsedData(
       id: mangaId,
       title: title ?? "Unknown title",
       description: description,

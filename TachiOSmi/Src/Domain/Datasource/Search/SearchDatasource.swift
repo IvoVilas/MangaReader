@@ -92,7 +92,7 @@ final class SearchDatasource<Source: SourceType> {
 
         doFetchCoversTask(results)
       } catch {
-        erro = self.catchError(error)
+        erro = .catchError(error)
       }
 
       await MainActor.run { [erro] in
@@ -144,7 +144,7 @@ final class SearchDatasource<Source: SourceType> {
 
         doFetchCoversTask(results)
       } catch {
-        erro = self.catchError(error)
+        erro = .catchError(error)
       }
 
       await MainActor.run { [erro] in
@@ -159,7 +159,7 @@ final class SearchDatasource<Source: SourceType> {
   private func fetchSearchResults(
     _ search: MangaSearchType,
     page: Int
-  ) async throws -> [MangaParsedData] {
+  ) async throws -> [MangaSearchResultParsedData] {
     switch search {
     case .query(let value):
       return try await self.delegate.fetchSearchResults(value, page: page)
@@ -170,7 +170,7 @@ final class SearchDatasource<Source: SourceType> {
   }
 
   private func doFetchCoversTask(
-    _ results: [MangaParsedData]
+    _ results: [MangaSearchResultParsedData]
   ) {
     Task(priority: .background) {
       let info = await self.fetchCovers(for: results)
@@ -180,7 +180,7 @@ final class SearchDatasource<Source: SourceType> {
   }
 
   private func fetchCovers(
-    for mangas: [MangaParsedData]
+    for mangas: [MangaSearchResultParsedData]
   ) async -> [(String, Data?)] {
     await withTaskGroup(of: (String, Data?).self, returning: [(String, Data?)].self) { taskGroup in
       for data in mangas {
@@ -189,7 +189,7 @@ final class SearchDatasource<Source: SourceType> {
 
           let cover = await self.fetchCover(
             mangaId: id,
-            fileName: data.coverInfo
+            downloadInfo: data.coverDownloadInfo
           )
 
           await self.updateCover(id, cover: cover)
@@ -206,7 +206,7 @@ final class SearchDatasource<Source: SourceType> {
 
   func fetchCover(
     mangaId: String,
-    fileName: String
+    downloadInfo: String
   ) async -> Data? {
     do {
       let localCoverData = try viewMoc.performAndWait {
@@ -217,34 +217,16 @@ final class SearchDatasource<Source: SourceType> {
         return localCoverData
       }
 
-      let remoteCoverData = try await delegate.fetchCover(id: mangaId, fileName: fileName)
+      let remoteCoverData = try await delegate.fetchCover(
+        mangaId: mangaId,
+        coverInfo: downloadInfo
+      )
 
       return remoteCoverData
     } catch {
-      if let erro = catchError(error) {
+      if let erro = DatasourceError.catchError(error) {
         print("MangaSearchDelegate -> Error: \(erro.localizedDescription)")
       }
-    }
-
-    return nil
-  }
-
-  private func catchError(_ error: Error) -> DatasourceError? {
-    switch error {
-    case is CancellationError:
-      print("MangaSearchDelegate -> Task cancelled")
-
-    case let error as ParserError:
-      return .errorParsingResponse(error.localizedDescription)
-
-    case let error as HttpError:
-      return .networkError(error.localizedDescription)
-
-    case let error as CrudError:
-      print("MangaSearchDelegate -> Error during database operation: \(error.localizedDescription)")
-
-    default:
-      return .unexpectedError(error.localizedDescription)
     }
 
     return nil

@@ -11,18 +11,33 @@ import SwiftUI
 struct ContentView: View {
 
   var body: some View {
-    MangaSearchView<ManganeloMangaSource>(
-      viewModel: MangaSearchViewModel(
-        datasource: SearchDatasource(
-          delegate: ManganeloSearchDelegate(
-            httpClient: AppEnv.env.httpClient,
-            mangaParser: AppEnv.env.mangaParser
-          ),
-          mangaCrud: AppEnv.env.mangaCrud,
-          coverCrud: AppEnv.env.coverCrud
+    TabView {
+      MangaSearchView<MangadexMangaSource>(
+        viewModel: MangaSearchViewModel(
+          datasource: SearchDatasource(
+            delegate: MangadexSearchDelegate(
+              httpClient: AppEnv.env.httpClient,
+              mangaParser: AppEnv.env.mangaParser
+            ),
+            mangaCrud: AppEnv.env.mangaCrud,
+            coverCrud: AppEnv.env.coverCrud
+          )
         )
-      )
-    )
+      ).tabItem { Text("Mangadex") }
+
+      MangaSearchView<ManganeloMangaSource>(
+        viewModel: MangaSearchViewModel(
+          datasource: SearchDatasource(
+            delegate: ManganeloSearchDelegate(
+              httpClient: AppEnv.env.httpClient,
+              mangaParser: AppEnv.env.mangaParser
+            ),
+            mangaCrud: AppEnv.env.mangaCrud,
+            coverCrud: AppEnv.env.coverCrud
+          )
+        )
+      ).tabItem { Text("Manganelo") }
+    }
   }
 
 }

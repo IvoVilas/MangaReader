@@ -17,6 +17,6 @@ protocol ChaptersDelegateType {
 
   func fetchChapters(
     mangaId: String
-  ) async throws -> [ChapterModel]
+  ) async throws -> [ChapterIndexResult]
 
 }

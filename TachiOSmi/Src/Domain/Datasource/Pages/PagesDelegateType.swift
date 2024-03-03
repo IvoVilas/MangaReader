@@ -9,22 +9,20 @@ import Foundation
 
 protocol PagesDelegateType {
 
-  associatedtype Info: ChapterDownloadInfo
-
   init(httpClient: HttpClient)
 
   func fetchDownloadInfo(
     using: String
-  ) async throws -> Info
+  ) async throws -> ChapterDownloadInfo
 
   func fetchPage(
     index: Int,
-    info: Info
+    info: ChapterDownloadInfo
   ) async throws -> Data
 
-  func buildUrl(
+  func buildPageUrl(
     index: Int,
-    info: Info
+    info: ChapterDownloadInfo
   ) throws -> String
 
 }

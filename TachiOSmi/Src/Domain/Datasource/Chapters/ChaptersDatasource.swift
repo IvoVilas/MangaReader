@@ -110,7 +110,7 @@ final class ChaptersDatasource<Source: SourceType> {
         results = try await self.fetchLocalChapters()
 
         if results.isEmpty {
-          results = try await self.delegate.fetchChapters(mangaId: mangaId)
+          results = try await self.delegate.fetchChapters(mangaId: mangaId).map { $0.converToModel() }
 
           if results.isEmpty {
             await MainActor.run { self.hasMorePages = false }
@@ -135,7 +135,7 @@ final class ChaptersDatasource<Source: SourceType> {
           )
         }
       } catch {
-        erro = self.catchError(error)
+        erro = .catchError(error)
       }
 
       await MainActor.run { [erro] in
@@ -165,7 +165,7 @@ final class ChaptersDatasource<Source: SourceType> {
       var erro: DatasourceError?
 
       do {
-        results = try await self.delegate.fetchChapters(mangaId: mangaId)
+        results = try await self.delegate.fetchChapters(mangaId: mangaId).map { $0.converToModel() }
 
         await MainActor.run { [results] in
           self.results = results
@@ -177,7 +177,7 @@ final class ChaptersDatasource<Source: SourceType> {
           updatedAt: self.systemDateTime.now
         )
       } catch {
-        erro = self.catchError(error)
+        erro = .catchError(error)
       }
 
       await MainActor.run { [erro] in
@@ -206,14 +206,14 @@ final class ChaptersDatasource<Source: SourceType> {
     }
 
     guard let lastUpdateAt = manga.lastUpdateAt else {
-      return try await delegate.fetchChapters(mangaId: mangaId)
+      return try await delegate.fetchChapters(mangaId: mangaId).map { $0.converToModel() }
     }
 
     if systemDateTime.comparator.isDate(
       lastUpdateAt,
       lessThanOrEqual: systemDateTime.calculator.removeDays(5, to: systemDateTime.now)
     ) {
-      return try await delegate.fetchChapters(mangaId: mangaId)
+      return try await delegate.fetchChapters(mangaId: mangaId).map { $0.converToModel() }
     }
 
     return []
@@ -224,27 +224,6 @@ final class ChaptersDatasource<Source: SourceType> {
       .getAllChapters(mangaId: mangaId, moc: viewMoc)
       .map { ChapterModel.from($0) }
       .sorted(by: sortByNumber)
-  }
-
-  private func catchError(_ error: Error) -> DatasourceError? {
-    switch error {
-    case is CancellationError:
-      print("MangaSearchDelegate -> Task cancelled")
-
-    case let error as ParserError:
-      return .errorParsingResponse(error.localizedDescription)
-
-    case let error as HttpError:
-      return .networkError(error.localizedDescription)
-
-    case let error as CrudError:
-      print("MangaSearchDelegate -> Error during database operation: \(error.localizedDescription)")
-
-    default:
-      return .unexpectedError(error.localizedDescription)
-    }
-
-    return nil
   }
 
 }
@@ -309,7 +288,7 @@ extension ChaptersDatasource {
           title: chapter.title,
           numberOfPages: chapter.numberOfPages,
           publishAt: chapter.publishAt,
-          urlInfo: chapter.urlInfo,
+          urlInfo: chapter.downloadInfo,
           manga: manga,
           moc: self.viewMoc
         )
