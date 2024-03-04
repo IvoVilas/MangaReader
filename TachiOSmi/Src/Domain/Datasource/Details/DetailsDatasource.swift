@@ -10,11 +10,11 @@ import Combine
 import CoreData
 import UIKit
 
-final class DetailsDatasource<Source: SourceType> {
+final class DetailsDatasource {
 
   let mangaId: String
 
-  private let delegate: Source.DetailsDelegate
+  private let delegate: DetailsDelegateType
   private let mangaCrud: MangaCrud
   private let coverCrud: CoverCrud
   private let authorCrud: AuthorCrud
@@ -39,12 +39,12 @@ final class DetailsDatasource<Source: SourceType> {
 
   init(
     manga: MangaSearchResult,
-    delegate: Source.DetailsDelegate,
+    delegate: DetailsDelegateType,
     mangaCrud: MangaCrud,
     coverCrud: CoverCrud,
     authorCrud: AuthorCrud,
     tagCrud: TagCrud,
-    viewMoc: NSManagedObjectContext = Source.database.viewMoc
+    viewMoc: NSManagedObjectContext
   ) {
     mangaId = manga.id
 

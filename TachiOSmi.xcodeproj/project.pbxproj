@@ -82,6 +82,7 @@
 		1EF816132B82A85800D9759F /* MangaDetailsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF816122B82A85800D9759F /* MangaDetailsView.swift */; };
 		1EF816162B82A89B00D9759F /* MangaDetailsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF816152B82A89B00D9759F /* MangaDetailsViewModel.swift */; };
 		1EF816212B83983F00D9759F /* DatasourceState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF816202B83983F00D9759F /* DatasourceState.swift */; };
+		1EF8732D2B95B6F7005E59D3 /* CustomBackAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF8732C2B95B6F7005E59D3 /* CustomBackAction.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -158,6 +159,7 @@
 		1EF816122B82A85800D9759F /* MangaDetailsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaDetailsView.swift; sourceTree = "<group>"; };
 		1EF816152B82A89B00D9759F /* MangaDetailsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaDetailsViewModel.swift; sourceTree = "<group>"; };
 		1EF816202B83983F00D9759F /* DatasourceState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatasourceState.swift; sourceTree = "<group>"; };
+		1EF8732C2B95B6F7005E59D3 /* CustomBackAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomBackAction.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -387,6 +389,7 @@
 			children = (
 				1EE68A202B8C8B6C003B9037 /* Style.swift */,
 				1EF20A362B8EA18D00D17A65 /* ToastView.swift */,
+				1EF8732C2B95B6F7005E59D3 /* CustomBackAction.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -639,6 +642,7 @@
 				1EF20A642B9141F400D17A65 /* PagesDatasource.swift in Sources */,
 				1EC8BD282B92789E0017ACF0 /* ManganeloSearchDelegate.swift in Sources */,
 				1EE89F702B84DD65000CAA20 /* AuthorDataModel.swift in Sources */,
+				1EF8732D2B95B6F7005E59D3 /* CustomBackAction.swift in Sources */,
 				1E12352E2B8524B10022652F /* ChapterParser.swift in Sources */,
 				1EF20A5F2B91396300D17A65 /* ChaptersDatasource.swift in Sources */,
 				1EF20A5A2B91308100D17A65 /* DetailsDatasource.swift in Sources */,

@@ -7,16 +7,16 @@
 
 import SwiftUI
 
-struct MangaDetailsView<Source: SourceType>: View {
+struct MangaDetailsView: View {
 
-  @ObservedObject var viewModel: MangaDetailsViewModel<Source>
+  @ObservedObject var viewModel: MangaDetailsViewModel
   @State private var toast: Toast?
 
   private let backgroundColor: Color = .white
   private let foregroundColor: Color = .black
 
   init(
-    viewModel: MangaDetailsViewModel<Source>
+    viewModel: MangaDetailsViewModel
   ) {
     self.viewModel = viewModel
 
@@ -67,6 +67,7 @@ struct MangaDetailsView<Source: SourceType>: View {
         .padding(.horizontal, 24)
       }
     }
+    .navigationBarBackButtonHidden(true)
     .scrollIndicators(.hidden)
     .ignoresSafeArea(.all, edges: .top)
     .background(backgroundColor)
@@ -129,7 +130,7 @@ struct MangaDetailsView<Source: SourceType>: View {
           }
 
         makeInfoView()
-          .offset(y: 100)
+          .offset(y: 64)
           .padding(.horizontal, 24)
       }
     }
@@ -137,44 +138,49 @@ struct MangaDetailsView<Source: SourceType>: View {
 
   @ViewBuilder
   private func makeInfoView() -> some View {
-    HStack(spacing: 16) {
-      Image(uiImage: viewModel.cover ?? .coverNotFound)
-        .resizable()
-        .aspectRatio(contentMode: .fill)
-        .frame(width: 100, height: 160)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+    VStack(alignment: .leading, spacing: 16) {
+      CustomBackAction(tintColor: foregroundColor)
+        .frame(width: 20, height: 20)
 
-      VStack(alignment: .leading, spacing: 8) {
-        Text(viewModel.title)
-          .foregroundStyle(foregroundColor)
-          .font(.headline)
+      HStack(spacing: 16) {
+        Image(uiImage: viewModel.cover ?? .coverNotFound)
+          .resizable()
+          .aspectRatio(contentMode: .fill)
+          .frame(width: 100, height: 160)
+          .clipShape(RoundedRectangle(cornerRadius: 8))
 
-        if let author = viewModel.authors.first {
+        VStack(alignment: .leading, spacing: 8) {
+          Text(viewModel.title)
+            .foregroundStyle(foregroundColor)
+            .font(.headline)
+
+          if let author = viewModel.authors.first {
+            HStack(spacing: 4) {
+              Image(systemName: "person")
+                .resizable()
+                .frame(width: 15, height: 15)
+                .foregroundStyle(foregroundColor)
+
+              Text(author.name)
+                .foregroundStyle(foregroundColor)
+                .font(.footnote)
+            }
+          }
+
           HStack(spacing: 4) {
-            Image(systemName: "person")
+            Image(systemName: getStatusIcon(viewModel.status))
               .resizable()
               .frame(width: 15, height: 15)
               .foregroundStyle(foregroundColor)
 
-            Text(author.name)
+            Text(viewModel.status.value.localizedCapitalized)
               .foregroundStyle(foregroundColor)
               .font(.footnote)
           }
         }
 
-        HStack(spacing: 4) {
-          Image(systemName: getStatusIcon(viewModel.status))
-            .resizable()
-            .frame(width: 15, height: 15)
-            .foregroundStyle(foregroundColor)
-
-          Text(viewModel.status.value.localizedCapitalized)
-            .foregroundStyle(foregroundColor)
-            .font(.footnote)
-        }
+        Spacer()
       }
-
-      Spacer()
     }
   }
 
@@ -236,14 +242,14 @@ struct MangaDetailsView<Source: SourceType>: View {
 
 #Preview {
   MangaDetailsView(
-    viewModel: MangaDetailsView<MangadexMangaSource>.buildPreviewViewModel()
+    viewModel: MangaDetailsView.buildPreviewViewModel()
   )
 }
 
 extension MangaDetailsView {
 
   static func buildPreviewViewModel(
-  ) -> MangaDetailsViewModel<MangadexMangaSource> {
+  ) -> MangaDetailsViewModel {
     let systemDateTime = SystemDateTime()
     let mangaCrud = MangaCrud()
     let coverCrud = CoverCrud()
@@ -257,11 +263,11 @@ extension MangaDetailsView {
     )
 
     return MangaDetailsViewModel(
+      source: .mangadex,
       chaptersDatasource: ChaptersDatasource(
         mangaId: manga.id,
         delegate: MangadexChaptersDelegate(
-          httpClient: httpClient,
-          chapterParser: ChapterParser()
+          httpClient: httpClient
         ),
         mangaCrud: mangaCrud,
         chapterCrud: chapterCrud,
@@ -271,8 +277,7 @@ extension MangaDetailsView {
       detailsDatasource: DetailsDatasource(
         manga: manga,
         delegate: MangadexDetailsDelegate(
-          httpClient: httpClient,
-          mangaParser: MangaParser()
+          httpClient: httpClient
         ),
         mangaCrud: mangaCrud,
         coverCrud: coverCrud,

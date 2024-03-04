@@ -8,34 +8,35 @@
 import SwiftUI
 import CoreData
 
-// MARK: Search
-struct MangaSearchView<Source: SourceType>: View {
+// MARK: Layout
+private enum ResultLayout {
+  case normal
+  case compact
 
-  enum ResultLayout {
-    case normal
-    case compact
-
-    var iconName: String {
-      switch self {
-      case .normal:
-        "rectangle.grid.3x2.fill"
-      case .compact:
-        "square.grid.3x3.fill"
-      }
-    }
-
-    func toggle() -> ResultLayout {
-      switch self {
-      case .normal:
-        return .compact
-
-      case .compact:
-        return .normal
-      }
+  var iconName: String {
+    switch self {
+    case .normal:
+      "rectangle.grid.3x2.fill"
+    case .compact:
+      "square.grid.3x3.fill"
     }
   }
 
-  @ObservedObject var viewModel: MangaSearchViewModel<Source>
+  func toggle() -> ResultLayout {
+    switch self {
+    case .normal:
+      return .compact
+
+    case .compact:
+      return .normal
+    }
+  }
+}
+
+// MARK: Search
+struct MangaSearchView: View {
+
+  @ObservedObject var viewModel: MangaSearchViewModel
   @State private var toast: Toast?
   @State private var listLayout = ResultLayout.compact
 
@@ -49,72 +50,73 @@ struct MangaSearchView<Source: SourceType>: View {
   )
 
   var body: some View {
-    NavigationStack {
-      VStack(spacing: 0) {
-        HeaderView(
-          name: Source.name,
-          tintColor: foregroundColor,
-          textColor: secondaryColor,
-          doSearch: viewModel.doSearch,
-          input: $viewModel.input
-        )
-        .padding(.horizontal, 16)
+    VStack(spacing: 0) {
+      HeaderView(
+        name: viewModel.sourceName,
+        tintColor: foregroundColor,
+        textColor: secondaryColor,
+        doSearch: viewModel.doSearch,
+        input: $viewModel.input,
+        layout: $listLayout
+      )
+      .padding(.horizontal, 16)
 
-        ZStack {
-          ProgressView()
-            .progressViewStyle(.circular)
-            .tint(secondaryColor)
-            .opacity(viewModel.isLoading ? 1 : 0)
+      ZStack {
+        ProgressView()
+          .progressViewStyle(.circular)
+          .tint(secondaryColor)
+          .opacity(viewModel.isLoading ? 1 : 0)
 
-          ScrollView {
-            LazyVGrid(columns: columns, spacing: 16) {
-              ForEach(viewModel.results) { result in
-                NavigationLink(value: result) {
-                  MangaResultCompactView(
-                    id: result.id,
-                    cover: result.cover,
-                    title: result.title,
-                    textColor: secondaryColor
-                  )
-                  .equatable()
-                  .onAppear {
-                    Task(priority: .medium) {
-                      await viewModel.loadNextIfNeeded(result.id)
-                    }
+        ScrollView {
+          LazyVGrid(columns: columns, spacing: 16) {
+            ForEach(viewModel.results) { result in
+              NavigationLink(value: result) {
+                MangaResultCompactView(
+                  id: result.id,
+                  cover: result.cover,
+                  title: result.title,
+                  textColor: secondaryColor,
+                  layout: $listLayout
+                )
+                .equatable()
+                .onAppear {
+                  Task(priority: .medium) {
+                    await viewModel.loadNextIfNeeded(result.id)
                   }
                 }
               }
             }
-            .padding(16)
           }
-          .opacity(viewModel.isLoading ? 0 : 1)
-          .scrollIndicators(.hidden)
-          .refreshable {
-            Task(priority: .medium) {
-              await viewModel.doSearch()
-            }
-          }
-          .task(priority: .medium) {
-            if viewModel.results.isEmpty {
-              await viewModel.doSearch()
-            }
+          .padding(16)
+        }
+        .opacity(viewModel.isLoading ? 0 : 1)
+        .scrollIndicators(.hidden)
+        .refreshable {
+          Task(priority: .medium) {
+            await viewModel.doSearch()
           }
         }
-        .navigationDestination(for: MangaSearchResult.self) { manga in
-          MangaDetailsView(viewModel: viewModel.buildMangaDetailsViewModel(manga))
-        }
-        .toastView(toast: $toast)
-        .onReceive(viewModel.$error) { error in
-          if let error {
-            toast = Toast(
-              style: .error,
-              message: error.localizedDescription
-            )
+        .task(priority: .medium) {
+          if viewModel.results.isEmpty {
+            await viewModel.doSearch()
           }
         }
       }
-      .background(backgroundColor)
+      .navigationDestination(for: MangaSearchResult.self) { manga in
+        MangaDetailsView(viewModel: viewModel.buildMangaDetailsViewModel(manga))
+      }
+      .toastView(toast: $toast)
+      .onReceive(viewModel.$error) { error in
+        if let error {
+          toast = Toast(
+            style: .error,
+            message: error.localizedDescription
+          )
+        }
+      }
     }
+    .background(backgroundColor)
+    .navigationBarBackButtonHidden(true)
   }
 
 }
@@ -130,10 +132,13 @@ private struct HeaderView: View {
   @State var didSearch = false
   @State var isSearching: Bool = false
   @Binding var input: String
+  @Binding var layout: ResultLayout
   @FocusState private var inputFieldIsFocused: Bool
 
   var body: some View {
     HStack(spacing: 16) {
+      CustomBackAction(tintColor: tintColor)
+
       ZStack(alignment: .leading) {
         Text(name)
           .foregroundStyle(tintColor)
@@ -173,9 +178,9 @@ private struct HeaderView: View {
       }
 
       Button {
-        // do togle
+        layout = layout.toggle()
       } label: {
-        Image(systemName: "rectangle.grid.3x2.fill")
+        Image(systemName: layout.iconName)
           .tint(tintColor)
       }
     }
@@ -205,6 +210,8 @@ private struct MangaResultCompactView: View, Equatable {
   let title: String
   let textColor: Color
 
+  @Binding var layout: ResultLayout
+
   static func == (lhs: MangaResultCompactView, rhs: MangaResultCompactView) -> Bool {
     if lhs.id != rhs.id { return false }
 
@@ -220,29 +227,50 @@ private struct MangaResultCompactView: View, Equatable {
     }
   }
 
+  // We should avoid using conditional views
+  // Specially on a view that is drawn so many times like this one
   var body: some View {
-    Image(uiImage: UIImage(data: cover ?? Data()) ?? UIImage())
-      .resizable()
-      .aspectRatio(0.625, contentMode: .fill)
-      .background(.gray)
-      .overlay {
-        ZStack(alignment: .bottomLeading) {
-          LinearGradient(
-            gradient: Gradient(colors: [.clear, .black.opacity(0.8)]),
-            startPoint: .center,
-            endPoint: .bottom
-          )
+    switch layout {
+    case .normal:
+      VStack(alignment: .leading, spacing: 4) {
+        Image(uiImage: UIImage(data: cover ?? Data()) ?? UIImage())
+          .resizable()
+          .aspectRatio(0.625, contentMode: .fill)
+          .background(.gray)
+          .clipShape(RoundedRectangle(cornerRadius: 8))
 
-          Text(title)
-            .font(.bold(.footnote)())
-            .lineLimit(2)
-            .multilineTextAlignment(.leading)
-            .foregroundStyle(.white)
-            .padding(.horizontal, 4)
-            .padding(.bottom, 8)
-        }
+        Text(title)
+          .font(.caption2)
+          .lineLimit(2)
+          .multilineTextAlignment(.leading)
+          .foregroundStyle(textColor)
+          .frame(maxHeight: .infinity, alignment: .topLeading)
       }
-      .clipShape(RoundedRectangle(cornerRadius: 8))
+
+    case .compact:
+      Image(uiImage: UIImage(data: cover ?? Data()) ?? UIImage())
+        .resizable()
+        .aspectRatio(0.625, contentMode: .fill)
+        .background(.gray)
+        .overlay {
+          ZStack(alignment: .bottomLeading) {
+            LinearGradient(
+              gradient: Gradient(colors: [.clear, .black.opacity(0.8)]),
+              startPoint: .center,
+              endPoint: .bottom
+            )
+
+            Text(title)
+              .font(.bold(.footnote)())
+              .lineLimit(2)
+              .multilineTextAlignment(.leading)
+              .foregroundStyle(.white)
+              .padding(.horizontal, 4)
+              .padding(.bottom, 8)
+          }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
   }
 
 }
@@ -287,12 +315,12 @@ private struct MangaResultView: View, Equatable {
 }
 
 #Preview {
-  MangaSearchView<MangadexMangaSource>(
+  MangaSearchView(
     viewModel: MangaSearchViewModel(
+      source: .mangadex,
       datasource: SearchDatasource(
         delegate: MangadexSearchDelegate(
-          httpClient: HttpClient(),
-          mangaParser: MangaParser()
+          httpClient: HttpClient()
         ),
         mangaCrud: MangaCrud(),
         coverCrud: CoverCrud(),

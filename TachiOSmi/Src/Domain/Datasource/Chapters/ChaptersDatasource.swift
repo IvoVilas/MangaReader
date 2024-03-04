@@ -9,11 +9,11 @@ import Foundation
 import Combine
 import CoreData
 
-final class ChaptersDatasource<Source: SourceType> {
+final class ChaptersDatasource {
 
   private let mangaId: String
 
-  private let delegate: Source.ChaptersDelegate
+  private let delegate: ChaptersDelegateType
   private let mangaCrud: MangaCrud
   private let chapterCrud: ChapterCrud
   private let systemDateTime: SystemDateTimeType
@@ -65,11 +65,11 @@ final class ChaptersDatasource<Source: SourceType> {
 
   init(
     mangaId: String,
-    delegate: Source.ChaptersDelegate,
+    delegate: ChaptersDelegateType,
     mangaCrud: MangaCrud,
     chapterCrud: ChapterCrud,
     systemDateTime: SystemDateTimeType,
-    viewMoc: NSManagedObjectContext = Source.database.viewMoc
+    viewMoc: NSManagedObjectContext
   ) {
     self.mangaId = mangaId
     self.delegate = delegate

@@ -9,9 +9,9 @@ import Foundation
 import Combine
 import CoreData
 
-final class SearchDatasource<Source: SourceType> {
+final class SearchDatasource {
 
-  private let delegate: Source.SearchDelegate
+  private let delegate: SearchDelegateType
   private let mangaCrud: MangaCrud
   private let coverCrud: CoverCrud
   private let viewMoc: NSManagedObjectContext
@@ -38,10 +38,10 @@ final class SearchDatasource<Source: SourceType> {
   private var fetchTask: Task<Void, Never>?
 
   init(
-    delegate: Source.SearchDelegate,
+    delegate: SearchDelegateType,
     mangaCrud: MangaCrud,
     coverCrud: CoverCrud,
-    viewMoc: NSManagedObjectContext = Source.database.viewMoc
+    viewMoc: NSManagedObjectContext
   ) {
     self.delegate = delegate
     self.mangaCrud = mangaCrud

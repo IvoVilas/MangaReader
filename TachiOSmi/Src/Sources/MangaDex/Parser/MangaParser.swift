@@ -9,7 +9,7 @@ import Foundation
 import CoreData
 import UIKit
 
-final class MangaParser {
+struct MangaParser {
 
   func parseMangaSearchResponse(
     _ data: [[String: Any]]
@@ -18,7 +18,6 @@ final class MangaParser {
       try parseMangaSearchResult($0)
     }
   }
-
 
   func parseMangaDetailsResponse(
     _ data: [String: Any]

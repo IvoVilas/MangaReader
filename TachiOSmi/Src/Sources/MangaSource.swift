@@ -6,39 +6,92 @@
 //
 
 import Foundation
+import CoreData
+import UIKit
 
-protocol SourceType {
+enum Source {
 
-  associatedtype SearchDelegate: SearchDelegateType
-  associatedtype DetailsDelegate: DetailsDelegateType
-  associatedtype ChaptersDelegate: ChaptersDelegateType
-  associatedtype PagesDelegate: PagesDelegateType
+  case mangadex
+  case manganelo
 
-  static var database: MangaDatabaseType { get }
-  static var name: String { get }
+  var name: String {
+    switch self {
+    case .mangadex:
+      return "MangaDex"
 
-}
+    case .manganelo:
+      return "MangaNelo"
+    }
+  }
 
-final class MangadexMangaSource: SourceType {
+  var id: String {
+    switch self {
+    case .mangadex:
+      return "0"
 
-  typealias SearchDelegate = MangadexSearchDelegate
-  typealias DetailsDelegate = MangadexDetailsDelegate
-  typealias ChaptersDelegate = MangadexChaptersDelegate
-  typealias PagesDelegate = MangadexPagesDelegate
+    case .manganelo:
+      return "1"
+    }
+  }
 
-  static let database: MangaDatabaseType = PersistenceController.shared.mangaDex
-  static let name = "MangaDex"
+  var logo: UIImage {
+    switch self {
+    case .mangadex:
+      return .mangadex
 
-}
+    case .manganelo:
+      return .manganelo
+    }
+  }
 
-final class ManganeloMangaSource: SourceType {
+  var viewMoc: NSManagedObjectContext {
+    switch self {
+    case .mangadex:
+      return PersistenceController.shared.mangaDex.viewMoc
 
-  typealias SearchDelegate = ManganeloSearchDelegate
-  typealias DetailsDelegate = ManganeloDetailsDelegate
-  typealias ChaptersDelegate = ManganeloChaptersDelegate
-  typealias PagesDelegate = ManganeloPagesDelegate
+    case .manganelo:
+      return PersistenceController.shared.mangaNelo.viewMoc
+    }
+  }
 
-  static let database: MangaDatabaseType = PersistenceController.shared.mangaNelo
-  static let name = "MangaNelo"
+  var searchDelegateType: SearchDelegateType.Type {
+    switch self {
+    case .mangadex:
+      return MangadexSearchDelegate.self
+
+    case .manganelo:
+      return ManganeloSearchDelegate.self
+    }
+  }
+
+  var detailsDelegateType: DetailsDelegateType.Type {
+    switch self {
+    case .mangadex:
+      return MangadexDetailsDelegate.self
+
+    case .manganelo:
+      return ManganeloDetailsDelegate.self
+    }
+  }
+
+  var chaptersDelegateType: ChaptersDelegateType.Type {
+    switch self {
+    case .mangadex:
+      return MangadexChaptersDelegate.self
+
+    case .manganelo:
+      return ManganeloChaptersDelegate.self
+    }
+  }
+
+  var pagesDelegateType: PagesDelegateType.Type {
+    switch self {
+    case .mangadex:
+      return MangadexPagesDelegate.self
+
+    case .manganelo:
+      return ManganeloPagesDelegate.self
+    }
+  }
 
 }

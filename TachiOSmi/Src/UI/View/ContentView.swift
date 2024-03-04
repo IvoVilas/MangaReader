@@ -10,34 +10,68 @@ import SwiftUI
 
 struct ContentView: View {
 
-  var body: some View {
-    TabView {
-      MangaSearchView<MangadexMangaSource>(
-        viewModel: MangaSearchViewModel(
-          datasource: SearchDatasource(
-            delegate: MangadexSearchDelegate(
-              httpClient: AppEnv.env.httpClient,
-              mangaParser: AppEnv.env.mangaParser
-            ),
-            mangaCrud: AppEnv.env.mangaCrud,
-            coverCrud: AppEnv.env.coverCrud
-          )
-        )
-      ).tabItem { Text("Mangadex") }
+  private var sources = [
+    Source.mangadex,
+    Source.manganelo
+  ]
 
-      MangaSearchView<ManganeloMangaSource>(
-        viewModel: MangaSearchViewModel(
-          datasource: SearchDatasource(
-            delegate: ManganeloSearchDelegate(
-              httpClient: AppEnv.env.httpClient,
-              mangaParser: AppEnv.env.mangaParser
-            ),
-            mangaCrud: AppEnv.env.mangaCrud,
-            coverCrud: AppEnv.env.coverCrud
+  var body: some View {
+    NavigationStack {
+      ScrollView {
+        VStack(alignment: .leading, spacing: 24) {
+          ForEach(Array(sources.enumerated()), id:\.element.id) { _, source in
+            NavigationLink(value: source) {
+              makeSourceView(source)
+                .padding(.horizontal, 24)
+            }
+          }
+        }
+        .padding(.top, 24)
+      }
+      .navigationDestination(for: Source.self) { source in
+        MangaSearchView(
+          viewModel: MangaSearchViewModel(
+            source: source,
+            datasource: SearchDatasource(
+              delegate: source.searchDelegateType.init(
+                httpClient: AppEnv.env.httpClient
+              ),
+              mangaCrud: AppEnv.env.mangaCrud,
+              coverCrud: AppEnv.env.coverCrud,
+              viewMoc: source.viewMoc
+            )
           )
         )
-      ).tabItem { Text("Manganelo") }
+      }
     }
+  }
+
+  @ViewBuilder
+  private func makeSourceView(
+    _ source: Source
+  ) -> some View {
+    HStack(spacing: 16) {
+      Image(uiImage: source.logo)
+        .resizable()
+        .scaledToFit()
+        .frame(height: 50)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+
+      Text(source.name)
+        .font(.title2)
+        .tint(.gray)
+
+      Spacer()
+
+      Image(systemName: "chevron.right")
+        .tint(.gray)
+    }
+    .padding(12)
+    .background(
+      RoundedRectangle(cornerRadius: 12)
+        .fill(.white)
+        .stroke(.gray, lineWidth: 1)
+    )
   }
 
 }

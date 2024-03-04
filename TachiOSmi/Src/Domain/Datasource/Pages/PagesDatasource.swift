@@ -8,10 +8,10 @@
 import Foundation
 import Combine
 
-final class PagesDatasource<Source: SourceType> {
+final class PagesDatasource {
 
   private let chapter: ChapterModel
-  private let delegate: Source.PagesDelegate
+  private let delegate: PagesDelegateType
 
   private let pages: CurrentValueSubject<[PageModel], Never>
   private let state: CurrentValueSubject<DatasourceState, Never>
@@ -37,7 +37,7 @@ final class PagesDatasource<Source: SourceType> {
 
   init(
     chapter: ChapterModel,
-    delegate: Source.PagesDelegate
+    delegate: PagesDelegateType
   ) {
     self.chapter = chapter
     self.delegate = delegate

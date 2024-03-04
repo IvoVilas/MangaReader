@@ -9,17 +9,15 @@ import Foundation
 import CoreData
 
 final class MangadexChaptersDelegate: ChaptersDelegateType {
-  
 
   private let httpClient: HttpClient
   private let chapterParser: ChapterParser
 
   init(
-    httpClient: HttpClient,
-    chapterParser: ChapterParser
+    httpClient: HttpClient
   ) {
     self.httpClient = httpClient
-    self.chapterParser = chapterParser
+    self.chapterParser = ChapterParser()
   }
   
   func fetchChapters(

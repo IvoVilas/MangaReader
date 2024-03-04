@@ -10,14 +10,17 @@ import SwiftUI
 import Combine
 import CoreData
 
-final class MangaSearchViewModel<Source: SourceType>: ObservableObject {
+final class MangaSearchViewModel: ObservableObject {
 
+  @Published var sourceName: String
   @Published var results: [MangaSearchResult]
   @Published var input: String
   @Published var isLoading: Bool
   @Published var error: DatasourceError?
 
-  private let datasource: SearchDatasource<Source>
+  private let source: Source
+  private let datasource: SearchDatasource
+
   private var searchValue: MangaSearchType {
     if input.isEmpty {
       return .trending
@@ -29,10 +32,13 @@ final class MangaSearchViewModel<Source: SourceType>: ObservableObject {
   private var observers = Set<AnyCancellable>()
 
   init(
-    datasource: SearchDatasource<Source>
+    source: Source,
+    datasource: SearchDatasource
   ) {
+    self.source = source
     self.datasource = datasource
 
+    sourceName = source.name
     results = []
     input = ""
     isLoading = false
@@ -74,28 +80,29 @@ extension MangaSearchViewModel {
 
   func buildMangaDetailsViewModel(
     _ manga: MangaSearchResult
-  ) -> MangaDetailsViewModel<Source> {
+  ) -> MangaDetailsViewModel {
     return MangaDetailsViewModel(
+      source: source,
       chaptersDatasource: ChaptersDatasource(
         mangaId: manga.id,
-        delegate: Source.ChaptersDelegate.init(
-          httpClient: AppEnv.env.httpClient,
-          chapterParser: AppEnv.env.chapterParser
+        delegate: source.chaptersDelegateType.init(
+          httpClient: AppEnv.env.httpClient
         ),
         mangaCrud: AppEnv.env.mangaCrud,
         chapterCrud: AppEnv.env.chapterCrud,
-        systemDateTime: AppEnv.env.systemDateTime
+        systemDateTime: AppEnv.env.systemDateTime,
+        viewMoc: source.viewMoc
       ),
       detailsDatasource: DetailsDatasource(
         manga: manga,
-        delegate: Source.DetailsDelegate.init(
-          httpClient: AppEnv.env.httpClient,
-          mangaParser: AppEnv.env.mangaParser
+        delegate: source.detailsDelegateType.init(
+          httpClient: AppEnv.env.httpClient
         ),
         mangaCrud: AppEnv.env.mangaCrud,
         coverCrud: AppEnv.env.coverCrud,
         authorCrud: AppEnv.env.authorCrud,
-        tagCrud: AppEnv.env.tagCrud
+        tagCrud: AppEnv.env.tagCrud,
+        viewMoc: source.viewMoc
       )
     )
   }

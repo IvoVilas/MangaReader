@@ -14,11 +14,10 @@ final class MangadexSearchDelegate: SearchDelegateType {
   private let mangaParser: MangaParser
 
   init(
-    httpClient: HttpClient,
-    mangaParser: MangaParser
+    httpClient: HttpClient
   ) {
     self.httpClient = httpClient
-    self.mangaParser = mangaParser
+    self.mangaParser = MangaParser()
   }
   
   func fetchTrending(

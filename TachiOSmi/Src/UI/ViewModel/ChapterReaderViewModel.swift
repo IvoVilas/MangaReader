@@ -9,18 +9,18 @@ import Foundation
 import SwiftUI
 import Combine
 
-final class ChapterReaderViewModel<Source: SourceType>: ObservableObject {
+final class ChapterReaderViewModel: ObservableObject {
 
   @Published var pages: [PageModel]
   @Published var isLoading: Bool
   @Published var error: DatasourceError?
 
-  private let datasource: PagesDatasource<Source>
+  private let datasource: PagesDatasource
 
   private var observers = Set<AnyCancellable>()
 
   init(
-    datasource: PagesDatasource<Source>
+    datasource: PagesDatasource
   ) {
     self.datasource = datasource
 

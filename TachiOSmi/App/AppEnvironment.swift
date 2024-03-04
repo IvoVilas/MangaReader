@@ -28,10 +28,6 @@ final class AppEnvironment {
   let tagCrud: TagCrud
   let coverCrud: CoverCrud
 
-  // Parser
-  let mangaParser: MangaParser
-  let chapterParser: ChapterParser
-
   // Tools
   let systemDateTime: SystemDateTimeType
 
@@ -43,9 +39,6 @@ final class AppEnvironment {
     authorCrud  = AuthorCrud()
     tagCrud     = TagCrud()
     coverCrud   = CoverCrud()
-
-    mangaParser   = MangaParser()
-    chapterParser = ChapterParser()
 
     systemDateTime = SystemDateTime()
   }

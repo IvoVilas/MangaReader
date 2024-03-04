@@ -8,7 +8,7 @@
 import Foundation
 import CoreData
 
-final class ChapterParser {
+struct ChapterParser {
 
   private let dateFormatter: DateFormatter
 

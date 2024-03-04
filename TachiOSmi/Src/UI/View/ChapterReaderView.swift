@@ -12,9 +12,9 @@ import Combine
 // To make it work I had to also enable flipsForRightToLeftLayoutDirection
 // Twist, pages were flipped, so I also need to flip every single page
 // Basically, I do a double flip to make it work
-struct ChapterReaderView<Source: SourceType>: View {
+struct ChapterReaderView: View {
 
-  @ObservedObject var viewModel: ChapterReaderViewModel<Source>
+  @ObservedObject var viewModel: ChapterReaderViewModel
   @State private var isHorizontal = true
   @State private var toast: Toast?
 
@@ -152,7 +152,7 @@ struct ChapterReaderView<Source: SourceType>: View {
 }
 
 #Preview {
-  ChapterReaderView<MangadexMangaSource>(
+  ChapterReaderView(
     viewModel: ChapterReaderViewModel(
       datasource: PagesDatasource(
         chapter: ChapterModel(

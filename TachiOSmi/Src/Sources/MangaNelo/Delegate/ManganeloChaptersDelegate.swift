@@ -14,8 +14,7 @@ final class ManganeloChaptersDelegate: ChaptersDelegateType {
   private let dateFormatter: DateFormatter
 
   init(
-    httpClient: HttpClient,
-    chapterParser: ChapterParser
+    httpClient: HttpClient
   ) {
     self.httpClient = httpClient
     self.dateFormatter = DateFormatter()

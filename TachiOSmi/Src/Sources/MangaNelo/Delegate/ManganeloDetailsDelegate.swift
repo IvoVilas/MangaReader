@@ -15,8 +15,7 @@ final class ManganeloDetailsDelegate: DetailsDelegateType {
   private let httpClient: HttpClient
 
   init(
-    httpClient: HttpClient,
-    mangaParser: MangaParser
+    httpClient: HttpClient
   ) {
     self.httpClient = httpClient
   }

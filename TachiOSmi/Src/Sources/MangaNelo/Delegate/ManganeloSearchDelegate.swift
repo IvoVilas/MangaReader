@@ -13,8 +13,7 @@ final class ManganeloSearchDelegate: SearchDelegateType {
   private let httpClient: HttpClient
 
   init(
-    httpClient: HttpClient,
-    mangaParser: MangaParser // TODO: Change
+    httpClient: HttpClient
   ) {
     self.httpClient = httpClient
   }
