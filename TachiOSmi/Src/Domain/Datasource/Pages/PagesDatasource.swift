@@ -14,6 +14,7 @@ final class PagesDatasource {
   private let delegate: PagesDelegateType
 
   private let pages: CurrentValueSubject<[PageModel], Never>
+  private let count: CurrentValueSubject<Int, Never>
   private let state: CurrentValueSubject<DatasourceState, Never>
   private let error: CurrentValueSubject<DatasourceError?, Never>
 
@@ -21,6 +22,10 @@ final class PagesDatasource {
     pages
       .map { $0.sorted { $0.rawId < $1.rawId } }
       .eraseToAnyPublisher()
+  }
+
+  var countPublisher: AnyPublisher<Int, Never> {
+    count.eraseToAnyPublisher()
   }
 
   var statePublisher: AnyPublisher<DatasourceState, Never> {
@@ -33,7 +38,11 @@ final class PagesDatasource {
 
   @MainActor var hasMorePages = true
   @MainActor private var currentPage = 0
-  @MainActor private var chapterInfo: ChapterDownloadInfo?
+  @MainActor private var chapterInfo: ChapterDownloadInfo? {
+    didSet {
+      count.valueOnMain = chapterInfo?.pages.count ?? 0
+    }
+  }
 
   init(
     chapter: ChapterModel,
@@ -43,6 +52,7 @@ final class PagesDatasource {
     self.delegate = delegate
 
     pages = CurrentValueSubject([])
+    count = CurrentValueSubject(0)
     state = CurrentValueSubject(.starting)
     error = CurrentValueSubject(nil)
   }

@@ -28,6 +28,7 @@ struct ContentView: View {
         }
         .padding(.top, 24)
       }
+      .background(.white)
       .navigationDestination(for: Source.self) { source in
         MangaSearchView(
           viewModel: MangaSearchViewModel(

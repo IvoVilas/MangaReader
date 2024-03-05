@@ -13,6 +13,8 @@ final class ChapterReaderViewModel: ObservableObject {
 
   @Published var pages: [PageModel]
   @Published var isLoading: Bool
+  @Published var pagesCount: Int
+  @Published var position: String?
   @Published var error: DatasourceError?
 
   private let datasource: PagesDatasource
@@ -24,13 +26,20 @@ final class ChapterReaderViewModel: ObservableObject {
   ) {
     self.datasource = datasource
 
-    pages     = []
+    pages = []
+    pagesCount = 0
+    position = nil
     isLoading = false
-    error     = nil
+    error = nil
 
     datasource.pagesPublisher
       .debounce(for: 0.3, scheduler: DispatchQueue.main)
       .sink { [weak self] in self?.pages = $0 }
+      .store(in: &observers)
+
+    datasource.countPublisher
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in self?.pagesCount = $0 }
       .store(in: &observers)
 
     datasource.statePublisher

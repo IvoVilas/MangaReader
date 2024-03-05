@@ -17,29 +17,48 @@ struct ChapterReaderView: View {
   @ObservedObject var viewModel: ChapterReaderViewModel
   @State private var isHorizontal = true
   @State private var toast: Toast?
+  @State private var showingToolBar = false
 
   var body: some View {
     ZStack(alignment: .center) {
       ProgressView()
         .progressViewStyle(.circular)
         .tint(.white)
-        .opacity(viewModel.pages.count == 0 ? 1 : 0)
         .flipsForRightToLeftLayoutDirection(true)
         .environment(\.layoutDirection, .rightToLeft)
+        .opacity(viewModel.isLoading && viewModel.pages.count == 0 ? 1 : 0)
 
-      makeScrollView()
-        .onAppear {
-          Task(priority: .medium) {
-            await viewModel.fetchPages()
+      GeometryReader { geo in
+        contentView()
+          .onAppear {
+            Task(priority: .medium) {
+              await viewModel.fetchPages()
+            }
           }
-        }
+          .onTapGesture { showingToolBar.toggle() }
+          .padding(.top, showingToolBar && isHorizontal ? geo.safeAreaInsets.bottom : 0)
+          .padding(.bottom, showingToolBar && isHorizontal ? geo.safeAreaInsets.top : 0)
+      }
+
+      toolBarView()
+        .flipsForRightToLeftLayoutDirection(true)
+        .environment(\.layoutDirection, .rightToLeft)
+        .opacity(showingToolBar ? 0.9 : 0)
+
+      labelView()
+        .flipsForRightToLeftLayoutDirection(true)
+        .environment(\.layoutDirection, .rightToLeft)
+        .opacity(showingToolBar ? 0 : 1)
     }
-    .ignoresSafeArea()
+    .statusBar(hidden: !showingToolBar)
+    .ignoresSafeArea(edges: showingToolBar ? .horizontal : .all)
+    .navigationBarBackButtonHidden(true)
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     .flipsForRightToLeftLayoutDirection(true)
     .environment(\.layoutDirection, .rightToLeft)
     .background(.black)
     .toastView(toast: $toast)
+    .onReceive(viewModel.$position) { _ in showingToolBar = false }
     .onReceive(viewModel.$error) { error in
       if let error {
         toast = Toast(
@@ -48,60 +67,132 @@ struct ChapterReaderView: View {
         )
       }
     }
-    .toolbar {
-      ToolbarItem(placement: .topBarTrailing) {
-        Button {
-          isHorizontal.toggle()
-        } label: {
-          Image(systemName: isHorizontal ? "arrow.left" : "arrow.down")
-            .tint(.white)
-        }
-      }
-    }
   }
 
   @ViewBuilder
-  private func makeScrollView() -> some View {
+  private func toolBarView() -> some View {
+    VStack {
+      HStack(alignment: .center, spacing: 16) {
+        CustomBackAction(tintColor: .black)
+
+        VStack(alignment: .leading) {
+          Text("Jujutsu Kaisen")
+            .font(.title3)
+            .lineLimit(1)
+            .foregroundStyle(.black)
+
+          Text("Chapter 252")
+            .font(.caption)
+            .lineLimit(1)
+            .foregroundStyle(.black)
+        }
+
+        Spacer()
+
+        Button {
+          isHorizontal.toggle()
+        } label: {
+          Image(systemName: isHorizontal ? "arrow.left.arrow.right" : "arrow.up.arrow.down")
+            .tint(.black)
+        }
+      }
+      .padding(.bottom, 16)
+      .padding(.horizontal, 16)
+      .background(.white)
+
+      Spacer()
+    }
+    .frame(maxWidth: .infinity)
+  }
+
+  @ViewBuilder
+  private func contentView() -> some View {
     if isHorizontal {
       ScrollView(.horizontal) {
         LazyHStack(spacing: 0) {
           ForEach(viewModel.pages) { page in
-            makePage(page: page)
-              .flipsForRightToLeftLayoutDirection(true)
-              .environment(\.layoutDirection, .rightToLeft)
-              .onAppear {
-                Task(priority: .medium) {
-                  await viewModel.loadNextIfNeeded(page.id)
-                }
+            PageView(
+              page: page,
+              reloadAction: viewModel.reloadPages
+            )
+            .equatable()
+            .id(page.rawId)
+            .flipsForRightToLeftLayoutDirection(true)
+            .environment(\.layoutDirection, .rightToLeft)
+            .onAppear {
+              Task(priority: .medium) {
+                await viewModel.loadNextIfNeeded(page.id)
               }
+            }
           }
         }
+        .scrollTargetLayout()
       }
       .scrollIndicators(.hidden)
       .scrollTargetBehavior(.paging)
+      .scrollPosition(id: $viewModel.position)
     } else {
-      ScrollView {
+      ScrollView() {
         LazyVStack(spacing: 0) {
           ForEach(viewModel.pages) { page in
-            makePage(page: page)
-              .flipsForRightToLeftLayoutDirection(true)
-              .environment(\.layoutDirection, .rightToLeft)
-              .onAppear {
-                Task(priority: .medium) {
-                  await viewModel.loadNextIfNeeded(page.id)
-                }
+            PageView(
+              page: page,
+              reloadAction: viewModel.reloadPages
+            )
+            .equatable()
+            .id(page.rawId)
+            .flipsForRightToLeftLayoutDirection(true)
+            .environment(\.layoutDirection, .rightToLeft)
+            .onAppear {
+              Task(priority: .medium) {
+                await viewModel.loadNextIfNeeded(page.id)
               }
+            }
           }
         }
+        .scrollTargetLayout()
       }
       .scrollIndicators(.hidden)
+      .scrollPosition(id: $viewModel.position)
     }
   }
 
   @ViewBuilder
-  private func makePage(
-    page: PageModel
-  ) -> some View {
+  private func labelView() -> some View {
+    VStack {
+      Spacer()
+
+      Text(pageLabel())
+        .lineLimit(1)
+        .font(.subheadline.bold())
+        .foregroundStyle(.white)
+    }
+  }
+
+  private func pageLabel() -> String {
+    let count = viewModel.pagesCount
+
+    if count == 0 { return "0 / 0" }
+
+    guard
+      let position = viewModel.position,
+      let page = Int(position)
+    else {
+      return "1 / \(count)"
+    }
+
+    return "\(page + 1) / \(count)"
+  }
+
+
+}
+
+private struct PageView: View, Equatable {
+
+  let page: PageModel
+  let reloadAction: ((PageModel) async -> Void)?
+
+  var body: some View {
     switch page {
     case .remote(_, let data):
       Image(uiImage: UIImage(data: data) ?? .imageNotFound)
@@ -125,9 +216,7 @@ struct ChapterReaderView: View {
           .aspectRatio(contentMode: .fit)
 
         Button {
-          Task(priority: .userInitiated) {
-            await viewModel.reloadPages(startingAt: page)
-          }
+          Task(priority: .userInitiated) { await reloadAction?(page) }
         } label: {
           HStack(alignment: .center, spacing: 8) {
             Text("Retry")
@@ -146,6 +235,18 @@ struct ChapterReaderView: View {
         }
       }
       .frame(width: UIScreen.main.bounds.width)
+    }
+  }
+
+  static func == (lhs: PageView, rhs: PageView) -> Bool {
+    if lhs.page.id != rhs.page.id { return false }
+
+    switch (lhs.page, rhs.page) {
+    case (.loading, .loading), (.remote, .remote), (.notFound, .notFound):
+      return true
+
+    default:
+      return false
     }
   }
 

@@ -73,6 +73,7 @@
 		1EF20A682B91720800D17A65 /* MangaSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF20A672B91720800D17A65 /* MangaSource.swift */; };
 		1EF20A6E2B91E6F000D17A65 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF20A6D2B91E6F000D17A65 /* ContentView.swift */; };
 		1EF20A742B92563800D17A65 /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = 1EF20A732B92563800D17A65 /* SwiftSoup */; };
+		1EF75B912B972ECE00C8E31D /* SwiftUI+Modifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF75B902B972ECE00C8E31D /* SwiftUI+Modifiers.swift */; };
 		1EF815F62B82163F00D9759F /* TachiOSmiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF815F52B82163F00D9759F /* TachiOSmiApp.swift */; };
 		1EF815F82B82163F00D9759F /* MangaSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF815F72B82163F00D9759F /* MangaSearchView.swift */; };
 		1EF815FA2B82164300D9759F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1EF815F92B82164300D9759F /* Assets.xcassets */; };
@@ -149,6 +150,7 @@
 		1EF20A632B9141F400D17A65 /* PagesDatasource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PagesDatasource.swift; sourceTree = "<group>"; };
 		1EF20A672B91720800D17A65 /* MangaSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaSource.swift; sourceTree = "<group>"; };
 		1EF20A6D2B91E6F000D17A65 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		1EF75B902B972ECE00C8E31D /* SwiftUI+Modifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SwiftUI+Modifiers.swift"; sourceTree = "<group>"; };
 		1EF815F22B82163F00D9759F /* TachiOSmi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TachiOSmi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1EF815F52B82163F00D9759F /* TachiOSmiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TachiOSmiApp.swift; sourceTree = "<group>"; };
 		1EF815F72B82163F00D9759F /* MangaSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaSearchView.swift; sourceTree = "<group>"; };
@@ -390,6 +392,7 @@
 				1EE68A202B8C8B6C003B9037 /* Style.swift */,
 				1EF20A362B8EA18D00D17A65 /* ToastView.swift */,
 				1EF8732C2B95B6F7005E59D3 /* CustomBackAction.swift */,
+				1EF75B902B972ECE00C8E31D /* SwiftUI+Modifiers.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -631,6 +634,7 @@
 				1EF816212B83983F00D9759F /* DatasourceState.swift in Sources */,
 				1EE89F4B2B84C57D000CAA20 /* MangaMO.swift in Sources */,
 				1EE89F672B84D33A000CAA20 /* MangaStatus.swift in Sources */,
+				1EF75B912B972ECE00C8E31D /* SwiftUI+Modifiers.swift in Sources */,
 				1EF815F82B82163F00D9759F /* MangaSearchView.swift in Sources */,
 				1EE89F6A2B84D87B000CAA20 /* Moc+Extension.swift in Sources */,
 				1E1235402B8534580022652F /* SystemDateTimeType.swift in Sources */,
