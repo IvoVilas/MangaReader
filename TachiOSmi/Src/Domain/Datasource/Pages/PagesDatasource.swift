@@ -58,6 +58,7 @@ final class PagesDatasource {
   }
 
   func refresh() async {
+    print("PagesDatasource -> Started pages refresh")
     await MainActor.run {
       self.currentPage = 0
       self.hasMorePages = true
@@ -78,6 +79,8 @@ final class PagesDatasource {
     await MainActor.run { [erro] in
       self.error.valueOnMain = erro
     }
+
+    print("PagesDatasource -> Ended pages refresh")
   }
 
   func loadNextPages() async {
@@ -217,6 +220,8 @@ final class PagesDatasource {
 
       return []
     }
+
+    print("PagesDatasource -> Started pages \(currentPage) refresh")
 
     let endIndex = min(count, offset + limit)
     let pages = Array(offset ..< endIndex)

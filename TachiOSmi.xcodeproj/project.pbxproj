@@ -26,6 +26,7 @@
 		1E1235512B85376A0022652F /* SwiftDate in Frameworks */ = {isa = PBXBuildFile; productRef = 1E1235502B85376A0022652F /* SwiftDate */; };
 		1E1235532B853C940022652F /* Date+Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E1235522B853C940022652F /* Date+Helpers.swift */; };
 		1E1235552B853D0E0022652F /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E1235542B853D0E0022652F /* AppEnvironment.swift */; };
+		1E598D7F2B97772900BDF1B6 /* PageSliderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E598D7E2B97772900BDF1B6 /* PageSliderView.swift */; };
 		1E79A4D42B8929D80075C234 /* HttpClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E79A4D32B8929D80075C234 /* HttpClient.swift */; };
 		1EA9CD672B925CE9000E3086 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 1EA9CD662B925CE9000E3086 /* Alamofire */; };
 		1EC8BD282B92789E0017ACF0 /* ManganeloSearchDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EC8BD272B92789E0017ACF0 /* ManganeloSearchDelegate.swift */; };
@@ -105,6 +106,7 @@
 		1E12353F2B8534580022652F /* SystemDateTimeComparatorType.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SystemDateTimeComparatorType.swift; sourceTree = "<group>"; };
 		1E1235522B853C940022652F /* Date+Helpers.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Date+Helpers.swift"; sourceTree = "<group>"; };
 		1E1235542B853D0E0022652F /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
+		1E598D7E2B97772900BDF1B6 /* PageSliderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageSliderView.swift; sourceTree = "<group>"; };
 		1E79A4D32B8929D80075C234 /* HttpClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HttpClient.swift; sourceTree = "<group>"; };
 		1EC8BD272B92789E0017ACF0 /* ManganeloSearchDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManganeloSearchDelegate.swift; sourceTree = "<group>"; };
 		1EC8BD292B92879A0017ACF0 /* MangaSearchType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaSearchType.swift; sourceTree = "<group>"; };
@@ -393,6 +395,7 @@
 				1EF20A362B8EA18D00D17A65 /* ToastView.swift */,
 				1EF8732C2B95B6F7005E59D3 /* CustomBackAction.swift */,
 				1EF75B902B972ECE00C8E31D /* SwiftUI+Modifiers.swift */,
+				1E598D7E2B97772900BDF1B6 /* PageSliderView.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -628,6 +631,7 @@
 				1EF20A582B91307900D17A65 /* DetailsDelegateType.swift in Sources */,
 				1EF20A372B8EA18D00D17A65 /* ToastView.swift in Sources */,
 				1EF8160D2B82468100D9759F /* MangaSearchViewModel.swift in Sources */,
+				1E598D7F2B97772900BDF1B6 /* PageSliderView.swift in Sources */,
 				1EC8BD422B93AFBB0017ACF0 /* ChapterRepresentables.swift in Sources */,
 				1E12354B2B8534580022652F /* SystemDateTimeComparator.swift in Sources */,
 				1EE68A132B896E2D003B9037 /* ChapterReaderView.swift in Sources */,

@@ -18,6 +18,7 @@ struct ChapterReaderView: View {
   @State private var isHorizontal = true
   @State private var toast: Toast?
   @State private var showingToolBar = false
+  @State private var pageSelected: Int = 0
 
   var body: some View {
     ZStack(alignment: .center) {
@@ -35,8 +36,11 @@ struct ChapterReaderView: View {
               await viewModel.fetchPages()
             }
           }
-          .onTapGesture { showingToolBar.toggle() }
-          .padding(.top, showingToolBar && isHorizontal ? geo.safeAreaInsets.bottom : 0)
+          .onTapGesture {
+            withAnimation {
+              showingToolBar.toggle()
+            }
+          }
           .padding(.bottom, showingToolBar && isHorizontal ? geo.safeAreaInsets.top : 0)
       }
 
@@ -45,20 +49,27 @@ struct ChapterReaderView: View {
         .environment(\.layoutDirection, .rightToLeft)
         .opacity(showingToolBar ? 0.9 : 0)
 
+      pageSliderView()
+        .flipsForRightToLeftLayoutDirection(true)
+        .environment(\.layoutDirection, .rightToLeft)
+        .opacity(showingToolBar ? 0.9 : 0)
+        .offset(y: showingToolBar ? 0 : 100)
+
       labelView()
         .flipsForRightToLeftLayoutDirection(true)
         .environment(\.layoutDirection, .rightToLeft)
         .opacity(showingToolBar ? 0 : 1)
     }
     .statusBar(hidden: !showingToolBar)
-    .ignoresSafeArea(edges: showingToolBar ? .horizontal : .all)
+    .ignoresSafeArea(edges: showingToolBar ? .horizontal : .top)
     .navigationBarBackButtonHidden(true)
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     .flipsForRightToLeftLayoutDirection(true)
     .environment(\.layoutDirection, .rightToLeft)
     .background(.black)
     .toastView(toast: $toast)
-    .onReceive(viewModel.$position) { _ in showingToolBar = false }
+    .onReceive(viewModel.$position) { pageSelected = Int($0 ?? "0") ?? 0 }
+    .onChange(of: pageSelected) { _, newValue in viewModel.position = "\(newValue)" }
     .onReceive(viewModel.$error) { error in
       if let error {
         toast = Toast(
@@ -103,6 +114,54 @@ struct ChapterReaderView: View {
       Spacer()
     }
     .frame(maxWidth: .infinity)
+  }
+
+  @ViewBuilder
+  private func pageSliderView() -> some View {
+    VStack {
+      Spacer()
+
+      HStack(spacing: 4) {
+//        Button { pageSelected = viewModel.pagesCount - 1 } label: {
+//          Image(systemName: "backward.end")
+//            .tint(.black)
+//            .fontWeight(.regular)
+//            .padding(16)
+//            .background(.white)
+//            .clipShape(Circle())
+//        }
+
+        HStack(spacing: 16) {
+          Text("\(viewModel.pagesCount)")
+            .frame(minWidth: 24)
+
+          PageSliderView(
+            value: $pageSelected,
+            numberOfValues: viewModel.pagesCount,
+            onChange: { viewModel.position = "\($0)" }
+          )
+          .frame(height: 24)
+          .flipsForRightToLeftLayoutDirection(true)
+          .environment(\.layoutDirection, .rightToLeft)
+
+          Text("\(pageSelected + 1)")
+            .frame(minWidth: 24)
+        }
+        .padding(16)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 28))
+
+//        Button { pageSelected = 0 } label: {
+//          Image(systemName: "forward.end")
+//            .tint(.black)
+//            .fontWeight(.regular)
+//            .padding(16)
+//            .background(.white)
+//            .clipShape(Circle())
+//        }
+      }
+      .padding(16)
+    }
   }
 
   @ViewBuilder
