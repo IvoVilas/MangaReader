@@ -9,32 +9,34 @@ import Foundation
 
 enum PageModel: Identifiable {
   
-  case remote(Int, Data)
-  case loading(Int)
-  case notFound(Int, String?)
+  case remote(String, Int, Data)
+  case loading(String, Int)
+  case notFound(String, Int)
 
-  var id: String {
+  var id: String { return url }
+
+  var url: String {
     switch self {
-    case .remote(let pos, _):
-      return "\(pos)"
+    case .remote(let url, _, _):
+      return url
 
-    case .loading(let pos):
-      return "\(pos)"
+    case .loading(let url, _):
+      return url
 
-    case .notFound(let pos, _):
-      return "\(pos)"
+    case .notFound(let url, _):
+      return url
     }
   }
 
-  var rawId: Int {
+  var position: Int {
     switch self {
-    case .remote(let pos, _):
+    case .remote(_, let pos, _):
       return pos
 
-    case .loading(let pos):
+    case .loading(_, let pos):
       return pos
 
-    case .notFound(let pos, _):
+    case .notFound(_, let pos):
       return pos
     }
   }

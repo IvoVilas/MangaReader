@@ -66,8 +66,16 @@ struct ChapterReaderView: View {
     .environment(\.layoutDirection, .rightToLeft)
     .background(.black)
     .toastView(toast: $toast)
-    .onReceive(viewModel.$position) { pageSelected = Int($0 ?? "0") ?? 0 }
-    .onChange(of: pageSelected) { _, newValue in viewModel.position = "\(newValue)" }
+    .onChange(of: pageSelected) { _, pos in
+      if viewModel.pages.indices.contains(pos) {
+        viewModel.pageId = viewModel.pages[pos].id
+      }
+    }
+    .onReceive(viewModel.$pageId) { id in
+      if let i = viewModel.pages.firstIndex(where: { $0.id == id }) {
+        pageSelected = i
+      }
+    }
     .onReceive(viewModel.$error) { error in
       if let error {
         toast = Toast(
@@ -153,7 +161,6 @@ struct ChapterReaderView: View {
               reloadAction: viewModel.reloadPages
             )
             .equatable()
-            .id(page.rawId)
             .flipsForRightToLeftLayoutDirection(true)
             .environment(\.layoutDirection, .rightToLeft)
             .onAppear {
@@ -167,7 +174,7 @@ struct ChapterReaderView: View {
       }
       .scrollIndicators(.hidden)
       .scrollTargetBehavior(.paging)
-      .scrollPosition(id: $viewModel.position)
+      .scrollPosition(id: $viewModel.pageId)
     } else {
       ScrollView() {
         LazyVStack(spacing: 0) {
@@ -177,7 +184,6 @@ struct ChapterReaderView: View {
               reloadAction: viewModel.reloadPages
             )
             .equatable()
-            .id(page.rawId)
             .flipsForRightToLeftLayoutDirection(true)
             .environment(\.layoutDirection, .rightToLeft)
             .onAppear {
@@ -190,7 +196,7 @@ struct ChapterReaderView: View {
         .scrollTargetLayout()
       }
       .scrollIndicators(.hidden)
-      .scrollPosition(id: $viewModel.position)
+      .scrollPosition(id: $viewModel.pageId)
     }
   }
 
@@ -211,14 +217,7 @@ struct ChapterReaderView: View {
 
     if count == 0 { return "0 / 0" }
 
-    guard
-      let position = viewModel.position,
-      let page = Int(position)
-    else {
-      return "1 / \(count)"
-    }
-
-    return "\(page + 1) / \(count)"
+    return "\(pageSelected + 1) / \(count)"
   }
 
 
@@ -231,7 +230,7 @@ private struct PageView: View, Equatable {
 
   var body: some View {
     switch page {
-    case .remote(_, let data):
+    case .remote(_, _, let data):
       Image(uiImage: UIImage(data: data) ?? .imageNotFound)
         .resizable()
         .aspectRatio(contentMode: .fit)

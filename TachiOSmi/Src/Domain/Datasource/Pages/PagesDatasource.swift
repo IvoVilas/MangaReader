@@ -19,7 +19,7 @@ final class PagesDatasource {
 
   var pagesPublisher: AnyPublisher<[PageModel], Never> {
     pages
-      .map { $0.sorted { $0.rawId < $1.rawId } }
+      .map { $0.sorted { $0.position < $1.position } }
       .eraseToAnyPublisher()
   }
 
@@ -102,11 +102,11 @@ final class PagesDatasource {
   }
 
   func loadPages(
-    until index: Int
+    until pos: Int
   ) async {
     if await !hasMorePages { return }
 
-    print("PagesDatasource -> Started loading pages until \(index)")
+    print("PagesDatasource -> Started loading pages until \(pos)")
 
     var erro: DatasourceError?
 
@@ -114,7 +114,7 @@ final class PagesDatasource {
       let chapterInfo = try await getDownloadInfo()
 
       try await makePagesRequest(
-        until: index,
+        until: pos,
         using: chapterInfo
       )
     } catch {
@@ -130,21 +130,15 @@ final class PagesDatasource {
 
   // Reloads given pages
   func reloadPages(
-    _ pages: [(id: Int, url: String?)]
+    _ pages: [(url: String, pos: Int)]
   ) async {
-    await self.updateOrAppend(pages.map { .loading($0.id) })
+    await self.updateOrAppend(pages.map { .loading($0.url, $0.pos) })
 
     await withTaskGroup(of: Void.self) { taskGroup in
       for info in pages {
         taskGroup.addTask {
-          let id = info.id
           let url = info.url
-
-          guard let url else {
-            print("PagesDatasource -> Error building page \(id) url")
-
-            return
-          }
+          let pos = info.pos
 
           var erro: DatasourceError?
           let page: PageModel
@@ -152,10 +146,9 @@ final class PagesDatasource {
           do {
             let info = try await self.getDownloadInfo()
 
-            // TODO: Remake this caos
-            let index = info.pages.enumerated()
-              .map { try? self.delegate.buildPageUrl(index: $0.offset, info: info) }
-              .firstIndex(where: { $0 == url })
+            let index = await self.pages.valueOnMain
+              .first { $0.url == url }?
+              .position
 
             guard let index else {
               throw DatasourceError.otherError("Page not found")
@@ -163,10 +156,10 @@ final class PagesDatasource {
 
             let data = try await self.delegate.fetchPage(index: index, info: info)
 
-            page = .remote(id, data)
+            page = .remote(url, pos, data)
           } catch {
             erro = .catchError(error)
-            page = .notFound(id, url)
+            page = .notFound(url, pos)
           }
 
           await MainActor.run { [page, erro] in
@@ -211,11 +204,17 @@ extension PagesDatasource {
       pagination[index] = Array(offset..<end)
     }
 
-    self.pages.valueOnMain = pages.map { .loading($0) }
+    self.pages.valueOnMain = pages.map {
+      let url = try? self.delegate.buildPageUrl(index: $0, info: info)
+
+      return .loading(url ?? UUID().uuidString, $0)
+    }
   }
 
   @MainActor
-  private func preparePageRequest() -> [Int] {
+  private func preparePageRequest(
+    _ info: ChapterDownloadInfo
+  ) -> [Int] {
     guard let pages = pagination[currentPage] else {
       hasMorePages = false
 
@@ -224,14 +223,17 @@ extension PagesDatasource {
 
     currentPage += 1
 
-    if let page = pages.last { lastPageLoaded = "\(page)" }
+    if let lastPage = pages.last {
+      lastPageLoaded = try? delegate.buildPageUrl(index: lastPage, info: info)
+    }
 
     return pages
   }
 
   @MainActor
   private func getPagesNeedingLoading(
-    pageIndex: Int
+    pageIndex: Int,
+    info: ChapterDownloadInfo
   ) throws -> [Int] {
     let page = pagination
       .filter { $0.value.contains(pageIndex) }
@@ -252,7 +254,9 @@ extension PagesDatasource {
       .compactMap { pagination[$0] }
       .reduce(into: []) { $0.append(contentsOf: $1) }
 
-    if let page = pages.last { lastPageLoaded = "\(page)" }
+    if let lastPage = pages.last {
+      lastPageLoaded = try? delegate.buildPageUrl(index: lastPage, info: info)
+    }
 
     return pages
   }
@@ -311,21 +315,22 @@ extension PagesDatasource {
   private func makePagesRequest(
     using info: ChapterDownloadInfo
   ) async {
-    let pages = await preparePageRequest()
+    let pages = await preparePageRequest(info)
 
     Task {
       await withTaskGroup(of: Void.self) { taskGroup in
         for index in pages {
           taskGroup.addTask {
+            let url = (try? self.delegate.buildPageUrl(index: index, info: info)) ?? UUID().uuidString
+
             do {
               let data = try await self.delegate.fetchPage(index: index, info: info)
 
-              await self.updateOrAppend(.remote(index, data))
+              await self.updateOrAppend(.remote(url, index, data))
             } catch {
               print("MangaReaderViewModel -> Page \(index) failed download: \(error)")
-              let url = try? self.delegate.buildPageUrl(index: index, info: info)
 
-              await self.updateOrAppend(.notFound(index, url))
+              await self.updateOrAppend(.notFound(url, index))
             }
           }
         }
@@ -337,7 +342,10 @@ extension PagesDatasource {
     until index: Int,
     using info: ChapterDownloadInfo
   ) async throws {
-    let pages = try await getPagesNeedingLoading(pageIndex: index)
+    let pages = try await getPagesNeedingLoading(
+      pageIndex: index,
+      info: info
+    )
 
     print("MangaReaderViewModel -> Loading \(pages.count) pages")
 
@@ -345,15 +353,16 @@ extension PagesDatasource {
       await withTaskGroup(of: Void.self) { taskGroup in
         for index in pages {
           taskGroup.addTask {
+            let url = (try? self.delegate.buildPageUrl(index: index, info: info)) ?? UUID().uuidString
+
             do {
               let data = try await self.delegate.fetchPage(index: index, info: info)
 
-              await self.updateOrAppend(.remote(index, data))
+              await self.updateOrAppend(.remote(url, index, data))
             } catch {
               print("MangaReaderViewModel -> Page \(index) failed download: \(error)")
-              let url = try? self.delegate.buildPageUrl(index: index, info: info)
 
-              await self.updateOrAppend(.notFound(index, url))
+              await self.updateOrAppend(.notFound(url, index))
             }
           }
         }

@@ -85,7 +85,7 @@ extension MangadexPagesDelegate {
     )
   }
 
-  func makePageRequest(
+  private func makePageRequest(
     _ url: String
   ) async throws -> Data {
     let data = try await httpClient.makeDataGetRequest(url: url)

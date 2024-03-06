@@ -14,7 +14,7 @@ final class ChapterReaderViewModel: ObservableObject {
   @Published var pages: [PageModel]
   @Published var isLoading: Bool
   @Published var pagesCount: Int
-  @Published var position: String?
+  @Published var pageId: String?
   @Published var error: DatasourceError?
 
   private let datasource: PagesDatasource
@@ -28,7 +28,7 @@ final class ChapterReaderViewModel: ObservableObject {
 
     pages = []
     pagesCount = 0
-    position = nil
+    pageId = nil
     isLoading = false
     error = nil
 
@@ -57,12 +57,10 @@ final class ChapterReaderViewModel: ObservableObject {
 
 extension ChapterReaderViewModel {
 
-  func moveToPage(_ id: Int) {
-    if pages.contains(where: { $0.rawId == id }) {
-      position = "\(id)"
-
+  func moveToPage(_ pos: Int) {
+    if pages.indices.contains(pos) {
       Task(priority: .medium) {
-        await loadPages(until: id)
+        await datasource.loadPages(until: pos)
       }
     }
   }
@@ -75,18 +73,14 @@ extension ChapterReaderViewModel {
     await datasource.loadNextPagesIfNeeded(pageId)
   }
 
-  func loadPages(until id: Int) async {
-    await datasource.loadPages(until: id)
-  }
-
   func reloadPages(startingAt page: PageModel) async {
     guard let i = pages.firstIndex(where: { $0.id == page.id }) else { return }
 
     let j = min(i + 10, pages.count)
     let pages = pages[i..<j].compactMap {
       switch $0 {
-      case .notFound(let id, let url):
-        return (id, url)
+      case .notFound(let url, let pos):
+        return (url, pos)
 
       default: 
         return nil
