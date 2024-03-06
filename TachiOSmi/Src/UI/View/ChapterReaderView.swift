@@ -41,7 +41,6 @@ struct ChapterReaderView: View {
               showingToolBar.toggle()
             }
           }
-          .padding(.bottom, showingToolBar && isHorizontal ? geo.safeAreaInsets.top : 0)
       }
 
       toolBarView()
@@ -61,9 +60,8 @@ struct ChapterReaderView: View {
         .opacity(showingToolBar ? 0 : 1)
     }
     .statusBar(hidden: !showingToolBar)
-    .ignoresSafeArea(edges: showingToolBar ? .horizontal : .top)
     .navigationBarBackButtonHidden(true)
-    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
     .flipsForRightToLeftLayoutDirection(true)
     .environment(\.layoutDirection, .rightToLeft)
     .background(.black)
@@ -121,46 +119,26 @@ struct ChapterReaderView: View {
     VStack {
       Spacer()
 
-      HStack(spacing: 4) {
-//        Button { pageSelected = viewModel.pagesCount - 1 } label: {
-//          Image(systemName: "backward.end")
-//            .tint(.black)
-//            .fontWeight(.regular)
-//            .padding(16)
-//            .background(.white)
-//            .clipShape(Circle())
-//        }
+      HStack(spacing: 16) {
+        Text("\(viewModel.pagesCount)")
+          .frame(minWidth: 24)
 
-        HStack(spacing: 16) {
-          Text("\(viewModel.pagesCount)")
-            .frame(minWidth: 24)
+        PageSliderView(
+          value: $pageSelected,
+          numberOfValues: viewModel.pagesCount,
+          onChange: viewModel.moveToPage
+        )
+        .frame(height: 24)
+        .flipsForRightToLeftLayoutDirection(true)
+        .environment(\.layoutDirection, .rightToLeft)
 
-          PageSliderView(
-            value: $pageSelected,
-            numberOfValues: viewModel.pagesCount,
-            onChange: { viewModel.position = "\($0)" }
-          )
-          .frame(height: 24)
-          .flipsForRightToLeftLayoutDirection(true)
-          .environment(\.layoutDirection, .rightToLeft)
-
-          Text("\(pageSelected + 1)")
-            .frame(minWidth: 24)
-        }
-        .padding(16)
-        .background(.white)
-        .clipShape(RoundedRectangle(cornerRadius: 28))
-
-//        Button { pageSelected = 0 } label: {
-//          Image(systemName: "forward.end")
-//            .tint(.black)
-//            .fontWeight(.regular)
-//            .padding(16)
-//            .background(.white)
-//            .clipShape(Circle())
-//        }
+        Text("\(pageSelected + 1)")
+          .frame(minWidth: 24)
       }
       .padding(16)
+      .background(.white)
+      .clipShape(RoundedRectangle(cornerRadius: 28))
+      .padding(.horizontal, 16)
     }
   }
 
@@ -316,13 +294,13 @@ private struct PageView: View, Equatable {
     viewModel: ChapterReaderViewModel(
       datasource: PagesDatasource(
         chapter: ChapterModel(
-          id: "556c3feb-8c62-43de-b872-4657730d31a1",
+          id: "e7c4d0c9-cec9-4116-aba1-178b2a5d4cc3",
           title: nil,
           number: nil,
           numberOfPages: 25,
           publishAt: Date(),
           isRead: false,
-          downloadInfo: "556c3feb-8c62-43de-b872-4657730d31a1"
+          downloadInfo: "e7c4d0c9-cec9-4116-aba1-178b2a5d4cc3"
         ),
         delegate: MangadexPagesDelegate(
           httpClient: HttpClient()

@@ -34,12 +34,10 @@ final class ChapterReaderViewModel: ObservableObject {
 
     datasource.pagesPublisher
       .debounce(for: 0.3, scheduler: DispatchQueue.main)
-      .sink { [weak self] in self?.pages = $0 }
-      .store(in: &observers)
-
-    datasource.countPublisher
-      .receive(on: DispatchQueue.main)
-      .sink { [weak self] in self?.pagesCount = $0 }
+      .sink { [weak self] in 
+        self?.pages = $0
+        self?.pagesCount = $0.count
+      }
       .store(in: &observers)
 
     datasource.statePublisher
@@ -59,20 +57,26 @@ final class ChapterReaderViewModel: ObservableObject {
 
 extension ChapterReaderViewModel {
 
+  func moveToPage(_ id: Int) {
+    if pages.contains(where: { $0.rawId == id }) {
+      position = "\(id)"
+
+      Task(priority: .medium) {
+        await loadPages(until: id)
+      }
+    }
+  }
+
   func fetchPages() async {
-    await datasource.refresh()
+    await datasource.loadChapter()
   }
 
   func loadNextIfNeeded(_ pageId: String) async {
-    let count = pages.count
+    await datasource.loadNextPagesIfNeeded(pageId)
+  }
 
-    guard count - 3 >= 0 else { return }
-
-    if pageId == pages[count - 3].id {
-      if await datasource.hasMorePages {
-        await datasource.loadNextPages()
-      }
-    }
+  func loadPages(until id: Int) async {
+    await datasource.loadPages(until: id)
   }
 
   func reloadPages(startingAt page: PageModel) async {

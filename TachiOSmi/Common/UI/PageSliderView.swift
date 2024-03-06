@@ -54,7 +54,11 @@ struct PageSliderView: View {
               )
               .contentShape(Rectangle())
               .onTapGesture {
-                value = index
+                if index != value {
+                  value = index
+
+                  onChange?(index)
+                }
               }
 
             if index < numberOfValues - 1 { Spacer().frame(minWidth: 0) }
@@ -82,13 +86,18 @@ struct PageSliderView: View {
                   max: width
                 )
 
-                value = Int((nextCoordinate / width * (N - 1)).rounded())
+                let oldValue = value
+                let newValue = Int((nextCoordinate / width * (N - 1)).rounded())
 
-                let n = Double(value)
-                let spacing = (width - (N * dotSize)) / (N - 1)
-                sliderOffset = (n * (spacing + dotSize)) + (dotSize / 2)
+                if oldValue != newValue {
+                  value = newValue
 
-                onChange?(value)
+                  let n = Double(value)
+                  let spacing = (width - (N * dotSize)) / (N - 1)
+                  sliderOffset = (n * (spacing + dotSize)) + (dotSize / 2)
+
+                  onChange?(newValue)
+                }
               }
           )
       }
