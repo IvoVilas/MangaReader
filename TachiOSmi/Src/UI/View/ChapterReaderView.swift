@@ -18,7 +18,6 @@ struct ChapterReaderView: View {
   @State private var isHorizontal = true
   @State private var toast: Toast?
   @State private var showingToolBar = false
-  @State private var pageSelected: Int = 0
 
   var body: some View {
     ZStack(alignment: .center) {
@@ -66,16 +65,6 @@ struct ChapterReaderView: View {
     .environment(\.layoutDirection, .rightToLeft)
     .background(.black)
     .toastView(toast: $toast)
-    .onChange(of: pageSelected) { _, pos in
-      if viewModel.pages.indices.contains(pos) {
-        viewModel.pageId = viewModel.pages[pos].id
-      }
-    }
-    .onReceive(viewModel.$pageId) { id in
-      if let i = viewModel.pages.firstIndex(where: { $0.id == id }) {
-        pageSelected = i
-      }
-    }
     .onReceive(viewModel.$error) { error in
       if let error {
         toast = Toast(
@@ -129,18 +118,20 @@ struct ChapterReaderView: View {
 
       HStack(spacing: 16) {
         Text("\(viewModel.pagesCount)")
+          .foregroundStyle(.black)
           .frame(minWidth: 24)
 
         PageSliderView(
-          value: $pageSelected,
-          numberOfValues: viewModel.pagesCount,
-          onChange: viewModel.moveToPage
+          value: $viewModel.pageId,
+          values: viewModel.pagesBetweenTransitions().map { $0.id },
+          onChanged: viewModel.movedToPage
         )
         .frame(height: 24)
         .flipsForRightToLeftLayoutDirection(true)
         .environment(\.layoutDirection, .rightToLeft)
 
-        Text("\(pageSelected + 1)")
+        Text("\(viewModel.selectedPageNumber)")
+          .foregroundStyle(.black)
           .frame(minWidth: 24)
       }
       .padding(16)
@@ -165,7 +156,7 @@ struct ChapterReaderView: View {
             .environment(\.layoutDirection, .rightToLeft)
             .onAppear {
               Task(priority: .medium) {
-                await viewModel.loadNextIfNeeded(page.id)
+                await viewModel.onPageTask(page.id)
               }
             }
           }
@@ -173,7 +164,7 @@ struct ChapterReaderView: View {
         .scrollTargetLayout()
       }
       .scrollIndicators(.hidden)
-      .scrollTargetBehavior(.paging)
+      .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
       .scrollPosition(id: $viewModel.pageId)
     } else {
       ScrollView() {
@@ -184,11 +175,12 @@ struct ChapterReaderView: View {
               reloadAction: viewModel.reloadPages
             )
             .equatable()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .flipsForRightToLeftLayoutDirection(true)
             .environment(\.layoutDirection, .rightToLeft)
             .onAppear {
               Task(priority: .medium) {
-                await viewModel.loadNextIfNeeded(page.id)
+                await viewModel.onPageTask(page.id)
               }
             }
           }
@@ -217,7 +209,7 @@ struct ChapterReaderView: View {
 
     if count == 0 { return "0 / 0" }
 
-    return "\(pageSelected + 1) / \(count)"
+    return "\(viewModel.selectedPageNumber) / \(count)"
   }
 
 
@@ -235,6 +227,14 @@ private struct PageView: View, Equatable {
         .resizable()
         .aspectRatio(contentMode: .fit)
         .frame(width: UIScreen.main.bounds.width)
+
+    case .transition(let id):
+      Text("Move to the next chapter \(id)")
+        .foregroundStyle(.white)
+        .frame(
+          width: UIScreen.main.bounds.width,
+          height: UIScreen.main.bounds.height
+        )
 
     case .loading:
       ProgressView()
@@ -278,7 +278,8 @@ private struct PageView: View, Equatable {
     if lhs.page.id != rhs.page.id { return false }
 
     switch (lhs.page, rhs.page) {
-    case (.loading, .loading), (.remote, .remote), (.notFound, .notFound):
+    case (.loading, .loading), (.remote, .remote), 
+      (.notFound, .notFound), (.transition, .transition):
       return true
 
     default:
@@ -291,20 +292,18 @@ private struct PageView: View, Equatable {
 #Preview {
   ChapterReaderView(
     viewModel: ChapterReaderViewModel(
-      datasource: PagesDatasource(
-        chapter: ChapterModel(
-          id: "e7c4d0c9-cec9-4116-aba1-178b2a5d4cc3",
-          title: nil,
-          number: nil,
-          numberOfPages: 25,
-          publishAt: Date(),
-          isRead: false,
-          downloadInfo: "e7c4d0c9-cec9-4116-aba1-178b2a5d4cc3"
-        ),
-        delegate: MangadexPagesDelegate(
-          httpClient: HttpClient()
-        )
-      )
+      source: .mangadex,
+      chapter: ChapterModel(
+        id: "5624518b-f062-49e8-84ec-e4f40e0de038",
+        title: nil,
+        number: nil,
+        numberOfPages: 0,
+        publishAt: Date(),
+        isRead: false,
+        downloadInfo: "5624518b-f062-49e8-84ec-e4f40e0de038"
+      ),
+      chapters: [],
+      httpClient: HttpClient()
     )
   )
 }

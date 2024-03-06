@@ -12,8 +12,17 @@ enum PageModel: Identifiable {
   case remote(String, Int, Data)
   case loading(String, Int)
   case notFound(String, Int)
+  case transition(String)
 
-  var id: String { return url }
+  var id: String {
+    switch self {
+    case .remote, .loading, .notFound:
+      return url
+
+    case .transition(let id):
+      return id
+    }
+  }
 
   var url: String {
     switch self {
@@ -25,6 +34,9 @@ enum PageModel: Identifiable {
 
     case .notFound(let url, _):
       return url
+
+    case .transition:
+      return ""
     }
   }
 
@@ -38,6 +50,9 @@ enum PageModel: Identifiable {
 
     case .notFound(_, let pos):
       return pos
+
+    case .transition:
+      return -1
     }
   }
 

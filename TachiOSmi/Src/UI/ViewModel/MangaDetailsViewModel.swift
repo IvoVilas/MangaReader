@@ -153,12 +153,10 @@ extension MangaDetailsViewModel {
     _ chapter: ChapterModel
   ) -> ChapterReaderViewModel {
     return ChapterReaderViewModel(
-      datasource: PagesDatasource(
-        chapter: chapter,
-        delegate: source.pagesDelegateType.init(
-          httpClient: AppEnv.env.httpClient
-        )
-      )
+      source: source,
+      chapter: chapter,
+      chapters: chapters,
+      httpClient: AppEnv.env.httpClient
     )
   }
 

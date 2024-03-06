@@ -10,7 +10,7 @@ import Combine
 
 final class PagesDatasource {
 
-  private var chapter: ChapterModel
+  let chapter: ChapterModel
   private let delegate: PagesDelegateType
 
   private let pages: CurrentValueSubject<[PageModel], Never>
@@ -34,7 +34,7 @@ final class PagesDatasource {
   @MainActor private var chapterInfo: ChapterDownloadInfo?
   @MainActor private var hasMorePages = true
   @MainActor private var currentPage = 0
-  @MainActor private var pagination = [Int: [Int]]()
+  @MainActor private var pagination = [Int: [String]]()
   @MainActor private var lastPageLoaded: String?
 
   init(
@@ -50,8 +50,8 @@ final class PagesDatasource {
   }
 
   func loadChapter() async {
-    print("PagesDatasource -> Started pages refresh")
-    
+    print("PagesDatasource -> Started chapter loading")
+
     await MainActor.run { self.chapterInfo = nil }
 
     var erro: DatasourceError?
@@ -69,7 +69,7 @@ final class PagesDatasource {
       self.error.valueOnMain = erro
     }
 
-    print("PagesDatasource -> Ended pages refresh")
+    print("PagesDatasource -> Endend chapter loading")
   }
 
   func loadNextPagesIfNeeded(
@@ -102,11 +102,11 @@ final class PagesDatasource {
   }
 
   func loadPages(
-    until pos: Int
+    until id: String
   ) async {
     if await !hasMorePages { return }
 
-    print("PagesDatasource -> Started loading pages until \(pos)")
+    print("PagesDatasource -> Started loading pages until \(id)")
 
     var erro: DatasourceError?
 
@@ -114,7 +114,7 @@ final class PagesDatasource {
       let chapterInfo = try await getDownloadInfo()
 
       try await makePagesRequest(
-        until: pos,
+        until: id,
         using: chapterInfo
       )
     } catch {
@@ -128,7 +128,6 @@ final class PagesDatasource {
     print("PagesDatasource -> Ended loading pages")
   }
 
-  // Reloads given pages
   func reloadPages(
     _ pages: [(url: String, pos: Int)]
   ) async {
@@ -201,7 +200,9 @@ extension PagesDatasource {
       let offset = index * limit
       let end = min((index + 1) * limit, count)
 
-      pagination[index] = Array(offset..<end)
+      pagination[index] = Array(offset..<end).compactMap {
+        (try? delegate.buildPageUrl(index: $0, info: info)) ?? UUID().uuidString
+      }
     }
 
     self.pages.valueOnMain = pages.map {
@@ -214,7 +215,7 @@ extension PagesDatasource {
   @MainActor
   private func preparePageRequest(
     _ info: ChapterDownloadInfo
-  ) -> [Int] {
+  ) -> [String] {
     guard let pages = pagination[currentPage] else {
       hasMorePages = false
 
@@ -224,7 +225,7 @@ extension PagesDatasource {
     currentPage += 1
 
     if let lastPage = pages.last {
-      lastPageLoaded = try? delegate.buildPageUrl(index: lastPage, info: info)
+      lastPageLoaded = lastPage
     }
 
     return pages
@@ -232,15 +233,15 @@ extension PagesDatasource {
 
   @MainActor
   private func getPagesNeedingLoading(
-    pageIndex: Int,
+    pageId: String,
     info: ChapterDownloadInfo
-  ) throws -> [Int] {
+  ) throws -> [String] {
     let page = pagination
-      .filter { $0.value.contains(pageIndex) }
+      .filter { $0.value.contains(pageId) }
       .map { $0.key }
       .last
 
-    guard let page else { throw DatasourceError.otherError("Page not found") }
+    guard let page else { throw DatasourceError.otherError("Page \(pageId) not found") }
 
     if page < currentPage {
       return []
@@ -248,14 +249,14 @@ extension PagesDatasource {
 
     let currentPage = currentPage
 
-    self.currentPage = page
+    self.currentPage = page + 1
 
     let pages = Array(currentPage...page)
       .compactMap { pagination[$0] }
       .reduce(into: []) { $0.append(contentsOf: $1) }
 
     if let lastPage = pages.last {
-      lastPageLoaded = try? delegate.buildPageUrl(index: lastPage, info: info)
+      lastPageLoaded = lastPage
     }
 
     return pages
@@ -319,16 +320,14 @@ extension PagesDatasource {
 
     Task {
       await withTaskGroup(of: Void.self) { taskGroup in
-        for index in pages {
+        for (index, url) in pages.enumerated() {
           taskGroup.addTask {
-            let url = (try? self.delegate.buildPageUrl(index: index, info: info)) ?? UUID().uuidString
-
             do {
-              let data = try await self.delegate.fetchPage(index: index, info: info)
+              let data = try await self.delegate.fetchPage(url: url, info: info)
 
               await self.updateOrAppend(.remote(url, index, data))
             } catch {
-              print("MangaReaderViewModel -> Page \(index) failed download: \(error)")
+              print("PagesDatasource -> Page \(index) failed download: \(error)")
 
               await self.updateOrAppend(.notFound(url, index))
             }
@@ -339,28 +338,26 @@ extension PagesDatasource {
   }
 
   private func makePagesRequest(
-    until index: Int,
+    until id: String,
     using info: ChapterDownloadInfo
   ) async throws {
     let pages = try await getPagesNeedingLoading(
-      pageIndex: index,
+      pageId: id,
       info: info
     )
 
-    print("MangaReaderViewModel -> Loading \(pages.count) pages")
+    print("PagesDatasource -> Loading \(pages.count) pages")
 
     Task {
       await withTaskGroup(of: Void.self) { taskGroup in
-        for index in pages {
+        for (index, url) in pages.enumerated() {
           taskGroup.addTask {
-            let url = (try? self.delegate.buildPageUrl(index: index, info: info)) ?? UUID().uuidString
-
             do {
               let data = try await self.delegate.fetchPage(index: index, info: info)
 
               await self.updateOrAppend(.remote(url, index, data))
             } catch {
-              print("MangaReaderViewModel -> Page \(index) failed download: \(error)")
+              print("PagesDatasource -> Page \(index) failed download: \(error)")
 
               await self.updateOrAppend(.notFound(url, index))
             }

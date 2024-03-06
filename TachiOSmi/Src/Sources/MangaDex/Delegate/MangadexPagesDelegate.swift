@@ -36,7 +36,8 @@ final class MangadexPagesDelegate: PagesDelegateType {
   }
 
   func fetchPage(
-    _ url: String
+    url: String,
+    info: ChapterDownloadInfo
   ) async throws -> Data {
     return try await makePageRequest(url)
   }
@@ -62,8 +63,6 @@ extension MangadexPagesDelegate {
   private func makeChapterInfoRequest(
     chapterId: String
   ) async throws -> ChapterDownloadInfo {
-    print("MangaReaderViewModel -> Starting chapter page download info")
-
     let json = try await httpClient.makeJsonGetRequest(
       url: "https://api.mangadex.org/at-home/server/\(chapterId)"
     )
@@ -76,8 +75,6 @@ extension MangadexPagesDelegate {
     else {
       throw ParserError.parsingError
     }
-
-    print("MangaReaderViewModel -> Ended chapter page download info")
 
     return ChapterDownloadInfo(
       downloadUrl: "\(baseUrl)/data/\(hash)",

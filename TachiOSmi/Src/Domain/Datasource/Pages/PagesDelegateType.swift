@@ -20,6 +20,11 @@ protocol PagesDelegateType {
     info: ChapterDownloadInfo
   ) async throws -> Data
 
+  func fetchPage(
+    url: String,
+    info: ChapterDownloadInfo
+  ) async throws -> Data
+
   func buildPageUrl(
     index: Int,
     info: ChapterDownloadInfo

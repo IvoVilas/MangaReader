@@ -52,6 +52,16 @@ final class ManganeloPagesDelegate: PagesDelegateType {
     )
   }
 
+  func fetchPage(
+    url: String,
+    info: ChapterDownloadInfo
+  ) async throws -> Data {
+    return try await httpClient.makeDataSafeGetRequest(
+      url,
+      comingFrom: info.downloadUrl
+    )
+  }
+
   func buildPageUrl(
     index: Int,
     info: ChapterDownloadInfo

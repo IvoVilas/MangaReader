@@ -9,14 +9,31 @@ import SwiftUI
 
 struct PageSliderView: View {
 
-  @Binding var value: Int
-  let numberOfValues: Int
-  let onChange: ((Int) -> Void)?
+  @Binding var value: String?
+  let values: [String]
+  let onChanged: ((String) -> Void)?
 
+  @State private var sliderValue: Int
   @State private var sliderOffset: CGFloat = 0.0
   @State private var lastCoordinate: CGFloat = 0
   @State private var dotSize: CGFloat = 0
   @State private var width: CGFloat = 0
+
+  init(
+    value: Binding<String?>,
+    values: [String],
+    onChanged: ((String) -> Void)?
+  ) {
+    self._value = value
+    self.values = values
+    self.onChanged = onChanged
+
+    if let v = value.wrappedValue {
+      sliderValue = values.firstIndex(of: v) ?? 0
+    } else {
+      sliderValue = 0
+    }
+  }
 
   var body: some View {
     GeometryReader { geo in
@@ -37,7 +54,7 @@ struct PageSliderView: View {
           .frame(height: height)
 
         HStack(spacing: 0) {
-          ForEach(Array(0..<numberOfValues), id:\.self) { index in
+          ForEach(Array(0..<values.count), id:\.self) { index in
             Circle()
               .fill(.gray)
               .padding(.vertical, 2)
@@ -54,14 +71,19 @@ struct PageSliderView: View {
               )
               .contentShape(Rectangle())
               .onTapGesture {
-                if index != value {
-                  value = index
+                if index != sliderValue {
+                  sliderValue = index
 
-                  onChange?(index)
+                  if let v = values.safeGet(index) {
+                    value = v
+                    onChanged?(v)
+                  }
                 }
               }
 
-            if index < numberOfValues - 1 { Spacer().frame(minWidth: 0) }
+            if index < values.count - 1 {
+              Spacer().frame(minWidth: 0)
+            }
           }
         }
         .frame(width: width, height: height)
@@ -79,36 +101,45 @@ struct PageSliderView: View {
                   self.lastCoordinate = sliderOffset
                 }
 
-                let N = Double(numberOfValues)
+                let N = Double(values.count)
                 let nextCoordinate = between(
                   lastCoordinate + slide, 
                   min: 0,
                   max: width
                 )
 
-                let oldValue = value
+                let oldValue = sliderValue
                 let newValue = Int((nextCoordinate / width * (N - 1)).rounded())
 
                 if oldValue != newValue {
-                  value = newValue
+                  sliderValue = newValue
 
-                  let n = Double(value)
+                  let n = Double(sliderValue)
                   let spacing = (width - (N * dotSize)) / (N - 1)
                   sliderOffset = (n * (spacing + dotSize)) + (dotSize / 2)
 
-                  onChange?(newValue)
+                  if let v = values.safeGet(newValue) {
+                    value = v
+                    onChanged?(v)
+                  }
                 }
               }
           )
       }
     }
     .onChange(of: value) { oldValue, newValue in
-      if newValue == oldValue { return }
+      guard 
+        newValue != oldValue,
+        let newValue,
+        let sliderValue = values.firstIndex(of: newValue) 
+      else {
+        return
+      }
 
-      let N = Double(numberOfValues)
+      let N = Double(values.count)
 
       let value = between(
-        Double(newValue),
+        Double(sliderValue),
         min: 0,
         max: N - 1
       )
@@ -135,21 +166,25 @@ struct PageSliderView: View {
 
 private struct PagePreview: View {
 
-  @State var value: Int = 0
+  @State var value: String? = nil
+
+  let values = ["1", "2", "3", "4", "5"]
 
   var body: some View {
     VStack {
-      Text("\(value)")
+      Text(value ?? "nil")
 
       PageSliderView(
         value: $value,
-        numberOfValues: 100,
-        onChange: nil
+        values: values,
+        onChanged: nil
       )
       .frame(height: 24)
       .padding(.horizontal, 24)
 
-      Button { value += 1 } label: {
+      Button {
+        value = values[Int.random(in: 0..<values.count)]
+      } label: {
         Text("Change value")
       }
     }

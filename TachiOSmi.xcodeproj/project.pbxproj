@@ -26,6 +26,7 @@
 		1E1235512B85376A0022652F /* SwiftDate in Frameworks */ = {isa = PBXBuildFile; productRef = 1E1235502B85376A0022652F /* SwiftDate */; };
 		1E1235532B853C940022652F /* Date+Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E1235522B853C940022652F /* Date+Helpers.swift */; };
 		1E1235552B853D0E0022652F /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E1235542B853D0E0022652F /* AppEnvironment.swift */; };
+		1E4EE5762B9A070C0077A54D /* Array+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E4EE5752B9A070C0077A54D /* Array+Extension.swift */; };
 		1E598D7F2B97772900BDF1B6 /* PageSliderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E598D7E2B97772900BDF1B6 /* PageSliderView.swift */; };
 		1E79A4D42B8929D80075C234 /* HttpClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E79A4D32B8929D80075C234 /* HttpClient.swift */; };
 		1EA9CD672B925CE9000E3086 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 1EA9CD662B925CE9000E3086 /* Alamofire */; };
@@ -106,6 +107,7 @@
 		1E12353F2B8534580022652F /* SystemDateTimeComparatorType.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SystemDateTimeComparatorType.swift; sourceTree = "<group>"; };
 		1E1235522B853C940022652F /* Date+Helpers.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Date+Helpers.swift"; sourceTree = "<group>"; };
 		1E1235542B853D0E0022652F /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
+		1E4EE5752B9A070C0077A54D /* Array+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Array+Extension.swift"; sourceTree = "<group>"; };
 		1E598D7E2B97772900BDF1B6 /* PageSliderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageSliderView.swift; sourceTree = "<group>"; };
 		1E79A4D32B8929D80075C234 /* HttpClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HttpClient.swift; sourceTree = "<group>"; };
 		1EC8BD272B92789E0017ACF0 /* ManganeloSearchDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManganeloSearchDelegate.swift; sourceTree = "<group>"; };
@@ -183,9 +185,8 @@
 		1E12352F2B85341A0022652F /* Common */ = {
 			isa = PBXGroup;
 			children = (
+				1E4EE5742B9A06EF0077A54D /* Extensions */,
 				1E1235302B8534220022652F /* SystemDateTime */,
-				1EF20A3C2B8ED3B500D17A65 /* Combine */,
-				1EF20A382B8EB59C00D17A65 /* CoreData */,
 				1EF20A6C2B91879B00D17A65 /* UI */,
 			);
 			path = Common;
@@ -212,6 +213,17 @@
 				1E1235312B8534570022652F /* SystemDateTimeType.swift */,
 			);
 			path = SystemDateTime;
+			sourceTree = "<group>";
+		};
+		1E4EE5742B9A06EF0077A54D /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				1EF75B902B972ECE00C8E31D /* SwiftUI+Modifiers.swift */,
+				1EE89F692B84D87B000CAA20 /* Moc+Extension.swift */,
+				1EF20A3D2B8ED3C700D17A65 /* Combine+Extension.swift */,
+				1E4EE5752B9A070C0077A54D /* Array+Extension.swift */,
+			);
+			path = Extensions;
 			sourceTree = "<group>";
 		};
 		1E79A4D72B892ADD0075C234 /* Rest */ = {
@@ -297,22 +309,6 @@
 			path = Entity;
 			sourceTree = "<group>";
 		};
-		1EF20A382B8EB59C00D17A65 /* CoreData */ = {
-			isa = PBXGroup;
-			children = (
-				1EE89F692B84D87B000CAA20 /* Moc+Extension.swift */,
-			);
-			path = CoreData;
-			sourceTree = "<group>";
-		};
-		1EF20A3C2B8ED3B500D17A65 /* Combine */ = {
-			isa = PBXGroup;
-			children = (
-				1EF20A3D2B8ED3C700D17A65 /* Combine+Extension.swift */,
-			);
-			path = Combine;
-			sourceTree = "<group>";
-		};
 		1EF20A462B91206000D17A65 /* MangaDex */ = {
 			isa = PBXGroup;
 			children = (
@@ -394,7 +390,6 @@
 				1EE68A202B8C8B6C003B9037 /* Style.swift */,
 				1EF20A362B8EA18D00D17A65 /* ToastView.swift */,
 				1EF8732C2B95B6F7005E59D3 /* CustomBackAction.swift */,
-				1EF75B902B972ECE00C8E31D /* SwiftUI+Modifiers.swift */,
 				1E598D7E2B97772900BDF1B6 /* PageSliderView.swift */,
 			);
 			path = UI;
@@ -611,6 +606,7 @@
 				1EE89F4D2B84C585000CAA20 /* ChapterMO.swift in Sources */,
 				1E1235482B8534580022652F /* SystemDateTimeRounder.swift in Sources */,
 				1EC8BD402B93AEF20017ACF0 /* MangaRepresentables.swift in Sources */,
+				1E4EE5762B9A070C0077A54D /* Array+Extension.swift in Sources */,
 				1EF20A4C2B91212700D17A65 /* MangadexSearchDelegate.swift in Sources */,
 				1EE89F652B84D237000CAA20 /* MangaParser.swift in Sources */,
 				1EF20A552B91305B00D17A65 /* MangadexChaptersDelegate.swift in Sources */,
