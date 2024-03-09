@@ -228,8 +228,6 @@ extension ChapterReaderViewModel {
   }
 
   var selectedPageNumber: Int {
-    print("Ivo -> 3")
-
     guard let pageId else { return 0 }
 
     let index = pages.map { $0.id }.firstIndex(of: pageId) ?? 0

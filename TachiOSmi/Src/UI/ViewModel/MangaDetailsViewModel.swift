@@ -8,16 +8,21 @@
 import Foundation
 import SwiftUI
 import Combine
+import CoreData
 
 final class MangaDetailsViewModel: ObservableObject {
 
+  private let mangaId: String
   private let source: Source
   private let chaptersDatasource: ChaptersDatasource
   private let detailsDatasource: DetailsDatasource
+  private let mangaCrud: MangaCrud
+  private let viewMoc: NSManagedObjectContext
 
   @Published var title: String
-  @Published var cover: UIImage?
+  @Published var cover: Data?
   @Published var description: String?
+  @Published var isSaved: Bool
   @Published var status: MangaStatus
   @Published var authors: [AuthorModel]
   @Published var tags: [TagModel]
@@ -26,20 +31,48 @@ final class MangaDetailsViewModel: ObservableObject {
   @Published var isLoading: Bool
   @Published var isImageLoading: Bool
   @Published var error: DatasourceError?
+  @Published var info: String?
 
   private var observers = Set<AnyCancellable>()
 
   init(
     source: Source,
-    chaptersDatasource: ChaptersDatasource,
-    detailsDatasource: DetailsDatasource
+    manga: MangaSearchResult,
+    mangaCrud: MangaCrud,
+    chapterCrud: ChapterCrud,
+    coverCrud: CoverCrud,
+    authorCrud: AuthorCrud,
+    tagCrud: TagCrud,
+    httpClient: HttpClient,
+    systemDateTime: SystemDateTimeType,
+    viewMoc: NSManagedObjectContext
   ) {
+    self.mangaId = manga.id
     self.source = source
-    self.chaptersDatasource = chaptersDatasource
-    self.detailsDatasource = detailsDatasource
+    self.mangaCrud = mangaCrud
+    self.viewMoc = viewMoc
 
-    cover          = nil
-    title          = ""
+    chaptersDatasource = ChaptersDatasource(
+      mangaId: manga.id,
+      delegate: source.chaptersDelegateType.init(httpClient: httpClient),
+      mangaCrud: mangaCrud,
+      chapterCrud: chapterCrud,
+      systemDateTime: systemDateTime,
+      viewMoc: viewMoc
+    )
+    detailsDatasource = DetailsDatasource(
+      manga: manga,
+      delegate: source.detailsDelegateType.init(httpClient: httpClient),
+      mangaCrud: mangaCrud,
+      coverCrud: coverCrud,
+      authorCrud: authorCrud, 
+      tagCrud: tagCrud,
+      viewMoc: viewMoc
+    )
+
+    cover          = manga.cover
+    title          = manga.title
+    isSaved        = manga.isSaved
     status         = .unknown
     authors        = []
     tags           = []
@@ -60,6 +93,13 @@ final class MangaDetailsViewModel: ObservableObject {
       .removeDuplicates()
       .receive(on: DispatchQueue.main)
       .sink { [weak self] in self?.description = $0 }
+      .store(in: &observers)
+
+    detailsDatasource.detailsPublisher
+      .map { $0.isSaved }
+      .removeDuplicates()
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in self?.isSaved = $0 }
       .store(in: &observers)
 
     detailsDatasource.detailsPublisher
@@ -86,7 +126,6 @@ final class MangaDetailsViewModel: ObservableObject {
     detailsDatasource.detailsPublisher
       .compactMap { $0.cover }
       .removeDuplicates()
-      .map { UIImage(data: $0) }
       .receive(on: DispatchQueue.main)
       .sink { [weak self] in self?.cover = $0 }
       .store(in: &observers)
@@ -127,9 +166,38 @@ final class MangaDetailsViewModel: ObservableObject {
     .store(in: &observers)
   }
 
+  private func saveManga(isSaved: Bool) async throws {
+    try await viewMoc.perform {
+      guard let manga = try self.mangaCrud.getManga(self.mangaId, moc: self.viewMoc) else {
+        throw CrudError.mangaNotFound(id: self.mangaId)
+      }
+
+      self.mangaCrud.updateIsSaved(manga, isSaved: isSaved)
+
+      if !self.viewMoc.saveIfNeeded(rollbackOnError: true).isSuccess {
+        throw CrudError.saveError
+      }
+    }
+  }
+
 }
 
 extension MangaDetailsViewModel {
+
+  func saveManga(_ save: Bool) async {
+    await MainActor.run { isSaved = save }
+
+    do {
+      try await self.saveManga(isSaved: save)
+    } catch {
+      await MainActor.run {
+        self.isSaved = !save
+        self.error = DatasourceError.catchError(error)
+      }
+    }
+
+    await MainActor.run { info = save ? "Manga added to library" : "Manga removed from library" }
+  }
 
   func setupData() async {
     if chapters.isEmpty {

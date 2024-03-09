@@ -7,27 +7,30 @@
 
 import SwiftUI
 
-
 struct ContentView: View {
 
-  private var sources = [
-    Source.mangadex,
-    Source.manganelo
-  ]
+  let viewModel: MangaLibraryViewModel
 
   var body: some View {
     NavigationStack {
-      ScrollView {
-        VStack(alignment: .leading, spacing: 24) {
-          ForEach(Array(sources.enumerated()), id:\.element.id) { _, source in
-            NavigationLink(value: source) {
-              makeSourceView(source)
-                .padding(.horizontal, 24)
-            }
+      TabView {
+        libraryView()
+          .tabItem {
+            Label(
+              title: { Text("Library") },
+              icon: { Image(systemName: "book.closed.fill") }
+            )
           }
-        }
-        .padding(.top, 24)
+
+        searchView()
+          .tabItem {
+            Label(
+              title: { Text("Search") },
+              icon: { Image(systemName: "safari") }
+            )
+          }
       }
+      .onAppear { viewModel.refreshLibrary() }
       .background(.white)
       .navigationDestination(for: Source.self) { source in
         MangaSearchView(
@@ -44,6 +47,63 @@ struct ContentView: View {
           )
         )
       }
+      .navigationDestination(for: MangaLibraryViewModel.MangaWrapper.self) { wrapper in
+        MangaDetailsView(
+          viewModel: MangaDetailsViewModel(
+            source: wrapper.source,
+            manga: MangaSearchResult(
+              id: wrapper.manga.id,
+              title: wrapper.manga.title,
+              cover: wrapper.manga.cover,
+              isSaved: wrapper.manga.isSaved
+            ),
+            mangaCrud: AppEnv.env.mangaCrud,
+            chapterCrud: AppEnv.env.chapterCrud,
+            coverCrud: AppEnv.env.coverCrud,
+            authorCrud: AppEnv.env.authorCrud,
+            tagCrud: AppEnv.env.tagCrud,
+            httpClient: AppEnv.env.httpClient,
+            systemDateTime: AppEnv.env.systemDateTime,
+            viewMoc: wrapper.source.viewMoc
+          )
+        )
+      }
+    }
+  }
+
+  @ViewBuilder
+  private func libraryView() -> some View {
+    let columns = Array(
+      repeating: GridItem(.flexible(), spacing: 16),
+      count: 3
+    )
+
+    ScrollView {
+      LazyVGrid(columns: columns, spacing: 16) {
+        ForEach(viewModel.mangas) { result in
+          NavigationLink(value: result) {
+            makeMangaView(result.manga)
+          }
+        }
+      }
+      .padding(16)
+    }
+    .scrollIndicators(.hidden)
+    .refreshable { viewModel.refreshLibrary() }
+  }
+
+  @ViewBuilder
+  private func searchView() -> some View {
+    ScrollView {
+      VStack(alignment: .leading, spacing: 24) {
+        ForEach(viewModel.sources) { source in
+          NavigationLink(value: source) {
+            makeSourceView(source)
+              .padding(.horizontal, 24)
+          }
+        }
+      }
+      .padding(.top, 24)
     }
   }
 
@@ -75,8 +135,41 @@ struct ContentView: View {
     )
   }
 
+  @ViewBuilder
+  private func makeMangaView(
+    _ manga: MangaModel
+  ) -> some View {
+    Image(uiImage: manga.cover.toUIImage() ?? UIImage())
+      .resizable()
+      .aspectRatio(0.625, contentMode: .fill)
+      .background(.gray)
+      .overlay {
+        ZStack(alignment: .bottomLeading) {
+          LinearGradient(
+            gradient: Gradient(colors: [.clear, .black.opacity(0.8)]),
+            startPoint: .center,
+            endPoint: .bottom
+          )
+
+          Text(manga.title)
+            .font(.bold(.footnote)())
+            .lineLimit(2)
+            .multilineTextAlignment(.leading)
+            .foregroundStyle(.white)
+            .padding(.horizontal, 4)
+            .padding(.bottom, 8)
+        }
+      }
+      .clipShape(RoundedRectangle(cornerRadius: 8))
+  }
+
 }
 
 #Preview {
-  ContentView()
+  ContentView(
+    viewModel: MangaLibraryViewModel(
+      mangaCrud: MangaCrud(),
+      coverCrud: CoverCrud()
+    )
+  )
 }

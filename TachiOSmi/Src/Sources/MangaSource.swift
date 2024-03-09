@@ -9,20 +9,10 @@ import Foundation
 import CoreData
 import UIKit
 
-enum Source {
+enum Source: Identifiable {
 
   case mangadex
   case manganelo
-
-  var name: String {
-    switch self {
-    case .mangadex:
-      return "MangaDex"
-
-    case .manganelo:
-      return "MangaNelo"
-    }
-  }
 
   var id: String {
     switch self {
@@ -31,6 +21,16 @@ enum Source {
 
     case .manganelo:
       return "1"
+    }
+  }
+
+  var name: String {
+    switch self {
+    case .mangadex:
+      return "MangaDex"
+
+    case .manganelo:
+      return "MangaNelo"
     }
   }
 

@@ -91,6 +91,14 @@ struct MangaDetailsView: View {
         )
       }
     }
+    .onReceive(viewModel.$info) { info in
+      if let info {
+        toast = Toast(
+          style: .success,
+          message: info
+        )
+      }
+    }
   }
 
   @ViewBuilder
@@ -114,7 +122,7 @@ struct MangaDetailsView: View {
   func makeHeaderView() -> some View {
     VStack(alignment: .leading, spacing: 0) {
       ZStack(alignment: .top) {
-        Image(uiImage: viewModel.cover ?? .coverNotFound)
+        Image(uiImage: viewModel.cover.toUIImage() ?? .coverNotFound)
           .resizable()
           .scaledToFill()
           .frame(maxWidth: .infinity)
@@ -143,7 +151,7 @@ struct MangaDetailsView: View {
         .frame(width: 20, height: 20)
 
       HStack(spacing: 16) {
-        Image(uiImage: viewModel.cover ?? .coverNotFound)
+        Image(uiImage: viewModel.cover.toUIImage() ?? .coverNotFound)
           .resizable()
           .aspectRatio(contentMode: .fill)
           .frame(width: 100, height: 160)
@@ -177,6 +185,24 @@ struct MangaDetailsView: View {
               .foregroundStyle(foregroundColor)
               .font(.footnote)
           }
+
+          Button {
+            Task(priority: .userInitiated) {
+              await viewModel.saveManga(!viewModel.isSaved)
+            }
+          } label: {
+            HStack(spacing: 4) {
+              Image(systemName: viewModel.isSaved ?  "book.closed.fill" : "book.closed")
+                .foregroundStyle(viewModel.isLoading ? .gray : foregroundColor)
+                .aspectRatio(1, contentMode: .fill)
+
+              Text(viewModel.isSaved ? "In library" : "Add to library")
+                .font(.caption2)
+                .foregroundStyle(viewModel.isLoading ? .gray : foregroundColor)
+            }
+            .padding(.top, 4)
+          }
+          .disabled(viewModel.isLoading)
         }
 
         Spacer()
@@ -259,32 +285,21 @@ extension MangaDetailsView {
     let manga = MangaSearchResult(
       id: "c52b2ce3-7f95-469c-96b0-479524fb7a1a",
       title: "Jujutsu Kaisen",
-      cover: UIImage.jujutsuCover.jpegData(compressionQuality: 1)
+      cover: UIImage.jujutsuCover.jpegData(compressionQuality: 1), 
+      isSaved: false
     )
 
     return MangaDetailsViewModel(
       source: .mangadex,
-      chaptersDatasource: ChaptersDatasource(
-        mangaId: manga.id,
-        delegate: MangadexChaptersDelegate(
-          httpClient: httpClient
-        ),
-        mangaCrud: mangaCrud,
-        chapterCrud: chapterCrud,
-        systemDateTime: systemDateTime, 
-        viewMoc: moc
-      ),
-      detailsDatasource: DetailsDatasource(
-        manga: manga,
-        delegate: MangadexDetailsDelegate(
-          httpClient: httpClient
-        ),
-        mangaCrud: mangaCrud,
-        coverCrud: coverCrud,
-        authorCrud: AuthorCrud(),
-        tagCrud: TagCrud(),
-        viewMoc: moc
-      )
+      manga: manga,
+      mangaCrud: mangaCrud,
+      chapterCrud: chapterCrud,
+      coverCrud: coverCrud,
+      authorCrud: AuthorCrud(),
+      tagCrud: TagCrud(),
+      httpClient: httpClient,
+      systemDateTime: systemDateTime,
+      viewMoc: moc
     )
   }
 

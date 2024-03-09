@@ -62,7 +62,9 @@ final class DetailsDatasource {
         id: manga.id,
         title: manga.title,
         description: nil,
+        isSaved: manga.isSaved,
         status: .unknown,
+        readingDirection: .leftToRight,
         cover: manga.cover,
         tags: [],
         authors: []
@@ -193,7 +195,9 @@ final class DetailsDatasource {
       id: manga.id,
       title: manga.title,
       description: manga.description,
+      isSaved: manga.isSaved,
       status: manga.status,
+      readingDirection: manga.readingDirection,
       cover: cover,
       tags: manga.tags,
       authors: manga.authors

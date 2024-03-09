@@ -22,7 +22,12 @@ struct TachiOSmiApp: App {
 
   var body: some Scene {
     WindowGroup {
-      ContentView()
+      ContentView(
+        viewModel: MangaLibraryViewModel(
+          mangaCrud: AppEnv.env.mangaCrud,
+          coverCrud: AppEnv.env.coverCrud
+        )
+      )
     }
   }
 

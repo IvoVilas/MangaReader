@@ -83,27 +83,15 @@ extension MangaSearchViewModel {
   ) -> MangaDetailsViewModel {
     return MangaDetailsViewModel(
       source: source,
-      chaptersDatasource: ChaptersDatasource(
-        mangaId: manga.id,
-        delegate: source.chaptersDelegateType.init(
-          httpClient: AppEnv.env.httpClient
-        ),
-        mangaCrud: AppEnv.env.mangaCrud,
-        chapterCrud: AppEnv.env.chapterCrud,
-        systemDateTime: AppEnv.env.systemDateTime,
-        viewMoc: source.viewMoc
-      ),
-      detailsDatasource: DetailsDatasource(
-        manga: manga,
-        delegate: source.detailsDelegateType.init(
-          httpClient: AppEnv.env.httpClient
-        ),
-        mangaCrud: AppEnv.env.mangaCrud,
-        coverCrud: AppEnv.env.coverCrud,
-        authorCrud: AppEnv.env.authorCrud,
-        tagCrud: AppEnv.env.tagCrud,
-        viewMoc: source.viewMoc
-      )
+      manga: manga,
+      mangaCrud: AppEnv.env.mangaCrud,
+      chapterCrud: AppEnv.env.chapterCrud,
+      coverCrud: AppEnv.env.coverCrud,
+      authorCrud: AppEnv.env.authorCrud,
+      tagCrud: AppEnv.env.tagCrud,
+      httpClient: AppEnv.env.httpClient,
+      systemDateTime: AppEnv.env.systemDateTime,
+      viewMoc: source.viewMoc
     )
   }
 

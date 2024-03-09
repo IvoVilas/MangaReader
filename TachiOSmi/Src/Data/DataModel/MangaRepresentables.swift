@@ -13,7 +13,9 @@ struct MangaModel: Identifiable, Hashable {
   let id: String
   let title: String
   let description: String?
+  let isSaved: Bool
   let status: MangaStatus
+  let readingDirection: ReadingDirection
   let cover: Data?
   let tags: [TagModel]
   let authors: [AuthorModel]
@@ -23,7 +25,9 @@ struct MangaModel: Identifiable, Hashable {
       id: manga.id,
       title: manga.title,
       description: manga.synopsis,
+      isSaved: manga.isSaved,
       status: .safeInit(from: manga.statusId),
+      readingDirection: .safeInit(from: manga.readingDirection),
       cover: nil,
       tags: manga.tags.map { .from($0) }.sorted { $0.title < $1.title },
       authors: manga.authors.map { .from($0) }
@@ -32,13 +36,15 @@ struct MangaModel: Identifiable, Hashable {
 
   static func from(
     _ manga: MangaMO,
-    cover: Data
+    cover: Data?
   ) -> MangaModel {
     return MangaModel(
       id: manga.id,
       title: manga.title,
       description: manga.synopsis,
+      isSaved: manga.isSaved,
       status: .safeInit(from: manga.statusId),
+      readingDirection: .safeInit(from: manga.readingDirection),
       cover: cover,
       tags: manga.tags.map { .from($0) }.sorted { $0.title < $1.title },
       authors: manga.authors.map { .from($0) }
@@ -61,6 +67,7 @@ struct MangaSearchResult: Identifiable, Hashable {
   let id: String
   let title: String
   let cover: Data?
+  let isSaved: Bool
 
 }
 
@@ -75,12 +82,18 @@ struct MangaDetailsParsedData {
   let authors: [AuthorModel]
   let coverInfo: String
 
-  func convertToModel(cover: Data? = nil) -> MangaModel {
+  func convertToModel(
+    isSaved: Bool = false,
+    readingDirection: ReadingDirection = .leftToRight,
+    cover: Data? = nil
+  ) -> MangaModel {
     return MangaModel(
       id: id,
       title: title,
       description: description,
+      isSaved: isSaved,
       status: status,
+      readingDirection: readingDirection,
       cover: cover,
       tags: tags.sorted { $0.title < $1.title },
       authors: authors

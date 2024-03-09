@@ -92,6 +92,24 @@ extension MangaCrud {
     }
   }
 
+  func getAllSavedMangas(
+    moc: NSManagedObjectContext
+  ) throws -> [MangaMO] {
+    let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Manga")
+
+    fetchRequest.predicate = NSPredicate(format: "isSaved == true")
+
+    do {
+      guard let results = try moc.fetch(fetchRequest) as? [MangaMO] else {
+        throw CrudError.wrongRequestType
+      }
+
+      return results
+    } catch {
+      throw CrudError.requestError(error)
+    }
+  }
+
 }
 
 // MARK: - Create or Update
@@ -174,50 +192,18 @@ extension MangaCrud {
     manga.lastUpdateAt = date
   }
 
-  func updateLastUpdateAt(
-    _ id: String,
-    date: Date?,
-    moc: NSManagedObjectContext
-  ) throws {
-    guard let manga = try getManga(id, moc: moc) else {
-      throw CrudError.mangaNotFound(id: id)
-    }
-
-    manga.lastUpdateAt = date
-
-    _ = moc.saveIfNeeded(rollbackOnError: true)
+  func updateIsSaved(
+    _ manga: MangaMO,
+    isSaved: Bool
+  ) {
+    manga.isSaved = isSaved
   }
 
-  func addTag(
+  func updateReadingDirection(
     _ manga: MangaMO,
-    tag: TagMO
+    direction: ReadingDirection
   ) {
-    manga.tags.insert(tag)
-  }
-
-  func addTags(
-    _ manga: MangaMO,
-    tags: Set<TagMO>
-  ) {
-    for tag in tags {
-      manga.tags.insert(tag)
-    }
-  }
-
-  func addAuthor(
-    _ manga: MangaMO,
-    author: AuthorMO
-  ) {
-    manga.authors.insert(author)
-  }
-
-  func addAuthors(
-    _ manga: MangaMO,
-    authors: [AuthorMO]
-  ) {
-    for author in authors {
-      manga.authors.insert(author)
-    }
+    manga.readingDirection = direction.id
   }
 
 }

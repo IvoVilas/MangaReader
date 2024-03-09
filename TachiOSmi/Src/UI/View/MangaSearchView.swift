@@ -71,11 +71,12 @@ struct MangaSearchView: View {
           LazyVGrid(columns: columns, spacing: 16) {
             ForEach(viewModel.results) { result in
               NavigationLink(value: result) {
-                MangaResultCompactView(
+                MangaResultView(
                   id: result.id,
                   cover: result.cover,
                   title: result.title,
                   textColor: secondaryColor,
+                  isSaved: result.isSaved,
                   layout: $listLayout
                 )
                 .equatable()
@@ -202,18 +203,21 @@ private struct HeaderView: View {
 
 }
 
-// MARK: ResultCompact
-private struct MangaResultCompactView: View, Equatable {
+// MARK: Result
+private struct MangaResultView: View, Equatable {
 
   let id: String
   let cover: Data?
   let title: String
   let textColor: Color
+  let isSaved: Bool
 
   @Binding var layout: ResultLayout
 
-  static func == (lhs: MangaResultCompactView, rhs: MangaResultCompactView) -> Bool {
+  static func == (lhs: MangaResultView, rhs: MangaResultView) -> Bool {
     if lhs.id != rhs.id { return false }
+
+    if lhs.isSaved != rhs.isSaved { return false }
 
     switch (lhs.cover, rhs.cover) {
     case (.none, .some):
@@ -230,6 +234,25 @@ private struct MangaResultCompactView: View, Equatable {
   // We should avoid using conditional views
   // Specially on a view that is drawn so many times like this one
   var body: some View {
+    ZStack(alignment: .topLeading) {
+      makeResultView()
+        .overlay(
+          .white.opacity(isSaved ? 0.5 : 0)
+        )
+
+      Image(systemName: "bookmark.fill")
+        .resizable()
+        .scaledToFit()
+        .frame(width: 15)
+        .foregroundStyle(.black)
+        .aspectRatio(1, contentMode: .fill)
+        .padding(.leading, 8)
+        .opacity(isSaved ? 1 : 0)
+    }
+  }
+
+  @ViewBuilder
+  private func makeResultView() -> some View {
     switch layout {
     case .normal:
       VStack(alignment: .leading, spacing: 4) {
@@ -248,7 +271,7 @@ private struct MangaResultCompactView: View, Equatable {
       }
 
     case .compact:
-      Image(uiImage: UIImage(data: cover ?? Data()) ?? UIImage())
+      Image(uiImage: cover.toUIImage() ?? UIImage())
         .resizable()
         .aspectRatio(0.625, contentMode: .fill)
         .background(.gray)
@@ -275,45 +298,6 @@ private struct MangaResultCompactView: View, Equatable {
 
 }
 
-// MARK: Result
-private struct MangaResultView: View, Equatable {
-
-  let id: String
-  let cover: Data?
-  let title: String
-  let textColor: Color
-
-  static func == (lhs: MangaResultView, rhs: MangaResultView) -> Bool {
-    if lhs.id != rhs.id { return false }
-
-    switch (lhs.cover, rhs.cover) {
-    case (.none, .some):
-      return false
-
-    case (.some, .none):
-      return false
-
-    default:
-      return true
-    }
-  }
-
-  var body: some View {
-    VStack(spacing: 4) {
-      Image(uiImage: UIImage(data: cover ?? Data()) ?? UIImage())
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-
-      Text(title)
-        .font(.caption2)
-        .lineLimit(2)
-        .multilineTextAlignment(.leading)
-        .foregroundStyle(textColor)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    }
-  }
-
-}
-
 #Preview {
   MangaSearchView(
     viewModel: MangaSearchViewModel(
@@ -328,4 +312,16 @@ private struct MangaResultView: View, Equatable {
       )
     )
   )
+}
+
+#Preview {
+  MangaResultView(
+    id: "1",
+    cover: UIImage.jujutsuCover.pngData(),
+    title: "Jujutsu Kaisen",
+    textColor: .black,
+    isSaved: true,
+    layout: .constant(.compact)
+  )
+  .frame(width: 120, height: 0)
 }

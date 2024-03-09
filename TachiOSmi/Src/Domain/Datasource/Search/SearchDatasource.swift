@@ -80,15 +80,26 @@ final class SearchDatasource {
       do {
         let results = try await self.fetchSearchResults(search, page: 0)
 
-        let mangas = results.map {
-          MangaSearchResult(
-            id: $0.id,
-            title: $0.title,
-            cover: nil
+        var mangas = [MangaSearchResult]()
+
+        for result in results {
+          let local = try viewMoc.performAndWait {
+            try self.mangaCrud.getManga(result.id, moc: self.viewMoc)
+          }
+
+          mangas.append(
+            MangaSearchResult(
+              id: result.id,
+              title: result.title,
+              cover: nil,
+              isSaved: local?.isSaved ?? false
+            )
           )
         }
 
-        await MainActor.run { self.mangas.valueOnMain = mangas }
+        await MainActor.run { [mangas] in
+          self.mangas.valueOnMain = mangas
+        }
 
         doFetchCoversTask(results)
       } catch {
@@ -134,13 +145,24 @@ final class SearchDatasource {
           return
         }
 
-        await appendResults(results.map {
-          MangaSearchResult(
-            id: $0.id,
-            title: $0.title,
-            cover: nil
+        var searchResult = [MangaSearchResult]()
+
+        for result in results {
+          let local = try viewMoc.performAndWait {
+            try self.mangaCrud.getManga(result.id, moc: self.viewMoc)
+          }
+
+          searchResult.append(
+            MangaSearchResult(
+              id: result.id,
+              title: result.title,
+              cover: nil,
+              isSaved: local?.isSaved ?? false
+            )
           )
-        })
+        }
+
+        await appendResults(searchResult)
 
         doFetchCoversTask(results)
       } catch {
@@ -252,7 +274,8 @@ final class SearchDatasource {
       mangas.valueOnMain[i] = MangaSearchResult(
         id: manga.id,
         title: manga.title,
-        cover: cover
+        cover: cover,
+        isSaved: manga.isSaved
       )
     }
   }

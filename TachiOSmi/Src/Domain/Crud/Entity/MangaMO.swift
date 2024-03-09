@@ -15,6 +15,8 @@ class MangaMO: NSManagedObject {
   @NSManaged var synopsis: String?
   @NSManaged var statusId: Int16
   @NSManaged var lastUpdateAt: Date?
+  @NSManaged var isSaved: Bool
+  @NSManaged var readingDirection: Int16
 
   // Relationships
   @NSManaged var chapters: Set<ChapterMO>
@@ -35,11 +37,13 @@ class MangaMO: NSManagedObject {
 
     self.init(entity: entity, insertInto: moc)
 
-    self.id           = id
-    self.title        = title
-    self.synopsis     = synopsis
-    self.statusId     = statusId
-    self.lastUpdateAt = lastUpdateAt
+    self.id               = id
+    self.title            = title
+    self.synopsis         = synopsis
+    self.statusId         = statusId
+    self.lastUpdateAt     = lastUpdateAt
+    self.isSaved          = false
+    self.readingDirection = 0
 
     self.chapters = Set<ChapterMO>()
     self.tags     = Set<TagMO>()
