@@ -9,11 +9,11 @@ import SwiftUI
 
 struct MangaDetailsView: View {
 
-  @ObservedObject var viewModel: MangaDetailsViewModel
+  let viewModel: MangaDetailsViewModel
   @State private var toast: Toast?
 
-  private let backgroundColor: Color = .white
-  private let foregroundColor: Color = .black
+  private let backgroundColor: Color = .black
+  private let foregroundColor: Color = .white
 
   init(
     viewModel: MangaDetailsViewModel
@@ -83,7 +83,7 @@ struct MangaDetailsView: View {
       )
     }
     .toastView(toast: $toast)
-    .onReceive(viewModel.$error) { error in
+    .onChange(of: viewModel.error) { _, error in
       if let error {
         toast = Toast(
           style: .error,
@@ -91,7 +91,7 @@ struct MangaDetailsView: View {
         )
       }
     }
-    .onReceive(viewModel.$info) { info in
+    .onChange(of: viewModel.info) { _, info in
       if let info {
         toast = Toast(
           style: .success,

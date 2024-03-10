@@ -10,7 +10,22 @@ import SwiftUI
 import Combine
 import CoreData
 
-final class MangaDetailsViewModel: ObservableObject {
+@Observable
+final class MangaDetailsViewModel {
+
+  var title: String
+  var cover: Data?
+  var description: String?
+  var isSaved: Bool
+  var status: MangaStatus
+  var authors: [AuthorModel]
+  var tags: [TagModel]
+  var chapters: [ChapterModel]
+  var chapterCount: Int
+  var isLoading: Bool
+  var isImageLoading: Bool
+  var error: DatasourceError?
+  var info: String?
 
   private let mangaId: String
   private let source: Source
@@ -18,20 +33,6 @@ final class MangaDetailsViewModel: ObservableObject {
   private let detailsDatasource: DetailsDatasource
   private let mangaCrud: MangaCrud
   private let viewMoc: NSManagedObjectContext
-
-  @Published var title: String
-  @Published var cover: Data?
-  @Published var description: String?
-  @Published var isSaved: Bool
-  @Published var status: MangaStatus
-  @Published var authors: [AuthorModel]
-  @Published var tags: [TagModel]
-  @Published var chapters: [ChapterModel]
-  @Published var chapterCount: Int
-  @Published var isLoading: Bool
-  @Published var isImageLoading: Bool
-  @Published var error: DatasourceError?
-  @Published var info: String?
 
   private var observers = Set<AnyCancellable>()
 

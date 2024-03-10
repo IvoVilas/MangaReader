@@ -10,13 +10,14 @@ import SwiftUI
 import Combine
 import CoreData
 
-final class MangaSearchViewModel: ObservableObject {
+@Observable
+final class MangaSearchViewModel {
 
-  @Published var sourceName: String
-  @Published var results: [MangaSearchResult]
-  @Published var input: String
-  @Published var isLoading: Bool
-  @Published var error: DatasourceError?
+  var sourceName: String
+  var results: [MangaSearchResult]
+  var input: String
+  var isLoading: Bool
+  var error: DatasourceError?
 
   private let source: Source
   private let datasource: SearchDatasource

@@ -76,7 +76,7 @@ enum CrudError: Error {
 }
 
 // MARK: Datasource
-enum DatasourceError: Error {
+enum DatasourceError: Error, Equatable {
   case errorParsingResponse(String)
   case networkError(String)
   case databaseError(String)

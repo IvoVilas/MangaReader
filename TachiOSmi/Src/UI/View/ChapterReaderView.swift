@@ -14,7 +14,7 @@ import Combine
 // Basically, I do a double flip to make it work
 struct ChapterReaderView: View {
 
-  @ObservedObject var viewModel: ChapterReaderViewModel
+  @Bindable var viewModel: ChapterReaderViewModel
   @State private var isHorizontal = true
   @State private var toast: Toast?
   @State private var showingToolBar = false
@@ -65,7 +65,7 @@ struct ChapterReaderView: View {
     .environment(\.layoutDirection, .rightToLeft)
     .background(.black)
     .toastView(toast: $toast)
-    .onReceive(viewModel.$error) { error in
+    .onChange(of: viewModel.error) { _, error in
       if let error {
         toast = Toast(
           style: .error,

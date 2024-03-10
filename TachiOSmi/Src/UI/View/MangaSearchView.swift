@@ -36,7 +36,7 @@ private enum ResultLayout {
 // MARK: Search
 struct MangaSearchView: View {
 
-  @ObservedObject var viewModel: MangaSearchViewModel
+  @Bindable var viewModel: MangaSearchViewModel
   @State private var toast: Toast?
   @State private var listLayout = ResultLayout.compact
 
@@ -107,7 +107,7 @@ struct MangaSearchView: View {
         MangaDetailsView(viewModel: viewModel.buildMangaDetailsViewModel(manga))
       }
       .toastView(toast: $toast)
-      .onReceive(viewModel.$error) { error in
+      .onChange(of: viewModel.error) { _, error in
         if let error {
           toast = Toast(
             style: .error,

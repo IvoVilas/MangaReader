@@ -9,13 +9,14 @@ import Foundation
 import SwiftUI
 import Combine
 
-final class ChapterReaderViewModel: ObservableObject {
+@Observable
+final class ChapterReaderViewModel {
 
-  @Published var pages: [PageModel]
-  @Published var isLoading: Bool
-  @Published var pagesCount: Int
-  @Published var pageId: String?
-  @Published var error: DatasourceError?
+  var pages: [PageModel]
+  var isLoading: Bool
+  var pagesCount: Int
+  var pageId: String?
+  var error: DatasourceError?
 
   private var datasource: PagesDatasource
   private var transitionDatasource: PagesDatasource?
@@ -114,6 +115,53 @@ final class ChapterReaderViewModel: ObservableObject {
     }
   }
 
+}
+
+// MARK: Actions
+extension ChapterReaderViewModel {
+
+  func fetchPages() async {
+    await datasource.loadChapter()
+  }
+
+  func onPageTask(_ pageId: String) async {
+    if pageId == pages.transitionPage(withId: chapterId)?.id {
+      onTransitionPage()
+    } else if pageId == pages.pageAfterTransition(withId: chapterId)?.id {
+      onMoveToNext()
+    } else {
+      await datasource.loadNextPagesIfNeeded(pageId)
+    }
+  }
+
+  func movedToPage(_ id: String) {
+    Task(priority: .medium) {
+      await datasource.loadPages(until: id)
+    }
+  }
+
+  func reloadPages(startingAt page: PageModel) async {
+    guard let i = pages.firstIndex(where: { $0.id == page.id }) else { return }
+
+    let j = min(i + 10, pages.count)
+    let pages = pages[i..<j].compactMap {
+      switch $0 {
+      case .notFound(let url, let pos):
+        return (url, pos)
+
+      default: 
+        return nil
+      }
+    }
+
+    await datasource.reloadPages(pages)
+  }
+
+}
+
+// MARK: OnPage Actions
+extension ChapterReaderViewModel {
+
   private func onTransitionPage() {
     guard
       let i = chapters.firstIndex(of: chapter),
@@ -165,48 +213,6 @@ final class ChapterReaderViewModel: ObservableObject {
     self.chapter = transitionDatasource.chapter
 
     setupObservers()
-  }
-
-}
-
-// MARK: Actions
-extension ChapterReaderViewModel {
-
-  func fetchPages() async {
-    await datasource.loadChapter()
-  }
-
-  func onPageTask(_ pageId: String) async {
-    if pageId == pages.transitionPage(withId: chapterId)?.id {
-      onTransitionPage()
-    } else if pageId == pages.pageAfterTransition(withId: chapterId)?.id {
-      onMoveToNext()
-    } else {
-      await datasource.loadNextPagesIfNeeded(pageId)
-    }
-  }
-
-  func movedToPage(_ id: String) {
-    Task(priority: .medium) {
-      await datasource.loadPages(until: id)
-    }
-  }
-
-  func reloadPages(startingAt page: PageModel) async {
-    guard let i = pages.firstIndex(where: { $0.id == page.id }) else { return }
-
-    let j = min(i + 10, pages.count)
-    let pages = pages[i..<j].compactMap {
-      switch $0 {
-      case .notFound(let url, let pos):
-        return (url, pos)
-
-      default: 
-        return nil
-      }
-    }
-
-    await datasource.reloadPages(pages)
   }
 
 }

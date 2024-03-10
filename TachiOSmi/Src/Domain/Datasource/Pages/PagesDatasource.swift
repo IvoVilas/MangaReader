@@ -153,6 +153,8 @@ final class PagesDatasource {
               throw DatasourceError.otherError("Page not found")
             }
 
+            print("PagesDatasource -> Reloading page \(index)")
+
             let data = try await self.delegate.fetchPage(index: index, info: info)
 
             page = .remote(url, pos, data)
