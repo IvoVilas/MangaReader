@@ -27,6 +27,8 @@ final class MangaDetailsViewModel {
   var error: DatasourceError?
   var info: String?
 
+  private var readingDirection: ReadingDirection
+
   private let mangaId: String
   private let source: Source
   private let chaptersDatasource: ChaptersDatasource
@@ -81,6 +83,7 @@ final class MangaDetailsViewModel {
     chapterCount = 0
     isLoading = false
     isImageLoading = false
+    readingDirection = .leftToRight
 
     detailsDatasource.detailsPublisher
       .map { $0.title }
@@ -129,6 +132,13 @@ final class MangaDetailsViewModel {
       .removeDuplicates()
       .receive(on: DispatchQueue.main)
       .sink { [weak self] in self?.cover = $0 }
+      .store(in: &observers)
+
+    detailsDatasource.detailsPublisher
+      .map { $0.readingDirection }
+      .removeDuplicates()
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in self?.readingDirection = $0 }
       .store(in: &observers)
 
     chaptersDatasource.chaptersPublisher
@@ -222,10 +232,14 @@ extension MangaDetailsViewModel {
     _ chapter: ChapterModel
   ) -> ChapterReaderViewModel {
     return ChapterReaderViewModel(
+      readingDirection: readingDirection,
       source: source,
+      mangaId: mangaId,
       chapter: chapter,
       chapters: chapters,
-      httpClient: AppEnv.env.httpClient
+      mangaCrud: AppEnv.env.mangaCrud,
+      httpClient: AppEnv.env.httpClient,
+      viewMoc: viewMoc
     )
   }
 

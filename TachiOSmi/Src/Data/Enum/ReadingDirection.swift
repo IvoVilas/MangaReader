@@ -22,6 +22,26 @@ enum ReadingDirection {
     }
   }
 
+  var isHorizontal: Bool {
+    switch self {
+    case .leftToRight:
+      return true
+
+    case .upToDown:
+      return false
+    }
+  }
+
+  func toggle() -> ReadingDirection {
+    switch self {
+    case .leftToRight:
+      return .upToDown
+
+    case .upToDown:
+      return .leftToRight
+    }
+  }
+
   static func safeInit(
     from id: Int16
   ) -> ReadingDirection {

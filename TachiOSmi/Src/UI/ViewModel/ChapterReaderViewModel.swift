@@ -8,38 +8,50 @@
 import Foundation
 import SwiftUI
 import Combine
+import CoreData
 
-@Observable
-final class ChapterReaderViewModel {
+final class ChapterReaderViewModel: ObservableObject {
 
-  var pages: [PageModel]
-  var isLoading: Bool
-  var pagesCount: Int
-  var pageId: String?
-  var error: DatasourceError?
+  @Published var pages: [PageModel]
+  @Published var readingDirection: ReadingDirection
+  @Published var pagesCount: Int
+  @Published var pageId: String?
+  @Published var isLoading: Bool
+  @Published var error: DatasourceError?
 
   private var datasource: PagesDatasource
   private var transitionDatasource: PagesDatasource?
 
   private let source: Source
+  private let mangaId: String
   private var chapter: ChapterModel
   private let chapters: [ChapterModel]
+  private let mangaCrud: MangaCrud
   private let httpClient: HttpClient
+  private let viewMoc: NSManagedObjectContext
 
   private var observers = Set<AnyCancellable>()
   private var transitionObservers = Set<AnyCancellable>()
 
   // TODO: Search for chapter in the database instead of keeping in memory
   init(
+    readingDirection: ReadingDirection,
     source: Source,
+    mangaId: String,
     chapter: ChapterModel,
     chapters: [ChapterModel],
-    httpClient: HttpClient
+    mangaCrud: MangaCrud,
+    httpClient: HttpClient,
+    viewMoc: NSManagedObjectContext
   ) {
     self.source = source
+    self.mangaId = mangaId
     self.chapter = chapter
     self.chapters = chapters
+    self.mangaCrud = mangaCrud
     self.httpClient = httpClient
+    self.viewMoc = viewMoc
+    self.readingDirection = readingDirection
 
     datasource = PagesDatasource(
       chapter: chapter,
@@ -115,10 +127,34 @@ final class ChapterReaderViewModel {
     }
   }
 
+  private func updateReadingDirection(to direction: ReadingDirection) async throws {
+    try await viewMoc.perform {
+      guard let manga = try self.mangaCrud.getManga(self.mangaId, moc: self.viewMoc) else {
+        throw CrudError.mangaNotFound(id: self.mangaId)
+      }
+
+      self.mangaCrud.updateReadingDirection(manga, direction: direction)
+
+      if !self.viewMoc.saveIfNeeded(rollbackOnError: true).isSuccess {
+        throw CrudError.saveError
+      }
+    }
+  }
+
 }
 
 // MARK: Actions
 extension ChapterReaderViewModel {
+
+  func changeReadingDirection(to direction: ReadingDirection) async {
+    await MainActor.run { readingDirection = direction }
+
+    do {
+      try await self.updateReadingDirection(to: direction)
+    } catch {
+      return
+    }
+  }
 
   func fetchPages() async {
     await datasource.loadChapter()

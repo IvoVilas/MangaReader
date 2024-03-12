@@ -14,9 +14,8 @@ import Combine
 // Basically, I do a double flip to make it work
 struct ChapterReaderView: View {
 
-  @Bindable var viewModel: ChapterReaderViewModel
+  @ObservedObject var viewModel: ChapterReaderViewModel
   @State private var toast: Toast?
-  @State private var isHorizontal = true
   @State private var showingToolBar = false
 
   var body: some View {
@@ -65,7 +64,7 @@ struct ChapterReaderView: View {
     .environment(\.layoutDirection, .rightToLeft)
     .background(.black)
     .toastView(toast: $toast)
-    .onChange(of: viewModel.error) { _, error in
+    .onReceive(viewModel.$error) { error in
       if let error {
         toast = Toast(
           style: .error,
@@ -96,10 +95,17 @@ struct ChapterReaderView: View {
         Spacer()
 
         Button {
-          isHorizontal.toggle()
+          Task(priority: .medium) {
+            await viewModel.changeReadingDirection(
+              to: viewModel.readingDirection.toggle()
+            )
+          }
         } label: {
-          Image(systemName: isHorizontal ? "arrow.left.arrow.right" : "arrow.up.arrow.down")
-            .tint(.black)
+          Image(
+            systemName: viewModel.readingDirection.isHorizontal ?
+            "arrow.left.arrow.right" : "arrow.up.arrow.down"
+          )
+          .tint(.black)
         }
       }
       .padding(.bottom, 16)
@@ -143,7 +149,7 @@ struct ChapterReaderView: View {
 
   @ViewBuilder
   private func contentView() -> some View {
-    if isHorizontal {
+    if viewModel.readingDirection.isHorizontal {
       ScrollView(.horizontal) {
         LazyHStack(spacing: 0) {
           ForEach(viewModel.pages) { page in
@@ -292,7 +298,9 @@ private struct PageView: View, Equatable {
 #Preview {
   ChapterReaderView(
     viewModel: ChapterReaderViewModel(
+      readingDirection: .leftToRight,
       source: .mangadex,
+      mangaId: "c52b2ce3-7f95-469c-96b0-479524fb7a1a",
       chapter: ChapterModel(
         id: "5624518b-f062-49e8-84ec-e4f40e0de038",
         title: nil,
@@ -303,7 +311,9 @@ private struct PageView: View, Equatable {
         downloadInfo: "5624518b-f062-49e8-84ec-e4f40e0de038"
       ),
       chapters: [],
-      httpClient: HttpClient()
+      mangaCrud: MangaCrud(),
+      httpClient: HttpClient(),
+      viewMoc: PersistenceController.getViewMoc(for: .mangadex, inMemory: true)
     )
   )
 }
