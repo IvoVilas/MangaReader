@@ -220,9 +220,9 @@ extension ChapterReaderViewModel {
 // MARK: Useful helpers
 extension ChapterReaderViewModel {
 
-  var chapterId: String { chapter.id }
+  private var chapterId: String { chapter.id }
 
-  var previousChapterId: String? {
+  private var previousChapterId: String? {
     guard
       let i = chapters.firstIndex(of: chapter),
       let previousChapter = chapters.safeGet(i + 1)

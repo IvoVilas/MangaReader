@@ -21,6 +21,7 @@ final class MangaSearchViewModel {
 
   private let source: Source
   private let datasource: SearchDatasource
+  private let viewMoc: NSManagedObjectContext
 
   private var searchValue: MangaSearchType {
     if input.isEmpty {
@@ -34,10 +35,19 @@ final class MangaSearchViewModel {
 
   init(
     source: Source,
-    datasource: SearchDatasource
+    mangaCrud: MangaCrud,
+    coverCrud: CoverCrud,
+    httpClient: HttpClient,
+    viewMoc: NSManagedObjectContext
   ) {
     self.source = source
-    self.datasource = datasource
+    self.viewMoc = viewMoc
+    self.datasource = SearchDatasource(
+      delegate: source.searchDelegateType.init(httpClient: httpClient),
+      mangaCrud: mangaCrud,
+      coverCrud: coverCrud,
+      viewMoc: viewMoc
+    )
 
     sourceName = source.name
     results = []
@@ -92,7 +102,7 @@ extension MangaSearchViewModel {
       tagCrud: AppEnv.env.tagCrud,
       httpClient: AppEnv.env.httpClient,
       systemDateTime: AppEnv.env.systemDateTime,
-      viewMoc: source.viewMoc
+      viewMoc: viewMoc
     )
   }
 

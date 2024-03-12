@@ -15,8 +15,8 @@ import Combine
 struct ChapterReaderView: View {
 
   @Bindable var viewModel: ChapterReaderViewModel
-  @State private var isHorizontal = true
   @State private var toast: Toast?
+  @State private var isHorizontal = true
   @State private var showingToolBar = false
 
   var body: some View {

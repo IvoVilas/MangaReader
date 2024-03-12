@@ -14,29 +14,29 @@ final class MangaLibraryViewModel {
 
   private let mangaCrud: MangaCrud
   private let coverCrud: CoverCrud
+  private let inMemory: Bool
+  private let sources: [Source]
 
-  private(set) var sources: [Source]
   private(set) var mangas: [MangaWrapper]
 
   init(
     mangaCrud: MangaCrud,
-    coverCrud: CoverCrud
+    coverCrud: CoverCrud,
+    inMemory: Bool = false
   ) {
     self.mangaCrud = mangaCrud
     self.coverCrud = coverCrud
+    self.inMemory = inMemory
 
     mangas = []
-    sources = [
-      Source.mangadex,
-      Source.manganelo
-    ]
+    sources = Source.allSources()
   }
 
   func refreshLibrary() {
     var res = [MangaWrapper]()
 
     for source in sources {
-      let moc = source.viewMoc
+      let moc = PersistenceController.getViewMoc(for: source, inMemory: inMemory)
 
       moc.performAndWait {
         guard let mangas = try? mangaCrud.getAllSavedMangas(moc: moc) else {
@@ -47,9 +47,11 @@ final class MangaLibraryViewModel {
           res.append(
             MangaWrapper(
               source: source,
-              manga: .from(
-                manga,
-                cover: try? coverCrud.getCoverData(for: manga.id, moc: moc)
+              manga: MangaSearchResult(
+                id: manga.id,
+                title: manga.title,
+                cover: try? coverCrud.getCoverData(for: manga.id, moc: moc),
+                isSaved: manga.isSaved
               )
             )
           )
@@ -64,10 +66,34 @@ final class MangaLibraryViewModel {
 
 extension MangaLibraryViewModel {
 
+  func buildDetailsViewModel(
+    for manga: MangaWrapper
+  ) -> MangaDetailsViewModel {
+    let source = manga.source
+    let manga = manga.manga
+
+    return MangaDetailsViewModel(
+      source: source,
+      manga: manga,
+      mangaCrud: AppEnv.env.mangaCrud,
+      chapterCrud: AppEnv.env.chapterCrud,
+      coverCrud: AppEnv.env.coverCrud,
+      authorCrud: AppEnv.env.authorCrud,
+      tagCrud: AppEnv.env.tagCrud,
+      httpClient: AppEnv.env.httpClient,
+      systemDateTime: AppEnv.env.systemDateTime,
+      viewMoc: PersistenceController.getViewMoc(for: source, inMemory: inMemory)
+    )
+  }
+
+}
+
+extension MangaLibraryViewModel {
+
   struct MangaWrapper: Hashable, Identifiable {
 
     let source: Source
-    let manga: MangaModel
+    let manga: MangaSearchResult
 
     var id: String { manga.id }
 

@@ -14,6 +14,10 @@ enum Source: Identifiable {
   case mangadex
   case manganelo
 
+  static func allSources() -> [Source] {
+    [.mangadex, .manganelo]
+  }
+
   var id: String {
     switch self {
     case .mangadex:
@@ -41,16 +45,6 @@ enum Source: Identifiable {
 
     case .manganelo:
       return .manganelo
-    }
-  }
-
-  var viewMoc: NSManagedObjectContext {
-    switch self {
-    case .mangadex:
-      return PersistenceController.shared.mangaDex.viewMoc
-
-    case .manganelo:
-      return PersistenceController.shared.mangaNelo.viewMoc
     }
   }
 
@@ -91,6 +85,29 @@ enum Source: Identifiable {
 
     case .manganelo:
       return ManganeloPagesDelegate.self
+    }
+  }
+
+}
+
+extension PersistenceController {
+
+  static func getViewMoc(
+    for source: Source,
+    inMemory: Bool
+  ) -> NSManagedObjectContext {
+    switch (source, inMemory) {
+    case (.mangadex, false):
+      return shared.mangaDex.viewMoc
+
+    case (.mangadex, true):
+      return preview.mangaDex.viewMoc
+
+    case (.manganelo, false):
+      return shared.mangaNelo.viewMoc
+
+    case (.manganelo, true):
+      return preview.mangaNelo.viewMoc
     }
   }
 

@@ -302,14 +302,10 @@ private struct MangaResultView: View, Equatable {
   MangaSearchView(
     viewModel: MangaSearchViewModel(
       source: .mangadex,
-      datasource: SearchDatasource(
-        delegate: MangadexSearchDelegate(
-          httpClient: HttpClient()
-        ),
-        mangaCrud: MangaCrud(),
-        coverCrud: CoverCrud(),
-        viewMoc: PersistenceController.preview.mangaDex.viewMoc
-      )
+      mangaCrud: MangaCrud(),
+      coverCrud: CoverCrud(),
+      httpClient: HttpClient(),
+      viewMoc: PersistenceController.getViewMoc(for: .mangadex, inMemory: true)
     )
   )
 }

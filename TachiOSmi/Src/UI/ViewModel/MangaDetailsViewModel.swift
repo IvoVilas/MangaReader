@@ -71,15 +71,15 @@ final class MangaDetailsViewModel {
       viewMoc: viewMoc
     )
 
-    cover          = manga.cover
-    title          = manga.title
-    isSaved        = manga.isSaved
-    status         = .unknown
-    authors        = []
-    tags           = []
-    chapters       = []
-    chapterCount   = 0
-    isLoading      = false
+    cover = manga.cover
+    title = manga.title
+    isSaved = manga.isSaved
+    status = .unknown
+    authors = []
+    tags = []
+    chapters = []
+    chapterCount = 0
+    isLoading = false
     isImageLoading = false
 
     detailsDatasource.detailsPublisher
