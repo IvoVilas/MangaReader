@@ -73,26 +73,39 @@ final class ChapterReaderViewModel: ObservableObject {
     observers.forEach { $0.cancel() }
     observers.removeAll()
 
-    datasource.pagesPublisher
+    let publisher = datasource.pagesPublisher
       .debounce(for: 0.5, scheduler: DispatchQueue.main)
+      .filter { !$0.isEmpty }
+
+    publisher
+      .first()
+      .receive(on: DispatchQueue.main)
       .sink { [weak self] in
         guard let self else { return }
 
-        if !$0.isEmpty {
-          var pages = $0
+        var pages = $0
 
-          pages.append(.transition(chapterId))
-          if let previousId = self.previousChapterId {
-            pages.insert(.transition(previousId), at: 0)
-          }
-
-          self.updateOrAppend(pages)
-          self.pagesCount = self.pagesBetweenTransitions().count
-
-          if pageId == nil {
-            pageId = $0.first?.id
-          }
+        pages.append(.transition(chapterId))
+        if let previousId = self.previousChapterId {
+          pages.insert(.transition(previousId), at: 0)
         }
+
+        self.pages = pages
+        self.pagesCount = self.pagesBetweenTransitions().count
+
+        if pageId == nil {
+          pageId = $0.first?.id
+        }
+      }
+      .store(in: &observers)
+
+    publisher
+      .dropFirst()
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in
+        guard let self else { return }
+
+        self.updateOrAppend($0)
       }
       .store(in: &observers)
 
@@ -127,6 +140,33 @@ final class ChapterReaderViewModel: ObservableObject {
     }
   }
 
+  private func updateOrPrepend(
+    _ pages: [PageModel]
+  ) {
+    for page in pages {
+      updateOrPrepend(page)
+    }
+  }
+
+  private func updateOrPrepend(
+    _ page: PageModel
+  ) {
+    if let i = pages.firstIndex(where: { $0.id == page.id }) {
+      pages[i] = page
+    } else {
+      var index = 0
+
+      if 
+        let previousChapterId,
+        let pos = pages.transitionPageIndex(withId: previousChapterId)
+      {
+        index = pos
+      }
+
+      pages.insert(page, at: index)
+    }
+  }
+
   private func updateReadingDirection(to direction: ReadingDirection) async throws {
     try await viewMoc.perform {
       guard let manga = try self.mangaCrud.getManga(self.mangaId, moc: self.viewMoc) else {
@@ -157,22 +197,21 @@ extension ChapterReaderViewModel {
   }
 
   func fetchPages() async {
-    await datasource.loadChapter()
+    await datasource.prepareDatasource()
+    await datasource.loadStart()
   }
 
   func onPageTask(_ pageId: String) async {
     if pageId == pages.transitionPage(withId: chapterId)?.id {
-      onTransitionPage()
+      onTransitionPageToNext()
+    } else if let previousChapterId, pageId == pages.transitionPage(withId: previousChapterId)?.id {
+      onTransitionPageToPrevious()
     } else if pageId == pages.pageAfterTransition(withId: chapterId)?.id {
       onMoveToNext()
+    } else if let previousChapterId, pageId == pages.pageBeforeTransition(withId: previousChapterId)?.id {
+      onMoveToPrevious()
     } else {
-      await datasource.loadNextPagesIfNeeded(pageId)
-    }
-  }
-
-  func movedToPage(_ id: String) {
-    Task(priority: .medium) {
-      await datasource.loadPages(until: id)
+      await datasource.loadPagesIfNeeded(pageId)
     }
   }
 
@@ -198,7 +237,7 @@ extension ChapterReaderViewModel {
 // MARK: OnPage Actions
 extension ChapterReaderViewModel {
 
-  private func onTransitionPage() {
+  private func onTransitionPageToNext() {
     guard
       let i = chapters.firstIndex(of: chapter),
       let nextChapter = chapters.safeGet(i - 1)
@@ -206,7 +245,7 @@ extension ChapterReaderViewModel {
       return
     }
 
-    print("ChapterReaderViewModel -> Entered transition page")
+    print("ChapterReaderViewModel -> Entered transition page to next chapter")
     let transitionDatasource = PagesDatasource(
       chapter: nextChapter,
       delegate: source.pagesDelegateType.init(
@@ -224,7 +263,39 @@ extension ChapterReaderViewModel {
       .store(in: &transitionObservers)
 
     Task(priority: .medium) {
-      await transitionDatasource.loadChapter()
+      await transitionDatasource.prepareDatasource()
+      await transitionDatasource.loadStart()
+    }
+  }
+
+  private func onTransitionPageToPrevious() {
+    guard
+      let i = chapters.firstIndex(of: chapter),
+      let previousChapter = chapters.safeGet(i + 1)
+    else {
+      return
+    }
+
+    print("ChapterReaderViewModel -> Entered transition page to previous chapter")
+    let transitionDatasource = PagesDatasource(
+      chapter: previousChapter,
+      delegate: source.pagesDelegateType.init(
+        httpClient: httpClient
+      )
+    )
+
+    self.transitionDatasource = transitionDatasource
+
+    transitionDatasource.pagesPublisher
+      .debounce(for: 0.3, scheduler: DispatchQueue.main)
+      .sink { [weak self] in
+        self?.updateOrPrepend($0)
+      }
+      .store(in: &transitionObservers)
+
+    Task(priority: .medium) {
+      await transitionDatasource.prepareDatasource()
+      await transitionDatasource.loadEnd()
     }
   }
 
@@ -241,6 +312,29 @@ extension ChapterReaderViewModel {
     if let i = pages.transitionPageIndex(withId: chapterId) {
       DispatchQueue.main.sync {
         pages.removeSubrange(0..<i)
+      }
+    }
+
+    self.transitionDatasource = nil
+    self.datasource = transitionDatasource
+    self.chapter = transitionDatasource.chapter
+
+    setupObservers()
+  }
+
+  private func onMoveToPrevious() {
+    transitionObservers.forEach { $0.cancel() }
+    transitionObservers.removeAll()
+
+    guard let transitionDatasource else {
+      return
+    }
+
+    print("ChapterReaderViewModel -> Moved to the previous chapter")
+
+    if let i = pages.transitionPageIndex(withId: transitionDatasource.chapter.id) {
+      DispatchQueue.main.sync {
+        pages.removeSubrange(i + 1..<pages.count)
       }
     }
 
@@ -333,6 +427,14 @@ extension Array<PageModel> {
   func pageAfterTransition(withId pageId: String) -> PageModel? {
     if let i = transitionPageIndex(withId: pageId) {
       return safeGet(i + 1)
+    }
+
+    return nil
+  }
+
+  func pageBeforeTransition(withId pageId: String) -> PageModel? {
+    if let i = transitionPageIndex(withId: pageId) {
+      return safeGet(i - 1)
     }
 
     return nil

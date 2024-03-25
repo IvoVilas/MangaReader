@@ -10,6 +10,13 @@ import Combine
 
 final class PagesDatasource {
 
+  struct PaginationBlock {
+    var loaded: Bool
+    let pages: [String]
+  }
+
+  private static let limit = 10
+
   let chapter: ChapterModel
   private let delegate: PagesDelegateType
 
@@ -32,10 +39,7 @@ final class PagesDatasource {
   }
 
   @MainActor private var chapterInfo: ChapterDownloadInfo?
-  @MainActor private var hasMorePages = true
-  @MainActor private var currentPage = 0
-  @MainActor private var pagination = [Int: [String]]()
-  @MainActor private var lastPageLoaded: String?
+  @MainActor private var pagination = [Int: PaginationBlock]()
 
   init(
     chapter: ChapterModel,
@@ -49,8 +53,29 @@ final class PagesDatasource {
     error = CurrentValueSubject(nil)
   }
 
-  func loadChapter() async {
-    print("PagesDatasource -> Started chapter loading")
+}
+
+// MARK: Datasource actions
+extension PagesDatasource {
+
+  func prepareDatasource() async {
+    var erro: DatasourceError?
+
+    do {
+      let chapterInfo = try await getDownloadInfo()
+
+      await setupPagination(using: chapterInfo)
+    } catch {
+      erro = .catchError(error)
+    }
+
+    await MainActor.run { [erro] in
+      self.error.valueOnMain = erro
+    }
+  }
+
+  func loadStart() async {
+    print("PagesDatasource -> Loading first page block")
 
     await MainActor.run { self.chapterInfo = nil }
 
@@ -59,8 +84,7 @@ final class PagesDatasource {
     do {
       let chapterInfo = try await getDownloadInfo()
 
-      await setupPagination(using: chapterInfo)
-      await makePagesRequest(using: chapterInfo)
+      await makePagesBlockRequest(0, using: chapterInfo)
     } catch {
       erro = .catchError(error)
     }
@@ -69,27 +93,49 @@ final class PagesDatasource {
       self.error.valueOnMain = erro
     }
 
-    print("PagesDatasource -> Endend chapter loading")
+    print("PagesDatasource -> Endend loading page block")
   }
 
-  func loadNextPagesIfNeeded(
+  func loadEnd() async {
+    print("PagesDatasource -> Loading last page block")
+
+    await MainActor.run { self.chapterInfo = nil }
+
+    var erro: DatasourceError?
+
+    do {
+      let chapterInfo = try await getDownloadInfo()
+      let lastBlock = await pagination.count - 1
+
+      await makePagesBlockRequest(lastBlock, using: chapterInfo)
+    } catch {
+      erro = .catchError(error)
+    }
+
+    await MainActor.run { [erro] in
+      self.error.valueOnMain = erro
+    }
+
+    print("PagesDatasource -> Endend loading page block")
+  }
+
+  func loadPagesIfNeeded(
     _ id: String
   ) async {
-    guard
-      await hasMorePages,
-      await id == lastPageLoaded
-    else {
-      return
-    }
-
-    print("PagesDatasource -> Started loading next page")
-
     var erro: DatasourceError?
 
     do {
+      let blocks = await getBlocksNeedingLoading(for: id)
+
+      if blocks.isEmpty { return }
+
+      print("PagesDatasource -> Started loading \(blocks.count) page block")
+
       let chapterInfo = try await getDownloadInfo()
 
-      await makePagesRequest(using: chapterInfo)
+      for block in blocks {
+        await makePagesBlockRequest(block, using: chapterInfo)
+      }
     } catch {
       erro = .catchError(error)
     }
@@ -98,34 +144,7 @@ final class PagesDatasource {
       self.error.valueOnMain = erro
     }
 
-    print("PagesDatasource -> Ended loading next page")
-  }
-
-  func loadPages(
-    until id: String
-  ) async {
-    if await !hasMorePages { return }
-
-    print("PagesDatasource -> Started loading pages until \(id)")
-
-    var erro: DatasourceError?
-
-    do {
-      let chapterInfo = try await getDownloadInfo()
-
-      try await makePagesRequest(
-        until: id,
-        using: chapterInfo
-      )
-    } catch {
-      erro = .catchError(error)
-    }
-
-    await MainActor.run { [erro] in
-      self.error.valueOnMain = erro
-    }
-
-    print("PagesDatasource -> Ended loading pages")
+    print("PagesDatasource -> Ended loading page block")
   }
 
   func reloadPages(
@@ -174,37 +193,111 @@ final class PagesDatasource {
 
 }
 
+// MARK: Methods
 extension PagesDatasource {
+
+  private func getDownloadInfo() async throws -> ChapterDownloadInfo {
+    if let local = await chapterInfo {
+      return local
+    }
+
+    let remote = try await delegate.fetchDownloadInfo(using: chapter.downloadInfo)
+
+    await MainActor.run { chapterInfo = remote }
+
+    return remote
+  }
+
+  private func makePagesBlockRequest(
+    _ index: Int,
+    using info: ChapterDownloadInfo
+  ) async {
+    guard let block = await pagination[index] else { return }
+
+    await MainActor.run {
+      pagination[index]?.loaded = true
+    }
+
+    Task { [block] in
+      await withTaskGroup(of: Void.self) { taskGroup in
+        for (offset, url) in block.pages.enumerated() {
+          taskGroup.addTask {
+            do {
+              let index = index * PagesDatasource.limit + offset
+              let data = try await self.delegate.fetchPage(url: url, info: info)
+
+              await self.updateOrAppend(.remote(url, index, data))
+            } catch {
+              print("PagesDatasource -> Page \(index) failed download: \(error)")
+
+              await self.updateOrAppend(.notFound(url, index))
+            }
+          }
+        }
+      }
+    }
+  }
+
+}
+
+// MARK: Helpers
+extension PagesDatasource {
+
+  @MainActor
+  private func getBlocksNeedingLoading(
+    for pageId: String
+  ) -> [Int] {
+    var res = [Int]()
+
+    guard let block = pagination
+      .filter ({ $0.value.pages.contains(pageId) })
+      .first
+    else {
+      return res
+    }
+
+    let index = block.key
+
+    if block.value.loaded == false {
+      res.append(index)
+    }
+
+    if
+      pageId == block.value.pages.last,
+      pagination[index + 1] != nil,
+      pagination[index + 1]?.loaded == false
+    {
+      res.append(index + 1)
+    }
+
+    return res
+  }
 
   @MainActor
   private func setupPagination(
     using info: ChapterDownloadInfo
   ) {
-    currentPage = 0
-    hasMorePages = true
     pagination = [:]
     pages.valueOnMain = []
     state.valueOnMain = .loading
 
     let count = info.pages.count
 
-    if count <= 0 {
-      hasMorePages = false
+    if count <= 0 { return }
 
-      return
-    }
-
-    let limit = 10
     let pages = Array(0..<count)
-    let paginationCount = Int(ceil(Double(count) / 10))
+    let paginationCount = Int(ceil(Double(count) / Double(PagesDatasource.limit)))
 
     for index in 0..<paginationCount {
-      let offset = index * limit
-      let end = min((index + 1) * limit, count)
+      let offset = index * PagesDatasource.limit
+      let end = min((index + 1) * PagesDatasource.limit, count)
 
-      pagination[index] = Array(offset..<end).compactMap {
-        (try? delegate.buildPageUrl(index: $0, info: info)) ?? UUID().uuidString
-      }
+      pagination[index] = PaginationBlock(
+        loaded: false,
+        pages: Array(offset..<end).compactMap {
+          (try? delegate.buildPageUrl(index: $0, info: info)) ?? UUID().uuidString
+        }
+      )
     }
 
     self.pages.valueOnMain = pages.map {
@@ -212,56 +305,6 @@ extension PagesDatasource {
 
       return .loading(url ?? UUID().uuidString, $0)
     }
-  }
-
-  @MainActor
-  private func preparePageRequest(
-    _ info: ChapterDownloadInfo
-  ) -> [String] {
-    guard let pages = pagination[currentPage] else {
-      hasMorePages = false
-
-      return []
-    }
-
-    currentPage += 1
-
-    if let lastPage = pages.last {
-      lastPageLoaded = lastPage
-    }
-
-    return pages
-  }
-
-  @MainActor
-  private func getPagesNeedingLoading(
-    pageId: String,
-    info: ChapterDownloadInfo
-  ) throws -> [String] {
-    let page = pagination
-      .filter { $0.value.contains(pageId) }
-      .map { $0.key }
-      .last
-
-    guard let page else { throw DatasourceError.otherError("Page \(pageId) not found") }
-
-    if page < currentPage {
-      return []
-    }
-
-    let currentPage = currentPage
-
-    self.currentPage = page + 1
-
-    let pages = Array(currentPage...page)
-      .compactMap { pagination[$0] }
-      .reduce(into: []) { $0.append(contentsOf: $1) }
-
-    if let lastPage = pages.last {
-      lastPageLoaded = lastPage
-    }
-
-    return pages
   }
 
   @MainActor
@@ -299,75 +342,3 @@ extension PagesDatasource {
   }
 
 }
-
-// MARK: Fetch pages
-extension PagesDatasource {
-
-  private func getDownloadInfo() async throws -> ChapterDownloadInfo {
-    if let local = await chapterInfo {
-      return local
-    }
-
-    let remote = try await delegate.fetchDownloadInfo(using: chapter.downloadInfo)
-
-    await MainActor.run { chapterInfo = remote }
-
-    return remote
-  }
-
-  private func makePagesRequest(
-    using info: ChapterDownloadInfo
-  ) async {
-    let pages = await preparePageRequest(info)
-
-    Task {
-      await withTaskGroup(of: Void.self) { taskGroup in
-        for (index, url) in pages.enumerated() {
-          taskGroup.addTask {
-            do {
-              let data = try await self.delegate.fetchPage(url: url, info: info)
-
-              await self.updateOrAppend(.remote(url, index, data))
-            } catch {
-              print("PagesDatasource -> Page \(index) failed download: \(error)")
-
-              await self.updateOrAppend(.notFound(url, index))
-            }
-          }
-        }
-      }
-    }
-  }
-
-  private func makePagesRequest(
-    until id: String,
-    using info: ChapterDownloadInfo
-  ) async throws {
-    let pages = try await getPagesNeedingLoading(
-      pageId: id,
-      info: info
-    )
-
-    print("PagesDatasource -> Loading \(pages.count) pages")
-
-    Task {
-      await withTaskGroup(of: Void.self) { taskGroup in
-        for (index, url) in pages.enumerated() {
-          taskGroup.addTask {
-            do {
-              let data = try await self.delegate.fetchPage(index: index, info: info)
-
-              await self.updateOrAppend(.remote(url, index, data))
-            } catch {
-              print("PagesDatasource -> Page \(index) failed download: \(error)")
-
-              await self.updateOrAppend(.notFound(url, index))
-            }
-          }
-        }
-      }
-    }
-  }
-
-}
-
