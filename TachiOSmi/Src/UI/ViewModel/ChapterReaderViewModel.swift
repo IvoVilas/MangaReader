@@ -99,15 +99,20 @@ final class ChapterReaderViewModel: ObservableObject {
       .sink { [weak self] in
         guard let self else { return }
 
+        let oldTransitionPage = self.endTransitionPage
+        let newTransitionPage = makeStartTransitionPage()
+
         self.chapterPages = $0
         previousPages = []
         nextPages = []
-        self.startTransitionPage = makeStartTransitionPage()
+        self.startTransitionPage = newTransitionPage
         self.endTransitionPage = makeEndTransitionPage()
         self.updatePages()
 
         if pageId == nil {
           pageId = $0.first?.id
+        } else if pageId == oldTransitionPage.id {
+          pageId = newTransitionPage.id
         }
       }
       .store(in: &observers)
@@ -174,19 +179,19 @@ final class ChapterReaderViewModel: ObservableObject {
   }
 
   private func makeStartTransitionPage() -> TransitionPageModel {
-    if let previousChapterId {
-      return .transitionToPrevious(from: chapterId, to: previousChapterId)
+    if let previousChapter {
+      return .transitionToPrevious(from: chapter.description, to: previousChapter.description)
     }
 
-    return .noPreviousChapter(currentChapter: chapterId)
+    return .noPreviousChapter(currentChapter: chapter.description)
   }
 
   private func makeEndTransitionPage() -> TransitionPageModel {
-    if let nextChapterId {
-      return .transitionToNext(from: chapterId, to: nextChapterId)
+    if let nextChapter {
+      return .transitionToNext(from: chapter.description, to: nextChapter.description)
     }
 
-    return .noNextChapter(currentChapter: chapterId)
+    return .noNextChapter(currentChapter: chapter.description)
   }
 
   private func updatePages() {
@@ -375,26 +380,20 @@ extension ChapterReaderViewModel {
 
   private var chapterId: String { chapter.id }
 
-  private var previousChapterId: String? {
-    guard
-      let i = chapters.firstIndex(of: chapter),
-      let previousChapter = chapters.safeGet(i + 1)
-    else {
+  private var previousChapter: ChapterModel? {
+    guard let i = chapters.firstIndex(of: chapter) else {
       return nil
     }
 
-    return previousChapter.id
+    return chapters.safeGet(i + 1)
   }
 
-  private var nextChapterId: String? {
-    guard
-      let i = chapters.firstIndex(of: chapter),
-      let previousChapter = chapters.safeGet(i - 1)
-    else {
+  private var nextChapter: ChapterModel? {
+    guard let i = chapters.firstIndex(of: chapter) else {
       return nil
     }
 
-    return previousChapter.id
+    return chapters.safeGet(i - 1)
   }
 
   var selectedPageNumber: Int {
