@@ -17,7 +17,7 @@ final class PagesDatasource {
 
   private static let limit = 10
 
-  let chapter: ChapterModel
+  private let chapter: ChapterModel
   private let delegate: PagesDelegateType
 
   private let pages: CurrentValueSubject<[PageModel], Never>
@@ -279,7 +279,6 @@ extension PagesDatasource {
   ) {
     pagination = [:]
     pages.valueOnMain = []
-    state.valueOnMain = .loading
 
     let count = info.pages.count
 

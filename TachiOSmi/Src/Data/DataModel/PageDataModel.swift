@@ -75,10 +75,10 @@ enum TransitionPageModel: Identifiable {
   var id: String {
     switch self {
     case .transitionToPrevious(let from, let to):
-      return "transition-page-to-previous-\(from)-\(to)"
+      return "transition-page-\(to)-\(from)"
 
     case .transitionToNext(let from, let to):
-      return "transition-page-to-next-\(from)-\(to)"
+      return "transition-page-\(from)-\(to)"
 
     case .noNextChapter(let chapter):
       return "no-next-chapter-\(chapter)"

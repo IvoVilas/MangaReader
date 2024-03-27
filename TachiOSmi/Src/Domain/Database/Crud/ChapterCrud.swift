@@ -47,6 +47,56 @@ final class ChapterCrud {
     }
   }
 
+  func findNextChapter(
+    _ id: String,
+    mangaId: String,
+    moc: NSManagedObjectContext
+  ) throws -> ChapterMO? {
+    let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Chapter")
+
+    fetchRequest.predicate = NSPredicate(format: "manga.id == %@", mangaId)
+    fetchRequest.sortDescriptors = [NSSortDescriptor(key: "chapter", ascending: true)]
+
+    do {
+      guard let results = try moc.fetch(fetchRequest) as? [ChapterMO] else {
+        throw CrudError.wrongRequestType
+      }
+
+      if let index = results.firstIndex(where: { $0.id == id }) {
+        return results.safeGet(index + 1)
+      }
+
+      return nil
+    } catch {
+      throw CrudError.requestError(error)
+    }
+  }
+
+  func findPreviousChapter(
+    _ id: String,
+    mangaId: String,
+    moc: NSManagedObjectContext
+  ) throws -> ChapterMO? {
+    let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Chapter")
+
+    fetchRequest.predicate = NSPredicate(format: "manga.id == %@", mangaId)
+    fetchRequest.sortDescriptors = [NSSortDescriptor(key: "chapter", ascending: true)]
+
+    do {
+      guard let results = try moc.fetch(fetchRequest) as? [ChapterMO] else {
+        throw CrudError.wrongRequestType
+      }
+
+      if let index = results.firstIndex(where: { $0.id == id }) {
+        return results.safeGet(index - 1)
+      }
+
+      return nil
+    } catch {
+      throw CrudError.requestError(error)
+    }
+  }
+
   func createOrUpdateChapter(
     id: String,
     chapterNumber: Double?,

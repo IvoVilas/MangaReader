@@ -232,12 +232,12 @@ extension MangaDetailsViewModel {
     _ chapter: ChapterModel
   ) -> ChapterReaderViewModel {
     return ChapterReaderViewModel(
-      readingDirection: readingDirection,
       source: source,
       mangaId: mangaId,
       chapter: chapter,
-      chapters: chapters,
+      readingDirection: readingDirection,
       mangaCrud: AppEnv.env.mangaCrud,
+      chapterCrud: AppEnv.env.chapterCrud,
       httpClient: AppEnv.env.httpClient,
       viewMoc: viewMoc
     )

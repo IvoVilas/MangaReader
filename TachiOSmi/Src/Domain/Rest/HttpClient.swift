@@ -106,6 +106,10 @@ final class HttpClient {
     }
   }
 
+}
+
+extension HttpClient {
+
   func makeDataSafeGetRequest(
     _ url: String,
     comingFrom referer: String
@@ -143,7 +147,6 @@ final class HttpClient {
     } catch {
       throw HttpError.requestError(error)
     }
-
   }
 
 }

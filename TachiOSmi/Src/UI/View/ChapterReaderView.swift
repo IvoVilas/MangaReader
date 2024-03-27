@@ -153,7 +153,7 @@ struct ChapterReaderView: View {
       ScrollView(.horizontal) {
         LazyHStack(spacing: 0) {
           ForEach(viewModel.pages) { page in
-            PageView(
+            ChapterPageView(
               page: page,
               reloadAction: viewModel.reloadPages
             )
@@ -176,7 +176,7 @@ struct ChapterReaderView: View {
       ScrollView() {
         LazyVStack(spacing: 0) {
           ForEach(viewModel.pages) { page in
-            PageView(
+            ChapterPageView(
               page: page,
               reloadAction: viewModel.reloadPages
             )
@@ -221,136 +221,9 @@ struct ChapterReaderView: View {
 
 }
 
-private struct PageView: View, Equatable {
-
-  let page: ChapterPage
-  let reloadAction: ((PageModel) async -> Void)?
-
-  var body: some View {
-    switch page {
-    case .page(let page):
-      makeChapterPage(page)
-
-    case .transition(let page):
-      makeTransitionPage(page)
-    }
-  }
-
-  @ViewBuilder
-  private func makeChapterPage(_ page: PageModel) -> some View {
-    switch page {
-    case .remote(_, _, let data):
-      Image(uiImage: UIImage(data: data) ?? .imageNotFound)
-        .resizable()
-        .aspectRatio(contentMode: .fit)
-        .frame(width: UIScreen.main.bounds.width)
-
-    case .loading:
-      ProgressView()
-        .progressViewStyle(.circular)
-        .tint(.white)
-        .frame(
-          width: UIScreen.main.bounds.width,
-          height: UIScreen.main.bounds.height
-        )
-
-    case .notFound:
-      ZStack(alignment: .bottom) {
-        Image(uiImage: .imageNotFound)
-          .resizable()
-          .aspectRatio(contentMode: .fit)
-
-        Button {
-          Task(priority: .userInitiated) { await reloadAction?(page) }
-        } label: {
-          HStack(alignment: .center, spacing: 8) {
-            Text("Retry")
-              .font(.body)
-              .foregroundStyle(.white)
-
-            Image(systemName: "arrow.triangle.2.circlepath.icloud")
-              .tint(.white)
-          }
-          .frame(maxWidth: .infinity)
-          .padding(.vertical, 16)
-          .background(.black)
-          .clipShape(RoundedRectangle(cornerRadius: 12))
-          .padding(.horizontal, 24)
-          .padding(.bottom, 24)
-        }
-      }
-      .frame(width: UIScreen.main.bounds.width)
-    }
-  }
-
-  @ViewBuilder
-  private func makeTransitionPage(_ page: TransitionPageModel) -> some View {
-    switch page {
-    case .transitionToPrevious(let from, let to):
-      Text("Move from \(from) to \(to) (previous)")
-        .foregroundStyle(.white)
-        .frame(
-          width: UIScreen.main.bounds.width,
-          height: UIScreen.main.bounds.height
-        )
-
-    case .transitionToNext(let from, let to):
-      Text("Move from \(from) to \(to) (next)")
-        .foregroundStyle(.white)
-        .frame(
-          width: UIScreen.main.bounds.width,
-          height: UIScreen.main.bounds.height
-        )
-
-    case .noNextChapter:
-      Text("There is no next chapter")
-        .foregroundStyle(.white)
-        .frame(
-          width: UIScreen.main.bounds.width,
-          height: UIScreen.main.bounds.height
-        )
-
-    case .noPreviousChapter:
-      Text("There is no previous chapter")
-        .foregroundStyle(.white)
-        .frame(
-          width: UIScreen.main.bounds.width,
-          height: UIScreen.main.bounds.height
-        )
-    }
-  }
-
-  static func == (lhs: PageView, rhs: PageView) -> Bool {
-    if lhs.page.id != rhs.page.id { return false }
-
-    switch (lhs.page, rhs.page) {
-    case (.page(let left), .page(let right)):
-      return compare(lhs: left, rhs: right)
-
-    case (.transition(let left), .transition(let right)):
-      return left.id == right.id
-
-    default:
-      return false
-    }
-  }
-
-  private static func compare(lhs: PageModel, rhs: PageModel) -> Bool {
-    switch (lhs, rhs) {
-    case (.loading, .loading), (.remote, .remote), (.notFound, .notFound):
-      return true
-
-    default:
-      return false
-    }
-  }
-
-}
-
 #Preview {
   ChapterReaderView(
     viewModel: ChapterReaderViewModel(
-      readingDirection: .leftToRight,
       source: .mangadex,
       mangaId: "c52b2ce3-7f95-469c-96b0-479524fb7a1a",
       chapter: ChapterModel(
@@ -362,8 +235,9 @@ private struct PageView: View, Equatable {
         isRead: false,
         downloadInfo: "5624518b-f062-49e8-84ec-e4f40e0de038"
       ),
-      chapters: [],
+      readingDirection: .leftToRight,
       mangaCrud: MangaCrud(),
+      chapterCrud: ChapterCrud(),
       httpClient: HttpClient(),
       viewMoc: PersistenceController.getViewMoc(for: .mangadex, inMemory: true)
     )

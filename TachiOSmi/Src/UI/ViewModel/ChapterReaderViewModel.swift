@@ -33,11 +33,14 @@ final class ChapterReaderViewModel: ObservableObject {
   private var datasource: PagesDatasource
   private var transitionDatasource: PagesDatasource?
 
+  private var nextChapter: ChapterModel?
+  private var previousChapter: ChapterModel?
+
   private let source: Source
   private let mangaId: String
   private var chapter: ChapterModel
-  private let chapters: [ChapterModel]
   private let mangaCrud: MangaCrud
+  private let chapterCrud: ChapterCrud
   private let httpClient: HttpClient
   private let viewMoc: NSManagedObjectContext
 
@@ -46,23 +49,23 @@ final class ChapterReaderViewModel: ObservableObject {
 
   // TODO: Search for chapter in the database instead of keeping in memory
   init(
-    readingDirection: ReadingDirection,
     source: Source,
     mangaId: String,
     chapter: ChapterModel,
-    chapters: [ChapterModel],
+    readingDirection: ReadingDirection,
     mangaCrud: MangaCrud,
+    chapterCrud: ChapterCrud,
     httpClient: HttpClient,
     viewMoc: NSManagedObjectContext
   ) {
     self.source = source
     self.mangaId = mangaId
     self.chapter = chapter
-    self.chapters = chapters
+    self.readingDirection = readingDirection
     self.mangaCrud = mangaCrud
+    self.chapterCrud = chapterCrud
     self.httpClient = httpClient
     self.viewMoc = viewMoc
-    self.readingDirection = readingDirection
 
     datasource = PagesDatasource(
       chapter: chapter,
@@ -79,10 +82,13 @@ final class ChapterReaderViewModel: ObservableObject {
     chapterPages = []
     previousPages = []
     nextPages = []
+
     startTransitionPage = .noPreviousChapter(currentChapter: chapter.id)
     endTransitionPage = .noNextChapter(currentChapter: chapter.id)
 
     setupObservers()
+    updateNextChapter()
+    updatePreviousChapter()
   }
 
   private func setupObservers() {
@@ -100,10 +106,11 @@ final class ChapterReaderViewModel: ObservableObject {
         guard let self else { return }
 
         self.chapterPages = $0
-        previousPages = []
-        nextPages = []
+        self.previousPages = []
+        self.nextPages = []
         self.startTransitionPage = makeStartTransitionPage()
         self.endTransitionPage = makeEndTransitionPage()
+        
         self.updatePages()
 
         if pageId == nil {
@@ -134,6 +141,42 @@ final class ChapterReaderViewModel: ObservableObject {
       .compactMap { $0 }
       .sink { [weak self] in self?.error = $0 }
       .store(in: &observers)
+  }
+
+  private func updateNextChapter() {
+    let chapter = viewMoc.performAndWait {
+      try? chapterCrud.findNextChapter(
+        self.chapter.id,
+        mangaId: self.mangaId,
+        moc: self.viewMoc
+      )
+    }
+
+    guard let chapter else {
+      nextChapter = nil
+
+      return
+    }
+
+    nextChapter = .from(chapter)
+  }
+
+  private func updatePreviousChapter() {
+    let chapter = viewMoc.performAndWait {
+      try? chapterCrud.findPreviousChapter(
+        self.chapter.id,
+        mangaId: self.mangaId,
+        moc: self.viewMoc
+      )
+    }
+
+    guard let chapter else {
+      previousChapter = nil
+
+      return
+    }
+
+    previousChapter = .from(chapter)
   }
 
   private func updateOrAppend(
@@ -174,19 +217,19 @@ final class ChapterReaderViewModel: ObservableObject {
   }
 
   private func makeStartTransitionPage() -> TransitionPageModel {
-    if let previousChapterId {
-      return .transitionToPrevious(from: chapterId, to: previousChapterId)
+    if let previousChapter {
+      return .transitionToPrevious(from: chapter.description, to: previousChapter.description)
     }
 
-    return .noPreviousChapter(currentChapter: chapterId)
+    return .noPreviousChapter(currentChapter: chapter.description)
   }
 
   private func makeEndTransitionPage() -> TransitionPageModel {
-    if let nextChapterId {
-      return .transitionToNext(from: chapterId, to: nextChapterId)
+    if let nextChapter {
+      return .transitionToNext(from: chapter.description, to: nextChapter.description)
     }
 
-    return .noNextChapter(currentChapter: chapterId)
+    return .noNextChapter(currentChapter: chapter.description)
   }
 
   private func updatePages() {
@@ -272,8 +315,8 @@ extension ChapterReaderViewModel {
 
   private func onTransitionPageToNext() {
     guard
-      let i = chapters.firstIndex(of: chapter),
-      let nextChapter = chapters.safeGet(i - 1)
+      transitionDatasource == nil,
+      let nextChapter
     else {
       return
     }
@@ -304,8 +347,8 @@ extension ChapterReaderViewModel {
 
   private func onTransitionPageToPrevious() {
     guard
-      let i = chapters.firstIndex(of: chapter),
-      let previousChapter = chapters.safeGet(i + 1)
+      transitionDatasource == nil,
+      let previousChapter
     else {
       return
     }
@@ -338,7 +381,10 @@ extension ChapterReaderViewModel {
     transitionObservers.forEach { $0.cancel() }
     transitionObservers.removeAll()
 
-    guard let transitionDatasource else {
+    guard 
+      let transitionDatasource,
+      let nextChapter
+    else {
       return
     }
 
@@ -346,8 +392,14 @@ extension ChapterReaderViewModel {
 
     self.transitionDatasource = nil
     self.datasource = transitionDatasource
-    self.chapter = transitionDatasource.chapter
 
+
+    let current = chapter
+
+    self.chapter = nextChapter
+    self.previousChapter = current
+
+    updateNextChapter()
     setupObservers()
   }
 
@@ -355,7 +407,10 @@ extension ChapterReaderViewModel {
     transitionObservers.forEach { $0.cancel() }
     transitionObservers.removeAll()
 
-    guard let transitionDatasource else {
+    guard 
+      let transitionDatasource,
+      let previousChapter
+    else {
       return
     }
 
@@ -363,8 +418,13 @@ extension ChapterReaderViewModel {
 
     self.transitionDatasource = nil
     self.datasource = transitionDatasource
-    self.chapter = transitionDatasource.chapter
+    
+    let current = chapter
 
+    self.chapter = previousChapter
+    self.nextChapter = current
+
+    updatePreviousChapter()
     setupObservers()
   }
 
@@ -372,30 +432,6 @@ extension ChapterReaderViewModel {
 
 // MARK: Useful helpers
 extension ChapterReaderViewModel {
-
-  private var chapterId: String { chapter.id }
-
-  private var previousChapterId: String? {
-    guard
-      let i = chapters.firstIndex(of: chapter),
-      let previousChapter = chapters.safeGet(i + 1)
-    else {
-      return nil
-    }
-
-    return previousChapter.id
-  }
-
-  private var nextChapterId: String? {
-    guard
-      let i = chapters.firstIndex(of: chapter),
-      let previousChapter = chapters.safeGet(i - 1)
-    else {
-      return nil
-    }
-
-    return previousChapter.id
-  }
 
   var selectedPageNumber: Int {
     guard let pageId else { return 0 }

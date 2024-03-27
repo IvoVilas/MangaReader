@@ -154,7 +154,11 @@ final class DetailsDatasource {
       }
 
       let data = try await delegate.fetchDetails(mangaId)
-      let model = data.convertToModel()
+      let (isSaved, readingDirection) = await fetchSavedMangaDetails(mangaId)
+      let model = data.convertToModel(
+        isSaved: isSaved,
+        readingDirection: readingDirection
+      )
 
       await update(using: model)
 
@@ -208,6 +212,21 @@ final class DetailsDatasource {
 
 // MARK: Database
 extension DetailsDatasource {
+
+  private func fetchSavedMangaDetails(
+    _ mangaId: String
+  ) async -> (Bool, ReadingDirection) {
+    await viewMoc.perform {
+      guard let manga = try? self.mangaCrud.getManga(
+        mangaId,
+        moc: self.viewMoc
+      ) else {
+        return (false, .leftToRight)
+      }
+
+      return (manga.isSaved, .safeInit(from: manga.readingDirection))
+    }
+  }
 
   private func updateDatabase(
     _ manga: MangaModel
