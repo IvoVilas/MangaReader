@@ -7,20 +7,33 @@
 
 import Foundation
 
+enum ChapterPage: Identifiable {
+
+  case page(PageModel)
+  case transition(TransitionPageModel)
+
+  var id: String {
+    switch self {
+    case .page(let page):
+      return page.id
+
+    case .transition(let page):
+      return page.id
+    }
+  }
+
+}
+
 enum PageModel: Identifiable {
   
   case remote(String, Int, Data)
   case loading(String, Int)
   case notFound(String, Int)
-  case transition(String)
 
   var id: String {
     switch self {
     case .remote, .loading, .notFound:
       return url
-
-    case .transition(let id):
-      return id
     }
   }
 
@@ -34,9 +47,6 @@ enum PageModel: Identifiable {
 
     case .notFound(let url, _):
       return url
-
-    case .transition:
-      return ""
     }
   }
 
@@ -50,9 +60,31 @@ enum PageModel: Identifiable {
 
     case .notFound(_, let pos):
       return pos
+    }
+  }
 
-    case .transition:
-      return -1
+}
+
+enum TransitionPageModel: Identifiable {
+
+  case transitionToPrevious(from: String, to: String)
+  case transitionToNext(from: String, to: String)
+  case noNextChapter(currentChapter: String)
+  case noPreviousChapter(currentChapter: String)
+
+  var id: String {
+    switch self {
+    case .transitionToPrevious(let from, let to):
+      return "transition-page-to-previous-\(from)-\(to)"
+
+    case .transitionToNext(let from, let to):
+      return "transition-page-to-next-\(from)-\(to)"
+
+    case .noNextChapter(let chapter):
+      return "no-next-chapter-\(chapter)"
+
+    case .noPreviousChapter(let chapter):
+      return "no-previous-chapter-\(chapter)"
     }
   }
 

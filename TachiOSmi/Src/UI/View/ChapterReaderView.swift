@@ -123,13 +123,13 @@ struct ChapterReaderView: View {
       Spacer()
 
       HStack(spacing: 16) {
-        Text("\(viewModel.pagesCount)")
+        Text("\(viewModel.chapterPages.count)")
           .foregroundStyle(.black)
           .frame(minWidth: 24)
 
         PageSliderView(
           value: $viewModel.pageId,
-          values: viewModel.pagesBetweenTransitions().map { $0.id },
+          values: viewModel.chapterPages.map { $0.id },
           onChanged: { _ in }
         )
         .frame(height: 24)
@@ -211,7 +211,7 @@ struct ChapterReaderView: View {
   }
 
   private func pageLabel() -> String {
-    let count = viewModel.pagesCount
+    let count = viewModel.chapterPages.count
 
     if count == 0 { return "0 / 0" }
 
@@ -223,24 +223,27 @@ struct ChapterReaderView: View {
 
 private struct PageView: View, Equatable {
 
-  let page: PageModel
+  let page: ChapterPage
   let reloadAction: ((PageModel) async -> Void)?
 
   var body: some View {
+    switch page {
+    case .page(let page):
+      makeChapterPage(page)
+
+    case .transition(let page):
+      makeTransitionPage(page)
+    }
+  }
+
+  @ViewBuilder
+  private func makeChapterPage(_ page: PageModel) -> some View {
     switch page {
     case .remote(_, _, let data):
       Image(uiImage: UIImage(data: data) ?? .imageNotFound)
         .resizable()
         .aspectRatio(contentMode: .fit)
         .frame(width: UIScreen.main.bounds.width)
-
-    case .transition(let id):
-      Text("Move to the next chapter \(id)")
-        .foregroundStyle(.white)
-        .frame(
-          width: UIScreen.main.bounds.width,
-          height: UIScreen.main.bounds.height
-        )
 
     case .loading:
       ProgressView()
@@ -280,12 +283,61 @@ private struct PageView: View, Equatable {
     }
   }
 
+  @ViewBuilder
+  private func makeTransitionPage(_ page: TransitionPageModel) -> some View {
+    switch page {
+    case .transitionToPrevious(let from, let to):
+      Text("Move from \(from) to \(to) (previous)")
+        .foregroundStyle(.white)
+        .frame(
+          width: UIScreen.main.bounds.width,
+          height: UIScreen.main.bounds.height
+        )
+
+    case .transitionToNext(let from, let to):
+      Text("Move from \(from) to \(to) (next)")
+        .foregroundStyle(.white)
+        .frame(
+          width: UIScreen.main.bounds.width,
+          height: UIScreen.main.bounds.height
+        )
+
+    case .noNextChapter:
+      Text("There is no next chapter")
+        .foregroundStyle(.white)
+        .frame(
+          width: UIScreen.main.bounds.width,
+          height: UIScreen.main.bounds.height
+        )
+
+    case .noPreviousChapter:
+      Text("There is no previous chapter")
+        .foregroundStyle(.white)
+        .frame(
+          width: UIScreen.main.bounds.width,
+          height: UIScreen.main.bounds.height
+        )
+    }
+  }
+
   static func == (lhs: PageView, rhs: PageView) -> Bool {
     if lhs.page.id != rhs.page.id { return false }
 
     switch (lhs.page, rhs.page) {
-    case (.loading, .loading), (.remote, .remote), 
-      (.notFound, .notFound), (.transition, .transition):
+    case (.page(let left), .page(let right)):
+      return compare(lhs: left, rhs: right)
+
+    case (.transition(let left), .transition(let right)):
+      return left.id == right.id
+
+    default:
+      return false
+    }
+  }
+
+  private static func compare(lhs: PageModel, rhs: PageModel) -> Bool {
+    switch (lhs, rhs) {
+    case (.loading, .loading), (.remote, .remote), (.notFound, .notFound):
       return true
 
     default:
