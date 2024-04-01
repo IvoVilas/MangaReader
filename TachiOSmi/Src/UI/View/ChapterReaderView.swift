@@ -129,8 +129,7 @@ struct ChapterReaderView: View {
 
         PageSliderView(
           value: $viewModel.pageId,
-          values: viewModel.chapterPages.map { $0.id },
-          onChanged: { _ in }
+          values: viewModel.chapterPages.map { $0.id }
         )
         .frame(height: 24)
         .flipsForRightToLeftLayoutDirection(true)

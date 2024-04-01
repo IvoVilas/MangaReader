@@ -11,7 +11,6 @@ struct PageSliderView: View {
 
   @Binding var value: String?
   let values: [String]
-  let onChanged: ((String) -> Void)?
 
   @State private var sliderValue: Int
   @State private var sliderOffset: CGFloat = 0.0
@@ -21,12 +20,10 @@ struct PageSliderView: View {
 
   init(
     value: Binding<String?>,
-    values: [String],
-    onChanged: ((String) -> Void)?
+    values: [String]
   ) {
     self._value = value
     self.values = values
-    self.onChanged = onChanged
 
     if let v = value.wrappedValue {
       sliderValue = values.firstIndex(of: v) ?? 0
@@ -76,7 +73,6 @@ struct PageSliderView: View {
 
                   if let v = values.safeGet(index) {
                     value = v
-                    onChanged?(v)
                   }
                 }
               }
@@ -120,7 +116,6 @@ struct PageSliderView: View {
 
                   if let v = values.safeGet(newValue) {
                     value = v
-                    onChanged?(v)
                   }
                 }
               }
@@ -176,8 +171,7 @@ private struct PagePreview: View {
 
       PageSliderView(
         value: $value,
-        values: values,
-        onChanged: nil
+        values: values
       )
       .frame(height: 24)
       .padding(.horizontal, 24)

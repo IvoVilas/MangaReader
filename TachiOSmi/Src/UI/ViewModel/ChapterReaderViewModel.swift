@@ -47,7 +47,6 @@ final class ChapterReaderViewModel: ObservableObject {
   private var observers = Set<AnyCancellable>()
   private var transitionObservers = Set<AnyCancellable>()
 
-  // TODO: Search for chapter in the database instead of keeping in memory
   init(
     source: Source,
     mangaId: String,
