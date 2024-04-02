@@ -22,6 +22,16 @@ enum ChapterPage: Identifiable {
     }
   }
 
+  var isTransition: Bool {
+    switch self {
+    case .page:
+      return false
+
+    case .transition:
+      return true
+    }
+  }
+
 }
 
 enum PageModel: Identifiable {

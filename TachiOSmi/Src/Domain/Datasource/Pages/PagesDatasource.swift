@@ -71,6 +71,7 @@ extension PagesDatasource {
 
     await MainActor.run { [erro] in
       self.error.valueOnMain = erro
+      self.state.valueOnMain = .normal
     }
   }
 

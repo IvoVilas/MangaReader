@@ -2,7 +2,7 @@
 //  ChapterReaderViewModel.swift
 //  TachiOSmi
 //
-//  Created by Ivo Vilas on 24/02/2024.
+//  Created by Ivo Vilas Boas  on 02/04/2024.
 //
 
 import Foundation
@@ -12,44 +12,37 @@ import CoreData
 
 final class ChapterReaderViewModel: ObservableObject {
 
-  enum PageArray {
-    case chapter
-    case next
-    case previous
-  }
-
   @Published var pages: [ChapterPage]
   @Published var pageId: String?
   @Published var readingDirection: ReadingDirection
+  @Published var chapter: ChapterModel
   @Published var isLoading: Bool
   @Published var error: DatasourceError?
 
-  var chapterPages: [PageModel]
-  private var previousPages: [PageModel]
-  private var nextPages: [PageModel]
-  private var startTransitionPage: TransitionPageModel
-  private var endTransitionPage: TransitionPageModel
+  private var isEmpty: Bool
 
   private var datasource: PagesDatasource
-  private var transitionDatasource: PagesDatasource?
+  private let delegate: PagesDelegateType
 
   private var nextChapter: ChapterModel?
   private var previousChapter: ChapterModel?
 
-  private let source: Source
+  let mangaTitle: String
   private let mangaId: String
-  private var chapter: ChapterModel
+  private let source: Source
   private let mangaCrud: MangaCrud
   private let chapterCrud: ChapterCrud
   private let httpClient: HttpClient
   private let viewMoc: NSManagedObjectContext
 
+  let closeReaderEvent = PassthroughSubject<Void, Never>()
+  private let receivedPagesEvent = CurrentValueSubject<Bool, Never>(false)
   private var observers = Set<AnyCancellable>()
-  private var transitionObservers = Set<AnyCancellable>()
 
   init(
     source: Source,
     mangaId: String,
+    mangaTitle: String,
     chapter: ChapterModel,
     readingDirection: ReadingDirection,
     mangaCrud: MangaCrud,
@@ -59,35 +52,55 @@ final class ChapterReaderViewModel: ObservableObject {
   ) {
     self.source = source
     self.mangaId = mangaId
-    self.chapter = chapter
-    self.readingDirection = readingDirection
+    self.mangaTitle = mangaTitle
     self.mangaCrud = mangaCrud
     self.chapterCrud = chapterCrud
     self.httpClient = httpClient
     self.viewMoc = viewMoc
 
+    delegate = source.pagesDelegateType.init(httpClient: httpClient)
     datasource = PagesDatasource(
       chapter: chapter,
-      delegate: source.pagesDelegateType.init(
-        httpClient: httpClient
-      )
+      delegate: delegate
     )
 
-    pages = []
+    self.pages = []
+    self.pageId = nil
+    self.chapter = chapter
+    self.readingDirection = readingDirection
+    self.isLoading = true
+    self.error = nil
+    self.isEmpty = true
+
+    resetViewModel()
+  }
+
+  private func resetViewModel(
+    prepareDatasource: Bool = false,
+    loadStart: Bool = false,
+    loadEnd: Bool = false
+  ) {
+    receivedPagesEvent.value = false
     pageId = nil
-    isLoading = false
-    error = nil
-
-    chapterPages = []
-    previousPages = []
-    nextPages = []
-
-    startTransitionPage = .noPreviousChapter(currentChapter: chapter.id)
-    endTransitionPage = .noNextChapter(currentChapter: chapter.id)
 
     setupObservers()
-    updateNextChapter()
-    updatePreviousChapter()
+
+    // TODO: Some of these tasks can be parallel
+    Task.detached {
+      await self.fetchAdjacentChapters()
+
+      if prepareDatasource {
+        await self.datasource.prepareDatasource()
+      }
+
+      if loadStart {
+        await self.datasource.loadStart()
+      }
+
+      if loadEnd {
+        await self.datasource.loadEnd()
+      }
+    }
   }
 
   private func setupObservers() {
@@ -99,41 +112,41 @@ final class ChapterReaderViewModel: ObservableObject {
       .filter { !$0.isEmpty }
 
     publisher
+      .dropFirst()
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in self?.updateOrAppend($0) }
+      .store(in: &observers)
+
+    publisher
       .first()
       .receive(on: DispatchQueue.main)
-      .sink { [weak self] in
+      .sink { [weak self] pages in
         guard let self else { return }
 
-        self.chapterPages = $0
-        self.previousPages = []
-        self.nextPages = []
-        self.startTransitionPage = makeStartTransitionPage()
-        self.endTransitionPage = makeEndTransitionPage()
-        
-        self.updatePages()
+        Task(priority: .userInitiated) {
+          await self.setPages(pages)
 
-        if pageId == nil {
-          pageId = $0.first?.id
+          print("Ivo - setting pages to \(pages.count)")
+          self.receivedPagesEvent.value = true
+
+          await MainActor.run {
+            if self.pageId == nil {
+              self.pageId = pages.first?.id
+            }
+          }
         }
       }
       .store(in: &observers)
 
-    publisher
-      .dropFirst()
-      .receive(on: DispatchQueue.main)
-      .sink { [weak self] in
-        guard let self else { return }
-
-        self.updateOrAppend(.chapter, with: $0)
-        self.updatePages()
-      }
-      .store(in: &observers)
-
-    datasource.statePublisher
-      .removeDuplicates()
-      .receive(on: DispatchQueue.main)
-      .sink { [weak self] in self?.isLoading = $0.isLoading }
-      .store(in: &observers)
+    Publishers.CombineLatest(
+      datasource.statePublisher,
+      receivedPagesEvent
+    )
+    .map { $0.0.isLoading || !$0.1 }
+    .removeDuplicates()
+    .receive(on: DispatchQueue.main)
+    .sink { [weak self] in self?.isLoading = $0 }
+    .store(in: &observers)
 
     datasource.errorPublisher
       .receive(on: DispatchQueue.main)
@@ -142,103 +155,39 @@ final class ChapterReaderViewModel: ObservableObject {
       .store(in: &observers)
   }
 
-  private func updateNextChapter() {
-    let chapter = viewMoc.performAndWait {
-      try? chapterCrud.findNextChapter(
+  private func fetchAdjacentChapters() async {
+    let (next, previous) = await viewMoc.perform {
+      let next = try? self.chapterCrud.findNextChapter(
         self.chapter.id,
         mangaId: self.mangaId,
         moc: self.viewMoc
       )
+
+      let previous = try? self.chapterCrud.findPreviousChapter(
+        self.chapter.id,
+        mangaId: self.mangaId,
+        moc: self.viewMoc
+      )
+
+      return (next, previous)
     }
 
-    guard let chapter else {
+    if let next {
+      nextChapter = .from(next)
+    } else {
       nextChapter = nil
-
-      return
     }
 
-    nextChapter = .from(chapter)
-  }
-
-  private func updatePreviousChapter() {
-    let chapter = viewMoc.performAndWait {
-      try? chapterCrud.findPreviousChapter(
-        self.chapter.id,
-        mangaId: self.mangaId,
-        moc: self.viewMoc
-      )
-    }
-
-    guard let chapter else {
+    if let previous {
+      previousChapter = .from(previous)
+    } else {
       previousChapter = nil
-
-      return
     }
 
-    previousChapter = .from(chapter)
-  }
-
-  private func updateOrAppend(
-    _ pageArray: PageArray,
-    with pages: [PageModel]
-  ) {
-    for page in pages {
-      updateOrAppend(pageArray, with: page)
-    }
-  }
-
-  private func updateOrAppend(
-    _ pageArray: PageArray,
-    with page: PageModel
-  ) {
-    switch pageArray {
-    case .chapter:
-      if let i = chapterPages.firstIndex(where: { $0.id == page.id }) {
-        chapterPages[i] = page
-      } else {
-        chapterPages.append(page)
-      }
-
-    case .next:
-      if let i = nextPages.firstIndex(where: { $0.id == page.id }) {
-        nextPages[i] = page
-      } else {
-        nextPages.append(page)
-      }
-
-    case .previous:
-      if let i = previousPages.firstIndex(where: { $0.id == page.id }) {
-        previousPages[i] = page
-      } else {
-        previousPages.append(page)
-      }
-    }
-  }
-
-  private func makeStartTransitionPage() -> TransitionPageModel {
-    if let previousChapter {
-      return .transitionToPrevious(from: chapter.description, to: previousChapter.description)
-    }
-
-    return .noPreviousChapter(currentChapter: chapter.description)
-  }
-
-  private func makeEndTransitionPage() -> TransitionPageModel {
-    if let nextChapter {
-      return .transitionToNext(from: chapter.description, to: nextChapter.description)
-    }
-
-    return .noNextChapter(currentChapter: chapter.description)
-  }
-
-  private func updatePages() {
-    let chapterPages = chapterPages.map { ChapterPage.page($0) }
-    let previousPages = previousPages.map { ChapterPage.page($0) }
-    let nextPages = nextPages.map { ChapterPage.page($0) }
-    let startPage = ChapterPage.transition(self.startTransitionPage)
-    let endPage = ChapterPage.transition(self.endTransitionPage)
-
-    pages = previousPages + [startPage] + chapterPages + [endPage] + nextPages
+    await updateTransitionPages(
+      previous: makeEndTransitionPage(),
+      next: makeStartTransitionPage()
+    )
   }
 
   private func updateReadingDirection(to direction: ReadingDirection) async throws {
@@ -260,6 +209,16 @@ final class ChapterReaderViewModel: ObservableObject {
 // MARK: Actions
 extension ChapterReaderViewModel {
 
+  func fetchPages() async {
+    // TODO: When continuing, loadStart does not make sense
+    await datasource.prepareDatasource()
+    await datasource.loadStart()
+  }
+
+  func onPageTask(_ pageId: String) async {
+    await datasource.loadPagesIfNeeded(pageId)
+  }
+
   func changeReadingDirection(to direction: ReadingDirection) async {
     await MainActor.run { readingDirection = direction }
 
@@ -270,36 +229,24 @@ extension ChapterReaderViewModel {
     }
   }
 
-  func fetchPages() async {
-    await datasource.prepareDatasource()
-    await datasource.loadStart()
-  }
-
-  // TODO: Keep transition state to better know when to call moveTo... methods
-  func onPageTask(_ pageId: String) async {
-    if pageId == endTransitionPage.id {
-      onTransitionPageToNext()
-    } else if pageId == startTransitionPage.id {
-      onTransitionPageToPrevious()
-    } else if pageId == nextPages.first?.id {
-      onMoveToNext()
-    } else if pageId == previousPages.last?.id {
-      onMoveToPrevious()
-    } else {
-      await datasource.loadPagesIfNeeded(pageId)
-    }
-  }
-
   func reloadPages(startingAt page: PageModel) async {
     guard let i = pages.firstIndex(where: { $0.id == page.id }) else { return }
 
     let j = min(i + 10, pages.count)
-    let pages = chapterPages[i..<j].compactMap {
+    let pages = pages[i..<j].compactMap {
+      switch $0 {
+      case .page(let page):
+        return page
+
+      default:
+        return nil
+      }
+    }.compactMap {
       switch $0 {
       case .notFound(let url, let pos):
         return (url, pos)
 
-      default: 
+      default:
         return nil
       }
     }
@@ -309,143 +256,194 @@ extension ChapterReaderViewModel {
 
 }
 
-// MARK: OnPage Actions
+// MARK: Transition Actions
 extension ChapterReaderViewModel {
 
-  private func onTransitionPageToNext() {
-    guard
-      transitionDatasource == nil,
-      let nextChapter
-    else {
-      return
-    }
+  func onTransitionAction(_ action: TransitionPageView.Action) {
+    switch action {
+    case .moveToNext:
+      onMoveToNext()
 
-    print("ChapterReaderViewModel -> Entered transition page to next chapter")
-    let transitionDatasource = PagesDatasource(
-      chapter: nextChapter,
-      delegate: source.pagesDelegateType.init(
-        httpClient: httpClient
-      )
-    )
+    case .moveToPrevious:
+      onMoveToPrevious()
 
-    self.transitionDatasource = transitionDatasource
-
-    transitionDatasource.pagesPublisher
-      .debounce(for: 0.3, scheduler: DispatchQueue.main)
-      .sink { [weak self] in
-        self?.updateOrAppend(.next, with: $0)
-        self?.updatePages()
-      }
-      .store(in: &transitionObservers)
-
-    Task(priority: .medium) {
-      await transitionDatasource.prepareDatasource()
-      await transitionDatasource.loadStart()
-    }
-  }
-
-  private func onTransitionPageToPrevious() {
-    guard
-      transitionDatasource == nil,
-      let previousChapter
-    else {
-      return
-    }
-
-    print("ChapterReaderViewModel -> Entered transition page to previous chapter")
-    let transitionDatasource = PagesDatasource(
-      chapter: previousChapter,
-      delegate: source.pagesDelegateType.init(
-        httpClient: httpClient
-      )
-    )
-
-    self.transitionDatasource = transitionDatasource
-
-    transitionDatasource.pagesPublisher
-      .debounce(for: 0.3, scheduler: DispatchQueue.main)
-      .sink { [weak self] in
-        self?.updateOrAppend(.previous, with: $0)
-        self?.updatePages()
-      }
-      .store(in: &transitionObservers)
-
-    Task(priority: .medium) {
-      await transitionDatasource.prepareDatasource()
-      await transitionDatasource.loadEnd()
+    case .close:
+      closeReaderEvent.send()
     }
   }
 
   private func onMoveToNext() {
-    transitionObservers.forEach { $0.cancel() }
-    transitionObservers.removeAll()
-
-    guard 
-      let transitionDatasource,
-      let nextChapter
-    else {
+    guard let nextChapter else {
       return
     }
 
-    print("ChapterReaderViewModel -> Moved to the next chapter")
+    print("ChapterReadViewModel -> Moving to the next chapter")
 
-    self.transitionDatasource = nil
-    self.datasource = transitionDatasource
+    datasource = PagesDatasource(
+      chapter: nextChapter,
+      delegate: delegate
+    )
 
-
-    let current = chapter
-
-    self.chapter = nextChapter
-    self.previousChapter = current
-
-    updateNextChapter()
-    setupObservers()
+    chapter = nextChapter
+    resetViewModel(prepareDatasource: true, loadStart: true)
   }
 
   private func onMoveToPrevious() {
-    transitionObservers.forEach { $0.cancel() }
-    transitionObservers.removeAll()
-
-    guard 
-      let transitionDatasource,
-      let previousChapter
-    else {
+    guard let previousChapter else {
       return
     }
 
-    print("ChapterReaderViewModel -> Moved to the previous chapter")
+    print("ChapterReadViewModel -> Moving to the previous chapter")
 
-    self.transitionDatasource = nil
-    self.datasource = transitionDatasource
-    
-    let current = chapter
+    datasource = PagesDatasource(
+      chapter: previousChapter,
+      delegate: delegate
+    )
 
-    self.chapter = previousChapter
-    self.nextChapter = current
-
-    updatePreviousChapter()
-    setupObservers()
+    chapter = previousChapter
+    resetViewModel(prepareDatasource: true, loadStart: true)
   }
 
 }
 
-// MARK: Useful helpers
+// MARK: Helpers
 extension ChapterReaderViewModel {
+
+  var pagesCount: Int {
+    return pages
+      .filter { !$0.isTransition }
+      .count
+  }
 
   var selectedPageNumber: Int {
     guard let pageId else { return 0 }
 
-    if pageId == startTransitionPage.id {
-      return 1
+    let page = pages.first { $0.id == pageId }
+
+    switch page {
+    case .page:
+      return (pages
+        .filter { !$0.isTransition }
+        .map { $0.id }
+        .firstIndex(of: pageId) ?? 0) + 1
+
+    case .transition(let transition):
+      switch transition {
+      case .noNextChapter, .transitionToNext:
+        return pagesCount
+
+      case .noPreviousChapter, .transitionToPrevious:
+        return 1
+      }
+
+    case nil:
+      return 0
+    }
+  }
+
+  private func makeStartTransitionPage() -> TransitionPageModel {
+    if let previousChapter {
+      return .transitionToPrevious(from: chapter.description, to: previousChapter.description)
     }
 
-    if pageId == endTransitionPage.id {
-      return chapterPages.count
+    return .noPreviousChapter(currentChapter: chapter.description)
+  }
+
+  private func makeEndTransitionPage() -> TransitionPageModel {
+    if let nextChapter {
+      return .transitionToNext(from: chapter.description, to: nextChapter.description)
     }
 
-    let index = chapterPages.map { $0.id }.firstIndex(of: pageId) ?? 0
+    return .noNextChapter(currentChapter: chapter.description)
+  }
 
-    return max(1, min(index + 1, chapterPages.count))
+  private func setPages(_ pages: [PageModel]) async {
+    let start = [ChapterPage.transition(makeStartTransitionPage())]
+    let end = [ChapterPage.transition(makeEndTransitionPage())]
+    let pages = pages.map { ChapterPage.page($0) }
+
+    await MainActor.run {
+      self.pages = start + pages + end
+    }
+  }
+
+  private func updateTransitionPages(
+    previous: TransitionPageModel,
+    next: TransitionPageModel
+  ) async {
+    let start = ChapterPage.transition(makeStartTransitionPage())
+    let end = ChapterPage.transition(makeEndTransitionPage())
+
+    let startIndex = pages.firstIndex {
+      switch $0 {
+      case .page:
+        return false
+
+      case .transition(let transition):
+        switch transition {
+        case .noNextChapter, .transitionToNext:
+          return false
+
+        case .noPreviousChapter, .transitionToPrevious:
+          return true
+        }
+      }
+    }
+
+    let endIndex = pages.firstIndex {
+      switch $0 {
+      case .page:
+        return false
+
+      case .transition(let transition):
+        switch transition {
+        case .noNextChapter, .transitionToNext:
+          return true
+
+        case .noPreviousChapter, .transitionToPrevious:
+          return false
+        }
+      }
+    }
+
+    if let startIndex {
+      await MainActor.run {
+        self.pages[startIndex] = start
+      }
+    } else {
+      await MainActor.run {
+        self.pages.insert(start, at: 0)
+      }
+    }
+
+    if let endIndex {
+      await MainActor.run {
+        self.pages[endIndex] = end
+      }
+    } else {
+      await MainActor.run {
+        self.pages.append(end)
+      }
+    }
+  }
+
+  private func updateOrAppend(
+    _ pages: [PageModel]
+  ) {
+    for page in pages {
+      updateOrAppend(page)
+    }
+  }
+
+  private func updateOrAppend(
+    _ page: PageModel
+  ) {
+    if let i = pages.firstIndex(where: { $0.id == page.id }) {
+      pages[i] = .page(page)
+    } else {
+      pages.append(.page(page))
+    }
   }
 
 }
+

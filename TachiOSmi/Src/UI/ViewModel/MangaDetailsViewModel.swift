@@ -234,6 +234,7 @@ extension MangaDetailsViewModel {
     return ChapterReaderViewModel(
       source: source,
       mangaId: mangaId,
+      mangaTitle: title,
       chapter: chapter,
       readingDirection: readingDirection,
       mangaCrud: AppEnv.env.mangaCrud,

@@ -14,6 +14,8 @@ import Combine
 // Basically, I do a double flip to make it work
 struct ChapterReaderView: View {
 
+  @Environment(\.dismiss) private var dismiss
+
   @ObservedObject var viewModel: ChapterReaderViewModel
   @State private var toast: Toast?
   @State private var showingToolBar = false
@@ -25,10 +27,11 @@ struct ChapterReaderView: View {
         .tint(.white)
         .flipsForRightToLeftLayoutDirection(true)
         .environment(\.layoutDirection, .rightToLeft)
-        .opacity(viewModel.isLoading && viewModel.pages.count == 0 ? 1 : 0)
+        .opacity(viewModel.isLoading ? 1 : 0)
 
       GeometryReader { geo in
         contentView()
+          .opacity(viewModel.isLoading ? 0 : 1)
           .onAppear {
             Task(priority: .medium) {
               await viewModel.fetchPages()
@@ -72,6 +75,9 @@ struct ChapterReaderView: View {
         )
       }
     }
+    .onReceive(viewModel.closeReaderEvent) { 
+      dismiss()
+    }
   }
 
   @ViewBuilder
@@ -81,12 +87,12 @@ struct ChapterReaderView: View {
         CustomBackAction(tintColor: .black)
 
         VStack(alignment: .leading) {
-          Text("Jujutsu Kaisen")
+          Text(viewModel.mangaTitle)
             .font(.title3)
             .lineLimit(1)
             .foregroundStyle(.black)
 
-          Text("Chapter 252")
+          Text(viewModel.chapter.description)
             .font(.caption)
             .lineLimit(1)
             .foregroundStyle(.black)
@@ -123,13 +129,15 @@ struct ChapterReaderView: View {
       Spacer()
 
       HStack(spacing: 16) {
-        Text("\(viewModel.chapterPages.count)")
+        Text("\(viewModel.pagesCount)")
           .foregroundStyle(.black)
           .frame(minWidth: 24)
 
         PageSliderView(
           value: $viewModel.pageId,
-          values: viewModel.chapterPages.map { $0.id }
+          values: viewModel.pages
+            .filter { !$0.isTransition }
+            .map { $0.id }
         )
         .frame(height: 24)
         .flipsForRightToLeftLayoutDirection(true)
@@ -152,18 +160,14 @@ struct ChapterReaderView: View {
       ScrollView(.horizontal) {
         LazyHStack(spacing: 0) {
           ForEach(viewModel.pages) { page in
-            ChapterPageView(
-              page: page,
-              reloadAction: viewModel.reloadPages
-            )
-            .equatable()
-            .flipsForRightToLeftLayoutDirection(true)
-            .environment(\.layoutDirection, .rightToLeft)
-            .onAppear {
-              Task(priority: .medium) {
-                await viewModel.onPageTask(page.id)
+            pageView(for: page)
+              .flipsForRightToLeftLayoutDirection(true)
+              .environment(\.layoutDirection, .rightToLeft)
+              .onAppear {
+                Task(priority: .medium) {
+                  await viewModel.onPageTask(page.id)
+                }
               }
-            }
           }
         }
         .scrollTargetLayout()
@@ -175,25 +179,40 @@ struct ChapterReaderView: View {
       ScrollView() {
         LazyVStack(spacing: 0) {
           ForEach(viewModel.pages) { page in
-            ChapterPageView(
-              page: page,
-              reloadAction: viewModel.reloadPages
-            )
-            .equatable()
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .flipsForRightToLeftLayoutDirection(true)
-            .environment(\.layoutDirection, .rightToLeft)
-            .onAppear {
-              Task(priority: .medium) {
-                await viewModel.onPageTask(page.id)
+            pageView(for: page)
+              .frame(maxWidth: .infinity, maxHeight: .infinity)
+              .flipsForRightToLeftLayoutDirection(true)
+              .environment(\.layoutDirection, .rightToLeft)
+              .onAppear {
+                Task(priority: .medium) {
+                  await viewModel.onPageTask(page.id)
+                }
               }
-            }
           }
         }
         .scrollTargetLayout()
       }
       .scrollIndicators(.hidden)
       .scrollPosition(id: $viewModel.pageId)
+    }
+  }
+
+  @ViewBuilder
+  private func pageView(
+    for page: ChapterPage
+  ) -> some View {
+    switch page {
+    case .page(let page):
+      PageView(
+        page: page,
+        reloadAction: viewModel.reloadPages
+      ).equatable()
+
+    case .transition(let page):
+      TransitionPageView(
+        page: page,
+        action: viewModel.onTransitionAction
+      ).equatable()
     }
   }
 
@@ -210,7 +229,7 @@ struct ChapterReaderView: View {
   }
 
   private func pageLabel() -> String {
-    let count = viewModel.chapterPages.count
+    let count = viewModel.pagesCount
 
     if count == 0 { return "0 / 0" }
 
@@ -225,6 +244,7 @@ struct ChapterReaderView: View {
     viewModel: ChapterReaderViewModel(
       source: .mangadex,
       mangaId: "c52b2ce3-7f95-469c-96b0-479524fb7a1a",
+      mangaTitle: "Jujutsu Kaisen",
       chapter: ChapterModel(
         id: "5624518b-f062-49e8-84ec-e4f40e0de038",
         title: nil,
