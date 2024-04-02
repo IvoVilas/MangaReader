@@ -34,7 +34,7 @@ struct ChapterReaderView: View {
           .opacity(viewModel.isLoading ? 0 : 1)
           .onAppear {
             Task(priority: .medium) {
-              await viewModel.fetchPages()
+              await viewModel.prepareDatasource()
             }
           }
           .onTapGesture {
@@ -252,12 +252,15 @@ struct ChapterReaderView: View {
         numberOfPages: 0,
         publishAt: Date(),
         isRead: false,
+        lastPageRead: nil,
         downloadInfo: "5624518b-f062-49e8-84ec-e4f40e0de038"
       ),
       readingDirection: .leftToRight,
       mangaCrud: MangaCrud(),
       chapterCrud: ChapterCrud(),
       httpClient: HttpClient(),
+      changedChapter: .init(),
+      changedReadingDirection: .init(),
       viewMoc: PersistenceController.getViewMoc(for: .mangadex, inMemory: true)
     )
   )

@@ -16,6 +16,7 @@ struct ChapterModel: Identifiable, Hashable {
   let numberOfPages: Int
   let publishAt: Date
   let isRead: Bool
+  let lastPageRead: Int?
   let downloadInfo: String
 
   var description: String {
@@ -36,6 +37,14 @@ struct ChapterModel: Identifiable, Hashable {
     } else {
       return "Chapter \(identifier)"
     }
+  }
+
+  var lastPageReadDescription: String? {
+    if let lastPageRead {
+      return "Page: \(lastPageRead + 1)"
+    }
+
+    return nil
   }
 
   // TODO: DateFormatter and Calendar operations are heavy, one should not be created everytime this is called
@@ -82,9 +91,14 @@ struct ChapterModel: Identifiable, Hashable {
 
   static func from(_ chapter: ChapterMO) -> ChapterModel {
     var chapterNumber: Double?
+    var page: Int?
 
     if let number = chapter.chapter {
       chapterNumber = Double(truncating: number)
+    }
+
+    if let lastPageRead = chapter.lastPageRead {
+      page = Int(truncating: lastPageRead)
     }
 
     return ChapterModel(
@@ -93,7 +107,8 @@ struct ChapterModel: Identifiable, Hashable {
       number: chapterNumber,
       numberOfPages: Int(chapter.numberOfPages),
       publishAt: chapter.publishAt,
-      isRead: false,
+      isRead: chapter.isRead,
+      lastPageRead: page,
       downloadInfo: chapter.urlInfo
     )
   }
@@ -110,14 +125,16 @@ struct ChapterIndexResult: Identifiable {
   let publishAt: Date
   let downloadInfo: String
 
-  func converToModel(isRead: Bool = false) -> ChapterModel {
+  func converToModel(
+  ) -> ChapterModel {
     return ChapterModel(
       id: id,
       title: title, 
       number: number,
       numberOfPages: numberOfPages,
       publishAt: publishAt,
-      isRead: isRead,
+      isRead: false,
+      lastPageRead: nil,
       downloadInfo: downloadInfo
     )
   }

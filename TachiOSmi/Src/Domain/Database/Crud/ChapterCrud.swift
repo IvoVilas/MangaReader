@@ -171,4 +171,22 @@ final class ChapterCrud {
     chapter.urlInfo       = urlInfo
   }
 
+  func updateIsRead(
+    _ chapter: ChapterMO,
+    isRead: Bool
+  ) {
+    if isRead {
+      chapter.isRead = isRead
+    }
+  }
+
+  func updateLastPageRead(
+    _ chapter: ChapterMO,
+    lastPageRead: Int?
+  ) {
+    guard let lastPageRead else { return }
+
+    chapter.lastPageRead = lastPageRead as NSNumber
+  }
+
 }

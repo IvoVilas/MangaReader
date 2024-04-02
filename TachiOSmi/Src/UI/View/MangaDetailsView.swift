@@ -12,8 +12,8 @@ struct MangaDetailsView: View {
   let viewModel: MangaDetailsViewModel
   @State private var toast: Toast?
 
-  private let backgroundColor: Color = .black
-  private let foregroundColor: Color = .white
+  private let backgroundColor: Color = .white
+  private let foregroundColor: Color = .black
 
   init(
     viewModel: MangaDetailsViewModel
@@ -111,9 +111,16 @@ struct MangaDetailsView: View {
         .lineLimit(1)
         .foregroundStyle(chapter.isRead ? .gray : foregroundColor)
 
-      Text(chapter.createdAtDescription)
-        .font(.caption2)
-        .foregroundStyle(chapter.isRead ? .gray : foregroundColor)
+      HStack(spacing: 16) {
+        Text(chapter.createdAtDescription)
+          .font(.caption2)
+          .foregroundStyle(chapter.isRead ? .gray : foregroundColor)
+
+        Text(chapter.lastPageReadDescription ?? "")
+          .font(.caption2)
+          .foregroundStyle(.gray)
+          .opacity((chapter.lastPageRead ?? 0) > 0 && !chapter.isRead ? 1 : 0)
+      }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
   }

@@ -9,7 +9,11 @@ import Foundation
 
 extension Array {
 
-  func safeGet(_ i: Int) -> Element? {
+  func safeGet(_ i: Int?) -> Element? {
+    guard let i else {
+      return nil
+    }
+
     if self.indices.contains(i) {
       return self[i]
     }

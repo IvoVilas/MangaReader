@@ -16,6 +16,8 @@ class ChapterMO: NSManagedObject {
   @NSManaged var numberOfPages: Int16
   @NSManaged var publishAt: Date
   @NSManaged var urlInfo: String
+  @NSManaged var isRead: Bool
+  @NSManaged var lastPageRead: NSNumber? // Int16
 
   // Relationships
   @NSManaged var manga: MangaMO
@@ -42,6 +44,8 @@ class ChapterMO: NSManagedObject {
     self.numberOfPages = numberOfPages
     self.publishAt     = publishAt
     self.urlInfo       = urlInfo
+    self.isRead        = false
+    self.lastPageRead  = nil
 
     self.manga = manga
   }

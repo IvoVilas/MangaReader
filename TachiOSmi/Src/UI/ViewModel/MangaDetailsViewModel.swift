@@ -36,6 +36,8 @@ final class MangaDetailsViewModel {
   private let mangaCrud: MangaCrud
   private let viewMoc: NSManagedObjectContext
 
+  private let changedChapter: PassthroughSubject<ChapterModel, Never>
+  private let changedReadingDirection: PassthroughSubject<ReadingDirection, Never>
   private var observers = Set<AnyCancellable>()
 
   init(
@@ -54,6 +56,9 @@ final class MangaDetailsViewModel {
     self.source = source
     self.mangaCrud = mangaCrud
     self.viewMoc = viewMoc
+
+    changedChapter = PassthroughSubject()
+    changedReadingDirection = PassthroughSubject()
 
     chaptersDatasource = ChaptersDatasource(
       mangaId: manga.id,
@@ -175,6 +180,24 @@ final class MangaDetailsViewModel {
     }
     .sink { [weak self] in self?.error = $0 }
     .store(in: &observers)
+
+    changedReadingDirection
+      .removeDuplicates()
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in self?.readingDirection = $0 }
+      .store(in: &observers)
+
+    changedChapter
+      .removeDuplicates()
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] chapter in
+        guard let self else { return }
+
+        if let index = self.chapters.firstIndex(where: { $0.id == chapter.id }) {
+          self.chapters[index] = chapter
+        }
+      }
+      .store(in: &observers)
   }
 
   private func saveManga(isSaved: Bool) async throws {
@@ -240,6 +263,8 @@ extension MangaDetailsViewModel {
       mangaCrud: AppEnv.env.mangaCrud,
       chapterCrud: AppEnv.env.chapterCrud,
       httpClient: AppEnv.env.httpClient,
+      changedChapter: changedChapter,
+      changedReadingDirection: changedReadingDirection,
       viewMoc: viewMoc
     )
   }

@@ -12,11 +12,15 @@ extension NSManagedObjectContext {
 
   enum EmptyResult<Error> {
     case success
+    case noChanges
     case failure(Error)
 
     var isSuccess: Bool {
       switch self {
       case .success:
+        return true
+
+      case .noChanges:
         return true
 
       case .failure:
@@ -27,6 +31,9 @@ extension NSManagedObjectContext {
     func ingoreResult(source: String? = nil) {
       switch self {
       case .success:
+        return
+
+      case .noChanges:
         return
 
       case .failure(let error):
@@ -45,7 +52,7 @@ extension NSManagedObjectContext {
     rollbackOnError: Bool = false
   ) -> EmptyResult<Swift.Error> {
     guard hasChanges else {
-      return .success
+      return .noChanges
     }
 
     do {
