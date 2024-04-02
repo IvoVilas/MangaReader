@@ -11,6 +11,7 @@ import SwiftUI
 struct PageView: View, Equatable {
 
   let page: PageModel
+  let allowsZoom: Bool
   let reloadAction: ((PageModel) async -> Void)?
 
   static func == (lhs: PageView, rhs: PageView) -> Bool {
@@ -28,13 +29,11 @@ struct PageView: View, Equatable {
   var body: some View {
     switch page {
     case .remote(_, _, let data):
-      Image(uiImage: UIImage(data: data) ?? .imageNotFound)
-        .resizable()
-        .aspectRatio(contentMode: .fit)
-        .frame(width: UIScreen.main.bounds.width)
-
-      // ZoomImageView(image: UIImage(data: data) ?? .imageNotFound)
-      //   .frame(width: UIScreen.main.bounds.width)
+      ZoomableImageView(
+        image: UIImage(data: data) ?? .imageNotFound,
+        allowsZoom: allowsZoom
+      )
+      .frame(width: UIScreen.main.bounds.width)
 
     case .loading:
       ProgressView()
@@ -80,11 +79,13 @@ struct PageView: View, Equatable {
   ScrollView(.horizontal) {
     HStack(spacing: 0) {
       PageView(
-        page: .notFound("1", 1)
+        page: .notFound("1", 1),
+        allowsZoom: true
       ) { _ in }
 
       PageView(
-        page: .loading("2", 2)
+        page: .loading("2", 2),
+        allowsZoom: true
       ) { _ in }
     }
   }

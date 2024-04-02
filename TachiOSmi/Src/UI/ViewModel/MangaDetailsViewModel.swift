@@ -78,8 +78,8 @@ final class MangaDetailsViewModel {
       viewMoc: viewMoc
     )
 
-    cover = manga.cover
     title = manga.title
+    cover = manga.cover
     isSaved = manga.isSaved
     status = .unknown
     authors = []

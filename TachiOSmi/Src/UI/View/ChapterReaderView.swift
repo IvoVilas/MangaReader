@@ -48,6 +48,7 @@ struct ChapterReaderView: View {
         .flipsForRightToLeftLayoutDirection(true)
         .environment(\.layoutDirection, .rightToLeft)
         .opacity(showingToolBar ? 0.9 : 0)
+        .offset(y: showingToolBar ? 0 : -100)
 
       pageSliderView()
         .flipsForRightToLeftLayoutDirection(true)
@@ -160,7 +161,7 @@ struct ChapterReaderView: View {
       ScrollView(.horizontal) {
         LazyHStack(spacing: 0) {
           ForEach(viewModel.pages) { page in
-            pageView(for: page)
+            pageView(for: page, allowsZoom: true)
               .flipsForRightToLeftLayoutDirection(true)
               .environment(\.layoutDirection, .rightToLeft)
               .onAppear {
@@ -179,7 +180,7 @@ struct ChapterReaderView: View {
       ScrollView() {
         LazyVStack(spacing: 0) {
           ForEach(viewModel.pages) { page in
-            pageView(for: page)
+            pageView(for: page, allowsZoom: false)
               .frame(maxWidth: .infinity, maxHeight: .infinity)
               .flipsForRightToLeftLayoutDirection(true)
               .environment(\.layoutDirection, .rightToLeft)
@@ -199,12 +200,14 @@ struct ChapterReaderView: View {
 
   @ViewBuilder
   private func pageView(
-    for page: ChapterPage
+    for page: ChapterPage,
+    allowsZoom: Bool
   ) -> some View {
     switch page {
     case .page(let page):
       PageView(
         page: page,
+        allowsZoom: allowsZoom,
         reloadAction: viewModel.reloadPages
       ).equatable()
 

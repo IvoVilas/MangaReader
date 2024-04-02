@@ -15,18 +15,6 @@ struct MangaDetailsView: View {
   private let backgroundColor: Color = .white
   private let foregroundColor: Color = .black
 
-  init(
-    viewModel: MangaDetailsViewModel
-  ) {
-    self.viewModel = viewModel
-
-    let appearance = UINavigationBarAppearance()
-    appearance.configureWithTransparentBackground()
-    UINavigationBar.appearance().standardAppearance = appearance
-    UINavigationBar.appearance().compactAppearance = appearance
-    UINavigationBar.appearance().scrollEdgeAppearance = appearance
-  }
-
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 0) {
@@ -39,6 +27,7 @@ struct MangaDetailsView: View {
             .opacity(viewModel.isLoading ? 1 : 0)
             .offset(y: 75)
         }
+
         Spacer().frame(height: 24)
 
         makeDescriptionView()
@@ -220,12 +209,14 @@ struct MangaDetailsView: View {
   @ViewBuilder
   private func makeDescriptionView() -> some View {
     VStack(spacing: 0) {
-      Text(viewModel.description ?? "")
-        .font(.bold(.footnote)())
-        .foregroundStyle(foregroundColor)
-        .lineLimit(3)
-        .opacity(viewModel.description != nil ? 1 : 0)
-        .padding(.horizontal, 24)
+      ExpandableTextView(
+        text: viewModel.description ?? "",
+        font: .footnote,
+        textColor: foregroundColor
+      )
+      .opacity(viewModel.description == nil ? 0 : 1)
+      .padding(.horizontal, 24)
+      .id(viewModel.description ?? "")
 
       Spacer().frame(height: 16)
 
@@ -292,7 +283,7 @@ extension MangaDetailsView {
     let manga = MangaSearchResult(
       id: "c52b2ce3-7f95-469c-96b0-479524fb7a1a",
       title: "Jujutsu Kaisen",
-      cover: UIImage.jujutsuCover.jpegData(compressionQuality: 1), 
+      cover: UIImage.jujutsuCover.jpegData(compressionQuality: 1),
       isSaved: false
     )
 

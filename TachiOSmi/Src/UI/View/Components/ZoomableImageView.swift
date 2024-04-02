@@ -1,5 +1,5 @@
 //
-//  ZoomImageView.swift
+//  ZoomableImageView.swift
 //  TachiOSmi
 //
 //  Created by Ivo Vilas Boas  on 02/04/2024.
@@ -7,35 +7,17 @@
 
 import SwiftUI
 
-struct ZoomImagesView: View {
-  let images: [String]
-
-  var body: some View {
-    ScrollView(.horizontal, showsIndicators: false) {
-      HStack(spacing: 0) {
-        ForEach(images, id: \.self) { image in
-          ZoomImageView(
-            image: UIImage(named: image)!
-          )
-          .frame(width: UIScreen.main.bounds.width)
-        }
-      }
-    }
-    .scrollTargetBehavior(.paging)
-    .ignoresSafeArea()
-  }
-
-}
-
-struct ZoomImageView: View {
+struct ZoomableImageView: View {
 
   private static var maxScale: CGFloat = 4
   private static var defaultScale: CGFloat = 2
 
   var image: UIImage
+  let allowsZoom: Bool
 
   @State private var scale: CGFloat = 1.0
   @State private var offset: CGSize = .zero
+  @State private var dragAmount: CGSize = .zero
   @State private var imageSize: CGSize = .zero
 
   var body: some View {
@@ -43,8 +25,14 @@ struct ZoomImageView: View {
       .resizable()
       .scaledToFit()
       .scaleEffect(scale)
-      .offset(offset)
-      .background(.red)
+      .offset(limitOffset(
+        CGSize(
+          width: offset.width + dragAmount.width,
+          height: offset.height + dragAmount.height
+        ),
+        scale: scale,
+        size: imageSize)
+      )
       .background(
         GeometryReader { geo in
           Color.clear.onAppear {
@@ -52,7 +40,9 @@ struct ZoomImageView: View {
           }
         }
       )
-      .gesture(buildGesture(hasPan: scale > 1))
+      .if(allowsZoom) {
+        $0.gesture(buildGesture(hasPan: scale > 1))
+      }
       .animation(.easeIn, value: scale)
       //.animation(.linear, value: offset)
       .frame(maxHeight: .infinity)
@@ -79,17 +69,11 @@ struct ZoomImageView: View {
       .onChanged { value in
         let newScale = min(
           max(1, value.magnitude),
-          ZoomImageView.maxScale
+          ZoomableImageView.maxScale
         )
 
         if scale != newScale {
           scale = newScale
-
-          offset = limitOffset(
-            offset,
-            scale: newScale,
-            size: imageSize
-          )
         }
       }
       .simultaneously(
@@ -99,23 +83,18 @@ struct ZoomImageView: View {
         ).onChanged { gesture in
           guard scale > 1 else { return }
 
-          let newOffset = CGSize(
-            width: offset.width + gesture.translation.width / 2,
-            height: offset.height + gesture.translation.height / 2
-          )
-
-          offset = limitOffset(
-            newOffset,
-            scale: scale,
-            size: imageSize
-          )
+          self.dragAmount = gesture.translation
+        }.onEnded { gesture in
+          offset.width += gesture.translation.width
+          offset.height += gesture.translation.height
+          dragAmount = .zero
         }
         ) : nil
       )
       .simultaneously(
         with: TapGesture(count: 2).onEnded { position in
           if scale == 1 {
-            scale = ZoomImageView.defaultScale
+            scale = ZoomableImageView.defaultScale
           } else {
             scale = 1
             offset = .zero
@@ -127,11 +106,24 @@ struct ZoomImageView: View {
 }
 
 #Preview {
-  ZoomImageView(
-    image: .jujutsuCover
+  ZoomableImageView(
+    image: .jujutsuCover,
+    allowsZoom: true
   )
 }
 
 #Preview {
-  ZoomImagesView(images: ["jujutsu_cover", "cover_not_found"])
+  ScrollView(.horizontal, showsIndicators: false) {
+    HStack(spacing: 0) {
+      ForEach(["jujutsu_cover", "cover_not_found"], id: \.self) { image in
+        ZoomableImageView(
+          image: UIImage(named: image)!,
+          allowsZoom: true
+        )
+        .frame(width: UIScreen.main.bounds.width)
+      }
+    }
+  }
+  .scrollTargetBehavior(.paging)
+  .ignoresSafeArea()
 }
