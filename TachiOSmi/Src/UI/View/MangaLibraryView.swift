@@ -21,18 +21,34 @@ struct MangaLibraryView: View {
       Text("Library")
         .font(.title)
 
-      ScrollView {
-        LazyVGrid(columns: columns, spacing: 16) {
-          ForEach(viewModel.mangas) { result in
-            NavigationLink(value: result) {
-              makeMangaView(result)
+      ZStack {
+        ScrollView {
+          LazyVGrid(columns: columns, spacing: 16) {
+            ForEach(viewModel.mangas) { result in
+              NavigationLink(value: result) {
+                makeMangaView(result)
+              }
             }
           }
         }
+        .scrollIndicators(.hidden)
+        .onAppear { viewModel.refreshLibrary() }
+        .refreshable { viewModel.refreshLibrary() }
+        .opacity(viewModel.mangas.count > 0 ? 1 : 0)
+
+        VStack(spacing: 8) {
+          Image(systemName: "books.vertical")
+            .resizable()
+            .scaledToFit()
+            .foregroundStyle(.gray)
+            .frame(width: 150)
+
+          Text("Your library is emtpy")
+            .foregroundStyle(.gray)
+            .font(.title3)
+        }
+        .opacity(viewModel.mangas.count > 0 ? 0 : 1)
       }
-      .scrollIndicators(.hidden)
-      .onAppear { viewModel.refreshLibrary() }
-      .refreshable { viewModel.refreshLibrary() }
     }
   }
 
