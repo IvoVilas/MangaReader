@@ -388,7 +388,6 @@
 				1EE68A202B8C8B6C003B9037 /* Style.swift */,
 				1EF20A362B8EA18D00D17A65 /* ToastView.swift */,
 				1EF8732C2B95B6F7005E59D3 /* CustomBackAction.swift */,
-				1E598D7E2B97772900BDF1B6 /* PageSliderView.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -531,6 +530,7 @@
 		D7736CBF2BBC8B1C0081AE98 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				1E598D7E2B97772900BDF1B6 /* PageSliderView.swift */,
 				D7CA25562BBBFBDE00237F1D /* ZoomableImageView.swift */,
 				D7600FBD2BB4DFBE0044C130 /* PageView.swift */,
 				D7736CC02BBC8B2B0081AE98 /* TransitionPageView.swift */,

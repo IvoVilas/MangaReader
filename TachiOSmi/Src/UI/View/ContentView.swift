@@ -23,6 +23,16 @@ struct ContentView: View {
               icon: { Image(systemName: "book.closed.fill") }
             )
           }
+          .toolbarBackground(.visible, for: .tabBar)
+
+        Text("TODO")
+          .tabItem {
+            Label(
+              title: { Text("Updates") },
+              icon: { Image(systemName: "clock.arrow.2.circlepath") }
+            )
+          }
+          .toolbarBackground(.visible, for: .tabBar)
 
         MangaSourcesView(viewModel: sourcesViewModel)
           .padding(24)
@@ -32,6 +42,16 @@ struct ContentView: View {
               icon: { Image(systemName: "safari") }
             )
           }
+          .toolbarBackground(.visible, for: .tabBar)
+
+        Text("TODO")
+          .tabItem {
+            Label(
+              title: { Text("More") },
+              icon: { Image(systemName: "ellipsis") }
+            )
+          }
+          .toolbarBackground(.visible, for: .tabBar)
       }
       .background(.white)
       .navigationDestination(for: MangaLibraryViewModel.MangaWrapper.self) { wrapper in
