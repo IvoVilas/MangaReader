@@ -11,6 +11,7 @@ struct MangaDetailsView: View {
 
   let viewModel: MangaDetailsViewModel
   @State private var toast: Toast?
+  @State private var descipitionExpanded = false
 
   private let backgroundColor: Color = .white
   private let foregroundColor: Color = .black
@@ -211,6 +212,7 @@ struct MangaDetailsView: View {
     VStack(spacing: 0) {
       ExpandableTextView(
         text: viewModel.description ?? "",
+        isExpanded: $descipitionExpanded,
         font: .footnote,
         textColor: foregroundColor
       )
@@ -218,7 +220,7 @@ struct MangaDetailsView: View {
       .padding(.horizontal, 24)
       .id(viewModel.description ?? "")
 
-      Spacer().frame(height: 16)
+      Spacer().frame(height: descipitionExpanded ? 32 : 24)
 
       ScrollView(.horizontal) {
         HStack(spacing: 8) {

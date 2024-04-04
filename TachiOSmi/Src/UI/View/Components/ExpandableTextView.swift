@@ -10,7 +10,7 @@ import SwiftUI
 struct ExpandableTextView: View {
 
   @State var text: String
-  @State private var isExpanded: Bool = false
+  @Binding var isExpanded: Bool
   @State private var shouldShowMoreButton: Bool = false
 
   let font: Font
@@ -19,7 +19,7 @@ struct ExpandableTextView: View {
   private let lineLimit: Int = 3
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 10) {
+    VStack(spacing: 10) {
       ZStack(alignment: .bottom) {
         Text(text)
           .font(font)
@@ -27,27 +27,13 @@ struct ExpandableTextView: View {
           .foregroundStyle(textColor)
           .animation(.spring, value: isExpanded)
 
-          LinearGradient(
-            gradient: Gradient(colors: [.clear, .white]),
-            startPoint: .center,
-            endPoint: .bottom
-          )
-          .frame(height: 60)
-          .opacity(!isExpanded && shouldShowMoreButton ? 1 : 0)
-      }
-      .background(
-        GeometryReader { geometryProxy in
-          Color.clear.onAppear {
-            let textSize = textSizeWithoutLimit(geometry: geometryProxy)
-            let limitedTextSize = textSizeWithLimit(geometry: geometryProxy, lineLimit: lineLimit)
-            
-            shouldShowMoreButton = textSize.height > limitedTextSize.height
-          }
-        }
-      )
-
-      HStack(spacing: 0) {
-        Spacer()
+        LinearGradient(
+          gradient: Gradient(colors: [.clear, .white]),
+          startPoint: .center,
+          endPoint: .bottom
+        )
+        .frame(height: 60)
+        .opacity(!isExpanded && shouldShowMoreButton ? 1 : 0)
 
         Button {
           withAnimation {
@@ -58,10 +44,19 @@ struct ExpandableTextView: View {
             .foregroundColor(.black)
         }
         .contentTransition(.symbolEffect(.automatic))
-
-        Spacer()
+        .offset(y: isExpanded ? 20 : 0)
+        .opacity(shouldShowMoreButton ? 1 : 0)
       }
-      .opacity(shouldShowMoreButton ? 1 : 0)
+      .background(
+        GeometryReader { geometryProxy in
+          Color.clear.onAppear {
+            let textSize = textSizeWithoutLimit(geometry: geometryProxy)
+            let limitedTextSize = textSizeWithLimit(geometry: geometryProxy, lineLimit: lineLimit)
+
+            shouldShowMoreButton = textSize.height > limitedTextSize.height
+          }
+        }
+      )
     }
   }
 
@@ -91,12 +86,23 @@ struct ExpandableTextView: View {
   }
 }
 
+private struct ExpandableTextView_Preview: View {
+
+  @State private var isExpanded = false
+
+  var body: some View {
+    ExpandableTextView(
+      text: "Yuuji is a genius at track and field. But he has zero interest running around in circles, he's happy as a clam in the Occult Research Club. Although he's only in the club for kicks, things get serious when a real spirit shows up at school! Life's about to get really strange in Sugisawa Town #3 High School!",
+      isExpanded: $isExpanded,
+      font: .footnote,
+      textColor: .black
+    )
+    .padding(.horizontal, 24)
+  }
+}
+
 #Preview {
-  ExpandableTextView(
-    text: "Yuuji is a genius at track and field. But he has zero interest running around in circles, he's happy as a clam in the Occult Research Club. Although he's only in the club for kicks, things get serious when a real spirit shows up at school! Life's about to get really strange in Sugisawa Town #3 High School!",
-    font: .footnote,
-    textColor: .black
-  )
+  ExpandableTextView_Preview()
 }
 
 extension UIFont {
