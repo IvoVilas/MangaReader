@@ -25,7 +25,7 @@ struct MangaLibraryView: View {
         LazyVGrid(columns: columns, spacing: 16) {
           ForEach(viewModel.mangas) { result in
             NavigationLink(value: result) {
-              makeMangaView(result.manga)
+              makeMangaView(result)
             }
           }
         }
@@ -38,30 +38,43 @@ struct MangaLibraryView: View {
 
   @ViewBuilder
   private func makeMangaView(
-    _ manga: MangaSearchResult
+    _ manga: MangaLibraryViewModel.MangaWrapper
   ) -> some View {
-    Image(uiImage: manga.cover.toUIImage() ?? UIImage())
-      .resizable()
-      .aspectRatio(0.625, contentMode: .fill)
-      .background(.gray)
-      .overlay {
-        ZStack(alignment: .bottomLeading) {
-          LinearGradient(
-            gradient: Gradient(colors: [.clear, .black.opacity(0.8)]),
-            startPoint: .center,
-            endPoint: .bottom
-          )
+    ZStack(alignment: .topLeading) {
+      Image(uiImage: manga.manga.cover.toUIImage() ?? UIImage())
+        .resizable()
+        .aspectRatio(0.625, contentMode: .fill)
+        .background(.gray)
+        .overlay {
+          ZStack(alignment: .bottomLeading) {
+            LinearGradient(
+              gradient: Gradient(colors: [.clear, .black.opacity(0.8)]),
+              startPoint: .center,
+              endPoint: .bottom
+            )
 
-          Text(manga.title)
-            .font(.bold(.footnote)())
-            .lineLimit(2)
-            .multilineTextAlignment(.leading)
-            .foregroundStyle(.white)
-            .padding(.horizontal, 4)
-            .padding(.bottom, 8)
+            Text(manga.manga.title)
+              .font(.footnote)
+              .lineLimit(2)
+              .multilineTextAlignment(.leading)
+              .foregroundStyle(.white)
+              .padding(.horizontal, 4)
+              .padding(.bottom, 8)
+          }
         }
-      }
-      .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+
+      Text("\(manga.unreadChapters)")
+        .font(.footnote)
+        .lineLimit(1)
+        .foregroundStyle(.white)
+        .padding(4)
+        .background(.black)
+        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .padding(.leading, 8)
+        .padding(.top, 8)
+        .opacity(manga.unreadChapters > 0 ? 1 : 0)
+    }
   }
 
 }
@@ -70,7 +83,8 @@ struct MangaLibraryView: View {
   MangaLibraryView(
     viewModel: MangaLibraryViewModel(
       mangaCrud: MangaCrud(),
-      coverCrud: CoverCrud()
+      coverCrud: CoverCrud(),
+      chapterCrud: ChapterCrud()
     )
   )
 }

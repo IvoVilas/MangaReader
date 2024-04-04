@@ -47,6 +47,24 @@ final class ChapterCrud {
     }
   }
 
+  func getUnreadChaptersCount(
+    mangaId: String,
+    moc: NSManagedObjectContext
+  ) throws -> Int {
+    let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Chapter")
+
+    let mangaPredicate = NSPredicate(format: "manga.id == %@", mangaId)
+    let readPredicate = NSPredicate(format: "isRead == %@", NSNumber(value: false))
+
+    fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [mangaPredicate, readPredicate])
+
+    do {
+      return try moc.count(for: fetchRequest)
+    } catch {
+      throw CrudError.requestError(error)
+    }
+  }
+
   func findNextChapter(
     _ id: String,
     mangaId: String,

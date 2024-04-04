@@ -54,6 +54,7 @@ struct ContentView: View {
     libraryViewModel: MangaLibraryViewModel(
       mangaCrud: MangaCrud(),
       coverCrud: CoverCrud(),
+      chapterCrud: ChapterCrud(),
       inMemory: true
     ),
     sourcesViewModel: MangaSourcesViewModel(

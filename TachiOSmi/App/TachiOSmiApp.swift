@@ -25,7 +25,9 @@ struct TachiOSmiApp: App {
       ContentView(
         libraryViewModel: MangaLibraryViewModel(
           mangaCrud: AppEnv.env.mangaCrud,
-          coverCrud: AppEnv.env.coverCrud),
+          coverCrud: AppEnv.env.coverCrud,
+          chapterCrud: AppEnv.env.chapterCrud
+        ),
         sourcesViewModel: MangaSourcesViewModel()
       )
     }

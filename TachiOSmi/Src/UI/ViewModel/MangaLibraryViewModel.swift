@@ -14,6 +14,7 @@ final class MangaLibraryViewModel {
 
   private let mangaCrud: MangaCrud
   private let coverCrud: CoverCrud
+  private let chapterCrud: ChapterCrud
   private let inMemory: Bool
   private let sources: [Source]
 
@@ -22,10 +23,12 @@ final class MangaLibraryViewModel {
   init(
     mangaCrud: MangaCrud,
     coverCrud: CoverCrud,
+    chapterCrud: ChapterCrud,
     inMemory: Bool = false
   ) {
     self.mangaCrud = mangaCrud
     self.coverCrud = coverCrud
+    self.chapterCrud = chapterCrud
     self.inMemory = inMemory
 
     mangas = []
@@ -44,9 +47,12 @@ final class MangaLibraryViewModel {
         }
 
         for manga in mangas {
+          let unreadChapter = try? chapterCrud.getUnreadChaptersCount(mangaId: manga.id, moc: moc)
+
           res.append(
             MangaWrapper(
               source: source,
+              unreadChapters: unreadChapter ?? 0,
               manga: MangaSearchResult(
                 id: manga.id,
                 title: manga.title,
@@ -93,6 +99,7 @@ extension MangaLibraryViewModel {
   struct MangaWrapper: Hashable, Identifiable {
 
     let source: Source
+    let unreadChapters: Int
     let manga: MangaSearchResult
 
     var id: String { manga.id }
