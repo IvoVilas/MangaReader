@@ -2,7 +2,7 @@
 //  MangaDetailsView.swift
 //  TachiOSmi
 //
-//  Created by Ivo Vilas on 18/02/2024.
+//  Created by Ivo Vilas Boas  on 04/04/2024.
 //
 
 import SwiftUI
@@ -10,81 +10,130 @@ import SwiftUI
 struct MangaDetailsView: View {
 
   let viewModel: MangaDetailsViewModel
+
   @State private var toast: Toast?
-  @State private var descipitionExpanded = false
+  @State private var isExpanded: Bool = false
+  @State private var shouldShowExpandButton: Bool = false
+  @State private var descriptionWidth = CGFloat.zero
 
   private let backgroundColor: Color = .white
   private let foregroundColor: Color = .black
 
   var body: some View {
-    ScrollView {
-      VStack(alignment: .leading, spacing: 0) {
-        ZStack(alignment: .top) {
-          makeHeaderView()
+    ZStack(alignment: .top) {
+      ScrollView {
+        VStack(spacing: 16) {
+          ZStack(alignment: .topLeading) {
+            ZStack(alignment: .bottom) {
+              backgroundView()
 
-          ProgressView()
-            .progressViewStyle(.circular)
-            .tint(foregroundColor)
-            .opacity(viewModel.isLoading ? 1 : 0)
-            .offset(y: 75)
-        }
-
-        Spacer().frame(height: 24)
-
-        makeDescriptionView(
-          description: viewModel.manga.description
-        )
-
-        Spacer().frame(height: 16)
-
-        VStack(alignment: .leading, spacing: 4) {
-          Text("\(viewModel.chaptersCount) chapters")
-            .font(.headline)
-            .foregroundStyle(foregroundColor)
-            .padding(.horizontal, 24)
-
-          Text("Missing \(viewModel.missingChaptersCount) chapters")
-            .font(.caption)
-            .foregroundStyle(.red)
-            .padding(.horizontal, 24)
-            .frame(height: viewModel.missingChaptersCount > 0 ? nil : 0)
-            .opacity(viewModel.missingChaptersCount > 0 ? 1 : 0)
-        }
-
-        Spacer().frame(height: 24)
-
-        LazyVStack(alignment: .leading, spacing: 24) {
-          ForEach(viewModel.chapters) { chapter in
-            switch chapter {
-            case .chapter(let chapter):
-              NavigationLink(value: chapter) {
-                makeChapterView(chapter)
-              }
-
-            case .missing(let missing):
-              HStack(spacing: 16) {
-                Spacer()
-                  .frame(height: 1)
-                  .background(.red)
-
-                Text("Missing \(missing.count) \(missing.count == 1 ? "chapter" : "chapters")")
-                  .font(.caption2)
-                  .lineLimit(1)
-                  .foregroundStyle(.red)
-                  .layoutPriority(1)
-
-                Spacer()
-                  .frame(height: 1)
-                  .background(.red)
-              }
+              infoView()
+                .padding(.horizontal, 24)
             }
+
+            navbarView()
+              .padding(.horizontal, 24)
+              .offset(y: 64)
+          }
+
+          ZStack(alignment: .top) {
+            Text(viewModel.manga.description ?? "")
+              .font(.footnote)
+              .foregroundStyle(foregroundColor)
+              .opacity(viewModel.manga.description == nil ? 0 : 1)
+              .frame(maxWidth: .infinity, alignment: .leading)
+              .background(
+                GeometryReader { geometry in
+                  Color.clear.onAppear {
+                    let width = geometry.size.width
+
+                    let textSize = textSizeWithoutLimit(availableWidth: width)
+                    let limitedTextSize = textSizeWithLimit(availableWidth: width)
+
+                    shouldShowExpandButton = textSize.height > limitedTextSize.height
+                    descriptionWidth = width
+                  }
+                }
+              )
+              .padding(.horizontal, 24)
+              .id(viewModel.manga.description ?? "")
+
+            VStack(alignment: .leading, spacing: 0) {
+              ZStack(alignment: .bottom) {
+                LinearGradient(
+                  gradient: Gradient(colors: [.clear, .white.opacity(0.8), .white]),
+                  startPoint: .top,
+                  endPoint: .bottom
+                )
+                .opacity(!isExpanded && shouldShowExpandButton ? 1 : 0)
+
+                Button {
+                  withAnimation {
+                    isExpanded.toggle()
+                  }
+                } label: {
+                  Image(isExpanded ? "expand_less" : "expand_more")
+                    .foregroundColor(.black)
+                }
+                .contentTransition(.symbolEffect(.automatic))
+                .opacity(shouldShowExpandButton ? 1 : 0)
+              }
+              .padding(.horizontal, 24)
+
+              Spacer()
+                .frame(height: 16)
+                .frame(maxWidth: .infinity)
+                .background(backgroundColor)
+
+              tagsView()
+                .background(backgroundColor)
+
+              Spacer()
+                .frame(height: 16)
+                .frame(maxWidth: .infinity)
+                .background(backgroundColor)
+
+              VStack(alignment: .leading, spacing: 4) {
+                Text("\(viewModel.chaptersCount) chapters")
+                  .font(.headline)
+                  .foregroundStyle(foregroundColor)
+                  .padding(.horizontal, 24)
+
+                Text("Missing \(viewModel.missingChaptersCount) chapters")
+                  .font(.caption)
+                  .foregroundStyle(.red)
+                  .padding(.horizontal, 24)
+                  .frame(height: viewModel.missingChaptersCount > 0 ? nil : 0)
+                  .opacity(viewModel.missingChaptersCount > 0 ? 1 : 0)
+              }
+              .frame(maxWidth: .infinity, alignment: .leading)
+              .background(backgroundColor)
+
+              Spacer()
+                .frame(height: 24)
+                .frame(maxWidth: .infinity)
+                .background(backgroundColor)
+
+              chaptersView()
+                .padding(.horizontal, 24)
+                .background(backgroundColor)
+            }
+            .offset(
+              y: textOffset(availableWidth: descriptionWidth)
+            )
           }
         }
-        .padding(.horizontal, 24)
       }
+      .scrollIndicators(.hidden)
+
+      ProgressView()
+        .controlSize(.regular)
+        .progressViewStyle(.circular)
+        .tint(foregroundColor)
+        .opacity(viewModel.isLoading ? 1 : 0)
+        .offset(y: 75)
     }
     .navigationBarBackButtonHidden(true)
-    .scrollIndicators(.hidden)
     .ignoresSafeArea(.all, edges: .top)
     .background(backgroundColor)
     .onAppear {
@@ -118,7 +167,134 @@ struct MangaDetailsView: View {
   }
 
   @ViewBuilder
-  func makeChapterView(
+  private func backgroundView() -> some View {
+    Image(uiImage: viewModel.manga.cover.toUIImage() ?? .coverNotFound)
+      .resizable()
+      .scaledToFill()
+      .frame(maxWidth: .infinity)
+      .frame(height: 260)
+      .clipped()
+      .opacity(0.4)
+      .overlay {
+        LinearGradient(
+          gradient: Gradient(colors: [.clear, backgroundColor]),
+          startPoint: .top,
+          endPoint: .bottom
+        )
+      }
+  }
+
+  @ViewBuilder
+  private func navbarView() -> some View {
+    CustomBackAction(tintColor: foregroundColor)
+      .frame(width: 20, height: 20)
+  }
+
+  @ViewBuilder
+  private func infoView() -> some View {
+    HStack(spacing: 16) {
+      Image(uiImage: viewModel.manga.cover.toUIImage() ?? .coverNotFound)
+        .resizable()
+        .aspectRatio(contentMode: .fill)
+        .frame(width: 100, height: 160)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .animation(nil, value: isExpanded)
+
+      VStack(alignment: .leading, spacing: 8) {
+        Text(viewModel.manga.title)
+          .foregroundStyle(foregroundColor)
+          .font(.headline)
+
+        if let author = viewModel.manga.authors.first {
+          HStack(spacing: 4) {
+            Image(systemName: "person")
+              .resizable()
+              .frame(width: 15, height: 15)
+              .foregroundStyle(foregroundColor)
+
+            Text(author.name)
+              .foregroundStyle(foregroundColor)
+              .font(.footnote)
+          }
+        }
+
+        HStack(spacing: 4) {
+          Image(systemName: getStatusIcon(viewModel.manga.status))
+            .resizable()
+            .frame(width: 15, height: 15)
+            .foregroundStyle(foregroundColor)
+
+          Text(viewModel.manga.status.value.localizedCapitalized)
+            .foregroundStyle(foregroundColor)
+            .font(.footnote)
+        }
+
+        Button {
+          Task(priority: .userInitiated) {
+            await viewModel.saveManga(!viewModel.manga.isSaved)
+          }
+        } label: {
+          HStack(spacing: 4) {
+            Image(systemName: viewModel.manga.isSaved ?  "book.closed.fill" : "book.closed")
+              .foregroundStyle(viewModel.isLoading ? .gray : foregroundColor)
+              .aspectRatio(1, contentMode: .fill)
+
+            Text(viewModel.manga.isSaved ? "In library" : "Add to library")
+              .font(.caption2)
+              .foregroundStyle(viewModel.isLoading ? .gray : foregroundColor)
+          }
+          .padding(.top, 4)
+        }
+        .disabled(viewModel.isLoading)
+      }
+
+      Spacer()
+    }
+  }
+
+  @ViewBuilder
+  private func tagsView() -> some View {
+    ScrollView(.horizontal) {
+      HStack(spacing: 8) {
+        ForEach(viewModel.manga.tags) { tag in
+          Text(tag.title)
+            .font(.footnote)
+            .lineLimit(1)
+            .foregroundStyle(foregroundColor)
+            .padding(.vertical, 4)
+            .padding(.horizontal, 8)
+            .background(
+              RoundedRectangle(cornerRadius: 4)
+                .fill(backgroundColor)
+                .stroke(foregroundColor, lineWidth: 1)
+            )
+        }
+        .padding(.vertical, 1)
+      }
+      .padding(.horizontal, 24)
+    }
+    .scrollIndicators(.hidden)
+  }
+
+  @ViewBuilder
+  private func chaptersView() -> some View {
+    LazyVStack(alignment: .leading, spacing: 24) {
+      ForEach(viewModel.chapters) { chapter in
+        switch chapter {
+        case .chapter(let chapter):
+          NavigationLink(value: chapter) {
+            chapterView(chapter)
+          }
+
+        case .missing(let missing):
+          missingChapterView(missing)
+        }
+      }
+    }
+  }
+
+  @ViewBuilder
+  func chapterView(
     _ chapter: ChapterModel
   ) -> some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -142,134 +318,23 @@ struct MangaDetailsView: View {
   }
 
   @ViewBuilder
-  func makeHeaderView() -> some View {
-    VStack(alignment: .leading, spacing: 0) {
-      ZStack(alignment: .top) {
-        Image(uiImage: viewModel.manga.cover.toUIImage() ?? .coverNotFound)
-          .resizable()
-          .scaledToFill()
-          .frame(maxWidth: .infinity)
-          .frame(height: 260)
-          .clipped()
-          .opacity(0.4)
-          .overlay {
-            LinearGradient(
-              gradient: Gradient(colors: [.clear, backgroundColor]),
-              startPoint: .top,
-              endPoint: .bottom
-            )
-          }
-
-        makeInfoView()
-          .offset(y: 64)
-          .padding(.horizontal, 24)
-      }
-    }
-  }
-
-  @ViewBuilder
-  private func makeInfoView() -> some View {
-    VStack(alignment: .leading, spacing: 16) {
-      CustomBackAction(tintColor: foregroundColor)
-        .frame(width: 20, height: 20)
-
-      HStack(spacing: 16) {
-        Image(uiImage: viewModel.manga.cover.toUIImage() ?? .coverNotFound)
-          .resizable()
-          .aspectRatio(contentMode: .fill)
-          .frame(width: 100, height: 160)
-          .clipShape(RoundedRectangle(cornerRadius: 8))
-
-        VStack(alignment: .leading, spacing: 8) {
-          Text(viewModel.manga.title)
-            .foregroundStyle(foregroundColor)
-            .font(.headline)
-
-          if let author = viewModel.manga.authors.first {
-            HStack(spacing: 4) {
-              Image(systemName: "person")
-                .resizable()
-                .frame(width: 15, height: 15)
-                .foregroundStyle(foregroundColor)
-
-              Text(author.name)
-                .foregroundStyle(foregroundColor)
-                .font(.footnote)
-            }
-          }
-
-          HStack(spacing: 4) {
-            Image(systemName: getStatusIcon(viewModel.manga.status))
-              .resizable()
-              .frame(width: 15, height: 15)
-              .foregroundStyle(foregroundColor)
-
-            Text(viewModel.manga.status.value.localizedCapitalized)
-              .foregroundStyle(foregroundColor)
-              .font(.footnote)
-          }
-
-          Button {
-            Task(priority: .userInitiated) {
-              await viewModel.saveManga(!viewModel.manga.isSaved)
-            }
-          } label: {
-            HStack(spacing: 4) {
-              Image(systemName: viewModel.manga.isSaved ?  "book.closed.fill" : "book.closed")
-                .foregroundStyle(viewModel.isLoading ? .gray : foregroundColor)
-                .aspectRatio(1, contentMode: .fill)
-
-              Text(viewModel.manga.isSaved ? "In library" : "Add to library")
-                .font(.caption2)
-                .foregroundStyle(viewModel.isLoading ? .gray : foregroundColor)
-            }
-            .padding(.top, 4)
-          }
-          .disabled(viewModel.isLoading)
-        }
-
-        Spacer()
-      }
-    }
-  }
-
-  @ViewBuilder
-  private func makeDescriptionView(
-    description: String?
+  func missingChapterView(
+    _ missing: MissingChaptersModel
   ) -> some View {
-    VStack(spacing: 0) {
-      ExpandableTextView(
-        text: description ?? "",
-        isExpanded: $descipitionExpanded,
-        font: .footnote,
-        textColor: foregroundColor
-      )
-      .opacity(description == nil ? 0 : 1)
-      .padding(.horizontal, 24)
-      .id(description ?? "")
+    HStack(spacing: 16) {
+      Spacer()
+        .frame(height: 1)
+        .background(.gray)
 
-      Spacer().frame(height: descipitionExpanded ? 32 : 24)
+      Text("Missing \(missing.count) \(missing.count == 1 ? "chapter" : "chapters")")
+        .font(.caption2)
+        .lineLimit(1)
+        .foregroundStyle(.gray)
+        .layoutPriority(1)
 
-      ScrollView(.horizontal) {
-        HStack(spacing: 8) {
-          ForEach(viewModel.manga.tags) { tag in
-            Text(tag.title)
-              .font(.footnote)
-              .lineLimit(1)
-              .foregroundStyle(foregroundColor)
-              .padding(.vertical, 4)
-              .padding(.horizontal, 8)
-              .background(
-                RoundedRectangle(cornerRadius: 4)
-                  .fill(backgroundColor)
-                  .stroke(foregroundColor, lineWidth: 1)
-              )
-          }
-          .padding(.vertical, 1)
-        }
-        .padding(.horizontal, 24)
-      }
-      .scrollIndicators(.hidden)
+      Spacer()
+        .frame(height: 1)
+        .background(.gray)
     }
   }
 
@@ -290,6 +355,56 @@ struct MangaDetailsView: View {
     case .unknown:
       return "questionmark.circle"
     }
+  }
+
+  private func textOffset(
+    availableWidth: CGFloat
+  ) -> CGFloat {
+    if isExpanded {
+      return textSizeWithoutLimit(
+        availableWidth: availableWidth
+      ).height + 16
+    }
+
+    return textSizeWithLimit(
+      availableWidth: availableWidth
+    ).height
+  }
+
+  private func textSizeWithoutLimit(
+    availableWidth: CGFloat
+  ) -> CGSize {
+    let text = viewModel.manga.description ?? ""
+
+    let textSize = text.boundingRect(
+      with: CGSize(
+        width: availableWidth,
+        height: .infinity
+      ),
+      options: .usesLineFragmentOrigin,
+      attributes: [.font: Font.footnote.uiFont],
+      context: nil
+    ).size
+
+    return textSize
+  }
+
+  private func textSizeWithLimit(
+    availableWidth: CGFloat
+  ) -> CGSize {
+    let text = viewModel.manga.description ?? ""
+
+    let textSize = text.boundingRect(
+      with: CGSize(
+        width: availableWidth,
+        height: 3 * Font.footnote.uiFont.lineHeight
+      ),
+      options: .usesLineFragmentOrigin,
+      attributes: [.font: Font.footnote.uiFont],
+      context: nil
+    ).size
+
+    return textSize
   }
 
 }
@@ -329,6 +444,53 @@ extension MangaDetailsView {
       systemDateTime: systemDateTime,
       viewMoc: moc
     )
+  }
+
+}
+
+extension Font {
+
+  var uiFont: UIFont {
+    let style: UIFont.TextStyle
+
+    switch self {
+    case .largeTitle:
+      style = .largeTitle
+
+    case .title:
+      style = .title1
+
+    case .title2:
+      style = .title2
+
+    case .title3:
+      style = .title3
+
+    case .headline:
+      style = .headline
+
+    case .subheadline:
+      style = .subheadline
+
+    case .callout:
+      style = .callout
+
+    case .caption:
+      style = .caption1
+
+    case .caption2:
+      style = .caption2
+
+    case .footnote:
+      style = .footnote
+
+    case .body:
+      fallthrough
+
+    default:
+      style = .body
+    }
+    return  UIFont.preferredFont(forTextStyle: style)
   }
 
 }
