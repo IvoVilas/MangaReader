@@ -88,6 +88,8 @@
 		D7221EAD2B9BD4C400B72F9F /* ReadingDirection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7221EAC2B9BD4C400B72F9F /* ReadingDirection.swift */; };
 		D7221EAF2B9BE22A00B72F9F /* Data+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7221EAE2B9BE22A00B72F9F /* Data+Extensions.swift */; };
 		D7221EB12B9C80DA00B72F9F /* MangaLibraryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7221EB02B9C80DA00B72F9F /* MangaLibraryViewModel.swift */; };
+		D74C8A862BBF00D7001274C4 /* MissingChaptersUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = D74C8A852BBF00D7001274C4 /* MissingChaptersUseCase.swift */; };
+		D74C8A892BBF0184001274C4 /* SortChaptersUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = D74C8A882BBF0184001274C4 /* SortChaptersUseCase.swift */; };
 		D7600FBE2BB4DFBE0044C130 /* PageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7600FBD2BB4DFBE0044C130 /* PageView.swift */; };
 		D7736CBE2BBC7CD40081AE98 /* ChapterReaderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7736CBD2BBC7CD40081AE98 /* ChapterReaderViewModel.swift */; };
 		D7736CC12BBC8B2B0081AE98 /* TransitionPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7736CC02BBC8B2B0081AE98 /* TransitionPageView.swift */; };
@@ -178,6 +180,8 @@
 		D7221EAC2B9BD4C400B72F9F /* ReadingDirection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingDirection.swift; sourceTree = "<group>"; };
 		D7221EAE2B9BE22A00B72F9F /* Data+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Data+Extensions.swift"; sourceTree = "<group>"; };
 		D7221EB02B9C80DA00B72F9F /* MangaLibraryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaLibraryViewModel.swift; sourceTree = "<group>"; };
+		D74C8A852BBF00D7001274C4 /* MissingChaptersUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MissingChaptersUseCase.swift; sourceTree = "<group>"; };
+		D74C8A882BBF0184001274C4 /* SortChaptersUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SortChaptersUseCase.swift; sourceTree = "<group>"; };
 		D7600FBD2BB4DFBE0044C130 /* PageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageView.swift; sourceTree = "<group>"; };
 		D7736CBD2BBC7CD40081AE98 /* ChapterReaderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChapterReaderViewModel.swift; sourceTree = "<group>"; };
 		D7736CC02BBC8B2B0081AE98 /* TransitionPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransitionPageView.swift; sourceTree = "<group>"; };
@@ -496,6 +500,7 @@
 		1EF816172B83443400D9759F /* Domain */ = {
 			isa = PBXGroup;
 			children = (
+				D74C8A872BBF0169001274C4 /* UseCase */,
 				1EE89F562B84CB94000CAA20 /* Database */,
 				1E79A4D72B892ADD0075C234 /* Rest */,
 				1EDACD472B83A9FA006FE956 /* Datasource */,
@@ -527,14 +532,23 @@
 			path = Enum;
 			sourceTree = "<group>";
 		};
+		D74C8A872BBF0169001274C4 /* UseCase */ = {
+			isa = PBXGroup;
+			children = (
+				D74C8A882BBF0184001274C4 /* SortChaptersUseCase.swift */,
+				D74C8A852BBF00D7001274C4 /* MissingChaptersUseCase.swift */,
+			);
+			path = UseCase;
+			sourceTree = "<group>";
+		};
 		D7736CBF2BBC8B1C0081AE98 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				D7736CC22BBD588E0081AE98 /* ExpandableTextView.swift */,
 				1E598D7E2B97772900BDF1B6 /* PageSliderView.swift */,
 				D7CA25562BBBFBDE00237F1D /* ZoomableImageView.swift */,
 				D7600FBD2BB4DFBE0044C130 /* PageView.swift */,
 				D7736CC02BBC8B2B0081AE98 /* TransitionPageView.swift */,
-				D7736CC22BBD588E0081AE98 /* ExpandableTextView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -652,6 +666,7 @@
 				1E1235492B8534580022652F /* SystemDateTimeCalculator.swift in Sources */,
 				D7ADA19D2BA0697E00A2DB4D /* MangaSourcesView.swift in Sources */,
 				1E1235422B8534580022652F /* SystemDateTimeCalculatorType.swift in Sources */,
+				D74C8A892BBF0184001274C4 /* SortChaptersUseCase.swift in Sources */,
 				1EC8BD352B929D9C0017ACF0 /* ManganeloChaptersDelegate.swift in Sources */,
 				1EF20A332B8E928E00D17A65 /* CoverMO.swift in Sources */,
 				1E12354D2B8534580022652F /* SystemDateTimeIntervalType.swift in Sources */,
@@ -661,6 +676,7 @@
 				1EF8160D2B82468100D9759F /* MangaSearchViewModel.swift in Sources */,
 				1E598D7F2B97772900BDF1B6 /* PageSliderView.swift in Sources */,
 				1EC8BD422B93AFBB0017ACF0 /* ChapterRepresentables.swift in Sources */,
+				D74C8A862BBF00D7001274C4 /* MissingChaptersUseCase.swift in Sources */,
 				1E12354B2B8534580022652F /* SystemDateTimeComparator.swift in Sources */,
 				1EE68A132B896E2D003B9037 /* ChapterReaderView.swift in Sources */,
 				1EF816212B83983F00D9759F /* DatasourceState.swift in Sources */,

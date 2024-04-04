@@ -44,7 +44,7 @@ struct ZoomableImageView: View {
         $0.gesture(buildGesture(hasPan: scale > 1))
       }
       .animation(.easeIn, value: scale)
-      //.animation(.linear, value: offset)
+      .animation(.linear, value: offset)
       .frame(maxHeight: .infinity)
   }
 

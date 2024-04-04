@@ -20,16 +20,11 @@ final class ChaptersDatasource {
   private let viewMoc: NSManagedObjectContext
 
   private let chapters: CurrentValueSubject<[ChapterModel], Never>
-  private let count: CurrentValueSubject<Int, Never>
   private let state: CurrentValueSubject<DatasourceState, Never>
   private let error: CurrentValueSubject<DatasourceError?, Never>
 
   var chaptersPublisher: AnyPublisher<[ChapterModel], Never> {
     chapters.eraseToAnyPublisher()
-  }
-
-  var countPublisher: AnyPublisher<Int, Never> {
-    count.eraseToAnyPublisher()
   }
 
   var statePublisher: AnyPublisher<DatasourceState, Never> {
@@ -46,22 +41,8 @@ final class ChaptersDatasource {
 
   @MainActor private var hasMorePages = true
   @MainActor private var currentPage = 0
-  @MainActor private var results = [ChapterModel]() {
-    didSet { count.valueOnMain = results.count }
-  }
 
   private var fetchTask: Task<Void, Never>?
-
-  let sortByNumber: (ChapterModel, ChapterModel) -> Bool = {
-    guard
-      let lhs = $0.number,
-      let rhs = $01.number
-    else {
-      return $0.publishAt > $1.publishAt
-    }
-
-    return lhs > rhs
-  }
 
   init(
     mangaId: String,
@@ -79,7 +60,6 @@ final class ChaptersDatasource {
     self.viewMoc = viewMoc
 
     chapters = CurrentValueSubject([])
-    count = CurrentValueSubject(0)
     state = CurrentValueSubject(.starting)
     error = CurrentValueSubject(nil)
   }
@@ -97,7 +77,6 @@ final class ChaptersDatasource {
       error.valueOnMain = nil
       hasMorePages = true
       currentPage = 0
-      results = []
     }
 
     fetchTask = Task { [weak self] in
@@ -119,15 +98,12 @@ final class ChaptersDatasource {
           }
         }
 
-        await self.updateResultsAndSend(results)
+        self.chapters.value = results
 
         let newResults = try await self.fetchChaptersIfNeeded()
 
         if !newResults.isEmpty {
-          await MainActor.run { [newResults] in
-            self.results = newResults
-            self.sendAllLoadedChapters()
-          }
+          self.chapters.value = newResults
 
           try await self.updateDatabase(
             chapters: newResults,
@@ -167,10 +143,7 @@ final class ChaptersDatasource {
       do {
         results = try await self.delegate.fetchChapters(mangaId: mangaId).map { $0.converToModel() }
 
-        await MainActor.run { [results] in
-          self.results = results
-          self.sendAllLoadedChapters()
-        }
+        self.chapters.value = results
 
         try await self.updateDatabase(
           chapters: results,
@@ -184,14 +157,6 @@ final class ChaptersDatasource {
         self.state.valueOnMain = .normal
         self.error.valueOnMain = erro
         self.fetchTask = nil
-      }
-    }
-  }
-
-  func loadNextPage() async {
-    if await hasMorePages {
-      await MainActor.run {
-        sendNextChapters()
       }
     }
   }
@@ -223,48 +188,6 @@ final class ChaptersDatasource {
     return try chapterCrud
       .getAllChapters(mangaId: mangaId, moc: viewMoc)
       .map { ChapterModel.from($0) }
-      .sorted(by: sortByNumber)
-  }
-
-}
-
-// MARK: MainActor
-extension ChaptersDatasource {
-
-  @MainActor
-  private func updateResultsAndSend(
-    _ results: [ChapterModel]
-  ) {
-    self.results = results
-
-    sendNextChapters()
-  }
-
-  @MainActor
-  private func sendNextChapters() {
-    let limit = 30
-    let i = currentPage * limit
-    let j = min(i + limit, results.count)
-
-    if i > j {
-      hasMorePages = false
-
-      return
-    }
-
-    chapters.valueOnMain.append(contentsOf: results[i..<j])
-
-    currentPage += 1
-  }
-
-  @MainActor
-  func sendAllLoadedChapters() {
-    let limit = 30
-    let i = min(currentPage * limit, results.count)
-
-    hasMorePages = i < results.count
-
-    chapters.valueOnMain = Array(results[0..<i])
   }
 
 }

@@ -115,6 +115,18 @@ struct ChapterModel: Identifiable, Hashable {
 
 }
 
+// MARK: Missing chapter
+struct MissingChaptersModel: Identifiable {
+
+  let number: Double
+  let count: Int
+
+  var id: String {
+    "missing-\(count)-chapters-at-\(number)"
+  }
+
+}
+
 // MARK: Index
 struct ChapterIndexResult: Identifiable {
 

@@ -31,26 +31,52 @@ struct MangaDetailsView: View {
 
         Spacer().frame(height: 24)
 
-        makeDescriptionView()
+        makeDescriptionView(
+          description: viewModel.manga.description
+        )
 
         Spacer().frame(height: 16)
 
-        Text("\(viewModel.chapterCount) chapters")
-          .font(.headline)
-          .foregroundStyle(foregroundColor)
-          .padding(.horizontal, 24)
+        VStack(alignment: .leading, spacing: 4) {
+          Text("\(viewModel.chaptersCount) chapters")
+            .font(.headline)
+            .foregroundStyle(foregroundColor)
+            .padding(.horizontal, 24)
+
+          Text("Missing \(viewModel.missingChaptersCount) chapters")
+            .font(.caption)
+            .foregroundStyle(.red)
+            .padding(.horizontal, 24)
+            .frame(height: viewModel.missingChaptersCount > 0 ? nil : 0)
+            .opacity(viewModel.missingChaptersCount > 0 ? 1 : 0)
+        }
 
         Spacer().frame(height: 24)
 
         LazyVStack(alignment: .leading, spacing: 24) {
           ForEach(viewModel.chapters) { chapter in
-            NavigationLink(value: chapter) {
-              makeChapterView(chapter)
-                .onAppear {
-                  Task(priority: .userInitiated) {
-                    await viewModel.loadNextChapters(chapter.id)
-                  }
-                }
+            switch chapter {
+            case .chapter(let chapter):
+              NavigationLink(value: chapter) {
+                makeChapterView(chapter)
+              }
+
+            case .missing(let missing):
+              HStack(spacing: 16) {
+                Spacer()
+                  .frame(height: 1)
+                  .background(.red)
+
+                Text("Missing \(missing.count) \(missing.count == 1 ? "chapter" : "chapters")")
+                  .font(.caption2)
+                  .lineLimit(1)
+                  .foregroundStyle(.red)
+                  .layoutPriority(1)
+
+                Spacer()
+                  .frame(height: 1)
+                  .background(.red)
+              }
             }
           }
         }
@@ -119,7 +145,7 @@ struct MangaDetailsView: View {
   func makeHeaderView() -> some View {
     VStack(alignment: .leading, spacing: 0) {
       ZStack(alignment: .top) {
-        Image(uiImage: viewModel.cover.toUIImage() ?? .coverNotFound)
+        Image(uiImage: viewModel.manga.cover.toUIImage() ?? .coverNotFound)
           .resizable()
           .scaledToFill()
           .frame(maxWidth: .infinity)
@@ -148,18 +174,18 @@ struct MangaDetailsView: View {
         .frame(width: 20, height: 20)
 
       HStack(spacing: 16) {
-        Image(uiImage: viewModel.cover.toUIImage() ?? .coverNotFound)
+        Image(uiImage: viewModel.manga.cover.toUIImage() ?? .coverNotFound)
           .resizable()
           .aspectRatio(contentMode: .fill)
           .frame(width: 100, height: 160)
           .clipShape(RoundedRectangle(cornerRadius: 8))
 
         VStack(alignment: .leading, spacing: 8) {
-          Text(viewModel.title)
+          Text(viewModel.manga.title)
             .foregroundStyle(foregroundColor)
             .font(.headline)
 
-          if let author = viewModel.authors.first {
+          if let author = viewModel.manga.authors.first {
             HStack(spacing: 4) {
               Image(systemName: "person")
                 .resizable()
@@ -173,27 +199,27 @@ struct MangaDetailsView: View {
           }
 
           HStack(spacing: 4) {
-            Image(systemName: getStatusIcon(viewModel.status))
+            Image(systemName: getStatusIcon(viewModel.manga.status))
               .resizable()
               .frame(width: 15, height: 15)
               .foregroundStyle(foregroundColor)
 
-            Text(viewModel.status.value.localizedCapitalized)
+            Text(viewModel.manga.status.value.localizedCapitalized)
               .foregroundStyle(foregroundColor)
               .font(.footnote)
           }
 
           Button {
             Task(priority: .userInitiated) {
-              await viewModel.saveManga(!viewModel.isSaved)
+              await viewModel.saveManga(!viewModel.manga.isSaved)
             }
           } label: {
             HStack(spacing: 4) {
-              Image(systemName: viewModel.isSaved ?  "book.closed.fill" : "book.closed")
+              Image(systemName: viewModel.manga.isSaved ?  "book.closed.fill" : "book.closed")
                 .foregroundStyle(viewModel.isLoading ? .gray : foregroundColor)
                 .aspectRatio(1, contentMode: .fill)
 
-              Text(viewModel.isSaved ? "In library" : "Add to library")
+              Text(viewModel.manga.isSaved ? "In library" : "Add to library")
                 .font(.caption2)
                 .foregroundStyle(viewModel.isLoading ? .gray : foregroundColor)
             }
@@ -208,23 +234,25 @@ struct MangaDetailsView: View {
   }
 
   @ViewBuilder
-  private func makeDescriptionView() -> some View {
+  private func makeDescriptionView(
+    description: String?
+  ) -> some View {
     VStack(spacing: 0) {
       ExpandableTextView(
-        text: viewModel.description ?? "",
+        text: description ?? "",
         isExpanded: $descipitionExpanded,
         font: .footnote,
         textColor: foregroundColor
       )
-      .opacity(viewModel.description == nil ? 0 : 1)
+      .opacity(description == nil ? 0 : 1)
       .padding(.horizontal, 24)
-      .id(viewModel.description ?? "")
+      .id(description ?? "")
 
       Spacer().frame(height: descipitionExpanded ? 32 : 24)
 
       ScrollView(.horizontal) {
         HStack(spacing: 8) {
-          ForEach(viewModel.tags) { tag in
+          ForEach(viewModel.manga.tags) { tag in
             Text(tag.title)
               .font(.footnote)
               .lineLimit(1)

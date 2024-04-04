@@ -20,23 +20,9 @@ struct MangaModel: Identifiable, Hashable {
   let tags: [TagModel]
   let authors: [AuthorModel]
 
-  static func from(_ manga: MangaMO) -> MangaModel {
-    return MangaModel(
-      id: manga.id,
-      title: manga.title,
-      description: manga.synopsis,
-      isSaved: manga.isSaved,
-      status: .safeInit(from: manga.statusId),
-      readingDirection: .safeInit(from: manga.readingDirection),
-      cover: nil,
-      tags: manga.tags.map { .from($0) }.sorted { $0.title < $1.title },
-      authors: manga.authors.map { .from($0) }
-    )
-  }
-
   static func from(
     _ manga: MangaMO,
-    cover: Data?
+    cover: Data? = nil
   ) -> MangaModel {
     return MangaModel(
       id: manga.id,

@@ -13,28 +13,48 @@ import CoreData
 @Observable
 final class MangaDetailsViewModel {
 
-  var title: String
-  var cover: Data?
-  var description: String?
-  var isSaved: Bool
-  var status: MangaStatus
-  var authors: [AuthorModel]
-  var tags: [TagModel]
-  var chapters: [ChapterModel]
-  var chapterCount: Int
+  enum ChapterCell: Identifiable {
+    case chapter(ChapterModel)
+    case missing(MissingChaptersModel)
+
+    var id: String {
+      switch self {
+      case .chapter(let chapter):
+        return chapter.id
+
+      case .missing(let missing):
+        return missing.id
+      }
+    }
+
+    var number: Double? {
+      switch self {
+      case .chapter(let chapter):
+        return chapter.number
+
+      case .missing(let missing):
+        return Double(missing.number)
+      }
+    }
+  }
+
+  var manga: MangaModel
+  var chapters: [ChapterCell]
+  var chaptersCount: Int
+  var missingChaptersCount: Int
   var isLoading: Bool
   var isImageLoading: Bool
   var error: DatasourceError?
   var info: String?
 
-  private var readingDirection: ReadingDirection
-
-  private let mangaId: String
   private let source: Source
   private let chaptersDatasource: ChaptersDatasource
   private let detailsDatasource: DetailsDatasource
   private let mangaCrud: MangaCrud
   private let viewMoc: NSManagedObjectContext
+
+  private let sortChaptersUseCase: SortChaptersUseCase
+  private let missingChaptersUseCase: MissingChaptersUseCase
 
   private let changedChapter: PassthroughSubject<ChapterModel, Never>
   private let changedReadingDirection: PassthroughSubject<ReadingDirection, Never>
@@ -52,10 +72,12 @@ final class MangaDetailsViewModel {
     systemDateTime: SystemDateTimeType,
     viewMoc: NSManagedObjectContext
   ) {
-    self.mangaId = manga.id
     self.source = source
     self.mangaCrud = mangaCrud
     self.viewMoc = viewMoc
+
+    sortChaptersUseCase = SortChaptersUseCase()
+    missingChaptersUseCase = MissingChaptersUseCase()
 
     changedChapter = PassthroughSubject()
     changedReadingDirection = PassthroughSubject()
@@ -78,83 +100,33 @@ final class MangaDetailsViewModel {
       viewMoc: viewMoc
     )
 
-    title = manga.title
-    cover = manga.cover
-    isSaved = manga.isSaved
-    status = .unknown
-    authors = []
-    tags = []
+    self.manga = MangaModel(
+      id: manga.id,
+      title: manga.title,
+      description: nil,
+      isSaved: manga.isSaved,
+      status: .unknown,
+      readingDirection: .leftToRight,
+      cover: manga.cover,
+      tags: [],
+      authors: []
+    )
+
     chapters = []
-    chapterCount = 0
     isLoading = false
     isImageLoading = false
-    readingDirection = .leftToRight
+    chaptersCount = 0
+    missingChaptersCount = 0
 
     detailsDatasource.detailsPublisher
-      .map { $0.title }
       .removeDuplicates()
       .receive(on: DispatchQueue.main)
-      .sink { [weak self] in self?.title = $0 }
-      .store(in: &observers)
-
-    detailsDatasource.detailsPublisher
-      .map { $0.description }
-      .removeDuplicates()
-      .receive(on: DispatchQueue.main)
-      .sink { [weak self] in self?.description = $0 }
-      .store(in: &observers)
-
-    detailsDatasource.detailsPublisher
-      .map { $0.isSaved }
-      .removeDuplicates()
-      .receive(on: DispatchQueue.main)
-      .sink { [weak self] in self?.isSaved = $0 }
-      .store(in: &observers)
-
-    detailsDatasource.detailsPublisher
-      .map { $0.status }
-      .removeDuplicates()
-      .receive(on: DispatchQueue.main)
-      .sink { [weak self] in self?.status = $0 }
-      .store(in: &observers)
-
-    detailsDatasource.detailsPublisher
-      .map { $0.authors }
-      .removeDuplicates()
-      .receive(on: DispatchQueue.main)
-      .sink { [weak self] in self?.authors = $0 }
-      .store(in: &observers)
-
-    detailsDatasource.detailsPublisher
-      .map { $0.tags }
-      .removeDuplicates()
-      .receive(on: DispatchQueue.main)
-      .sink { [weak self] in self?.tags = $0 }
-      .store(in: &observers)
-
-    detailsDatasource.detailsPublisher
-      .compactMap { $0.cover }
-      .removeDuplicates()
-      .receive(on: DispatchQueue.main)
-      .sink { [weak self] in self?.cover = $0 }
-      .store(in: &observers)
-
-    detailsDatasource.detailsPublisher
-      .map { $0.readingDirection }
-      .removeDuplicates()
-      .receive(on: DispatchQueue.main)
-      .sink { [weak self] in self?.readingDirection = $0 }
+      .sink { [weak self] in self?.manga = $0 }
       .store(in: &observers)
 
     chaptersDatasource.chaptersPublisher
       .receive(on: DispatchQueue.main)
-      .sink { [weak self] in self?.chapters = $0 }
-      .store(in: &observers)
-
-    chaptersDatasource.countPublisher
-      .removeDuplicates()
-      .receive(on: DispatchQueue.main)
-      .sink { [weak self] in self?.chapterCount = $0 }
+      .sink { [weak self] in self?.setChapters($0) }
       .store(in: &observers)
 
     Publishers.CombineLatest(
@@ -184,26 +156,36 @@ final class MangaDetailsViewModel {
     changedReadingDirection
       .removeDuplicates()
       .receive(on: DispatchQueue.main)
-      .sink { [weak self] in self?.readingDirection = $0 }
+      .sink { [weak self] in
+        guard let self else { return }
+
+        let manga = self.manga
+
+        self.manga = MangaModel(
+          id: manga.id,
+          title: manga.title,
+          description: manga.description,
+          isSaved: manga.isSaved,
+          status: manga.status,
+          readingDirection: $0,
+          cover: manga.cover,
+          tags: manga.tags,
+          authors: manga.authors
+        )
+      }
       .store(in: &observers)
 
     changedChapter
       .removeDuplicates()
       .receive(on: DispatchQueue.main)
-      .sink { [weak self] chapter in
-        guard let self else { return }
-
-        if let index = self.chapters.firstIndex(where: { $0.id == chapter.id }) {
-          self.chapters[index] = chapter
-        }
-      }
+      .sink { [weak self] in self?.changeChapter($0) }
       .store(in: &observers)
   }
 
   private func saveManga(isSaved: Bool) async throws {
     try await viewMoc.perform {
-      guard let manga = try self.mangaCrud.getManga(self.mangaId, moc: self.viewMoc) else {
-        throw CrudError.mangaNotFound(id: self.mangaId)
+      guard let manga = try self.mangaCrud.getManga(self.manga.id, moc: self.viewMoc) else {
+        throw CrudError.mangaNotFound(id: self.manga.id)
       }
 
       self.mangaCrud.updateIsSaved(manga, isSaved: isSaved)
@@ -214,23 +196,64 @@ final class MangaDetailsViewModel {
     }
   }
 
+  // TODO: Maybe remove from main thread
+  private func setChapters(_ chapters: [ChapterModel]) {
+    let sortedChapters = sortChaptersUseCase.sortByNumber(chapters)
+    let missing = missingChaptersUseCase.calculateMissingChapters(sortedChapters)
+
+    self.chapters = addMissingChapters(missing, to: sortedChapters)
+    self.chaptersCount = chapters.count
+    self.missingChaptersCount = missing.reduce(into: 0) { $0 += $1.count }
+  }
+
+  private func changeChapter(_ changed: ChapterModel) {
+    let index = self.chapters.firstIndex{
+      switch $0 {
+      case .chapter(let chapter):
+        return chapter.id == changed.id
+
+      case .missing:
+        return false
+      }
+    }
+
+    if let index {
+      self.chapters[index] = .chapter(changed)
+    }
+  }
+
 }
 
 extension MangaDetailsViewModel {
 
   func saveManga(_ save: Bool) async {
-    await MainActor.run { isSaved = save }
+    await MainActor.run {
+      let manga = self.manga
+
+      self.manga = MangaModel(
+        id: manga.id,
+        title: manga.title,
+        description: manga.description,
+        isSaved: save,
+        status: manga.status,
+        readingDirection: manga.readingDirection,
+        cover: manga.cover,
+        tags: manga.tags,
+        authors: manga.authors
+      )
+    }
 
     do {
       try await self.saveManga(isSaved: save)
+
+      await MainActor.run {
+        info = save ? "Manga added to library" : "Manga removed from library"
+      }
     } catch {
       await MainActor.run {
-        self.isSaved = !save
         self.error = DatasourceError.catchError(error)
       }
     }
-
-    await MainActor.run { info = save ? "Manga added to library" : "Manga removed from library" }
   }
 
   func setupData() async {
@@ -245,21 +268,15 @@ extension MangaDetailsViewModel {
     await chaptersDatasource.refresh()
   }
 
-  func loadNextChapters(_ id: String) async {
-    if id == chapters.last?.id {
-      await chaptersDatasource.loadNextPage()
-    }
-  }
-
   func buildReaderViewModel(
     _ chapter: ChapterModel
   ) -> ChapterReaderViewModel {
     return ChapterReaderViewModel(
       source: source,
-      mangaId: mangaId,
-      mangaTitle: title,
+      mangaId: manga.id,
+      mangaTitle: manga.title,
       chapter: chapter,
-      readingDirection: readingDirection,
+      readingDirection: manga.readingDirection,
       mangaCrud: AppEnv.env.mangaCrud,
       chapterCrud: AppEnv.env.chapterCrud,
       httpClient: AppEnv.env.httpClient,
@@ -267,6 +284,44 @@ extension MangaDetailsViewModel {
       changedReadingDirection: changedReadingDirection,
       viewMoc: viewMoc
     )
+  }
+
+}
+
+// MARK: Helpers
+extension MangaDetailsViewModel {
+
+  func addMissingChapters(
+    _ missing: [MissingChaptersModel],
+    to chapters: [ChapterModel]
+  ) -> [ChapterCell] {
+    var mappedChapters = chapters.map { ChapterCell.chapter($0) }
+
+    guard !missing.isEmpty else {
+      return mappedChapters
+    }
+
+    for m in missing {
+      let index = mappedChapters.firstIndex {
+        switch $0 {
+        case .missing:
+          return false
+
+        case .chapter(let chapter):
+          if chapter.number == m.number - 1 {
+            return true
+          }
+        }
+
+        return false
+      }
+
+      if let index {
+        mappedChapters.insert(.missing(m), at: index)
+      }
+    }
+
+    return mappedChapters
   }
 
 }
