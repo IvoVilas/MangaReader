@@ -12,17 +12,22 @@ struct MangaDetailsView: View {
   let viewModel: MangaDetailsViewModel
 
   @State private var toast: Toast?
-  @State private var isExpanded: Bool = false
-  @State private var shouldShowExpandButton: Bool = false
-  @State private var descriptionWidth = CGFloat.zero
+  @State private var isDescriptionExpanded = false
 
   private let backgroundColor: Color = .white
   private let foregroundColor: Color = .black
 
+
+  init(viewModel: MangaDetailsViewModel) {
+    self.viewModel = viewModel
+
+    
+  }
+
   var body: some View {
     ZStack(alignment: .top) {
       ScrollView {
-        VStack(spacing: 16) {
+        VStack(alignment: .leading, spacing: 0) {
           ZStack(alignment: .topLeading) {
             ZStack(alignment: .bottom) {
               backgroundView()
@@ -36,92 +41,31 @@ struct MangaDetailsView: View {
               .offset(y: 64)
           }
 
-          ZStack(alignment: .top) {
-            Text(viewModel.manga.description ?? "")
-              .font(.footnote)
-              .foregroundStyle(foregroundColor)
-              .opacity(viewModel.manga.description == nil ? 0 : 1)
-              .frame(maxWidth: .infinity, alignment: .leading)
-              .background(
-                GeometryReader { geometry in
-                  Color.clear.onAppear {
-                    let width = geometry.size.width
+          Spacer().frame(height: 16)
 
-                    let textSize = textSizeWithoutLimit(availableWidth: width)
-                    let limitedTextSize = textSizeWithLimit(availableWidth: width)
+          ExpandableTextView(
+            text: viewModel.manga.description ?? "",
+            lineLimit: 3,
+            font: .footnote,
+            foregroundColor: foregroundColor,
+            isExpanded: $isDescriptionExpanded
+          )
+          .id(viewModel.manga.description ?? "")
+          .padding(.horizontal, 24)
 
-                    shouldShowExpandButton = textSize.height > limitedTextSize.height
-                    descriptionWidth = width
-                  }
-                }
-              )
-              .padding(.horizontal, 24)
-              .id(viewModel.manga.description ?? "")
+          Spacer().frame(height: 24)
 
-            VStack(alignment: .leading, spacing: 0) {
-              ZStack(alignment: .bottom) {
-                LinearGradient(
-                  gradient: Gradient(colors: [.clear, .white.opacity(0.8), .white]),
-                  startPoint: .top,
-                  endPoint: .bottom
-                )
-                .opacity(!isExpanded && shouldShowExpandButton ? 1 : 0)
+          tagsView()
 
-                Button {
-                  withAnimation {
-                    isExpanded.toggle()
-                  }
-                } label: {
-                  Image(isExpanded ? "expand_less" : "expand_more")
-                    .foregroundColor(.black)
-                }
-                .contentTransition(.symbolEffect(.automatic))
-                .opacity(shouldShowExpandButton ? 1 : 0)
-              }
-              .padding(.horizontal, 24)
+          Spacer().frame(height: 16)
 
-              Spacer()
-                .frame(height: 16)
-                .frame(maxWidth: .infinity)
-                .background(backgroundColor)
+          chaptersCountView()
+            .padding(.horizontal, 24)
 
-              tagsView()
-                .background(backgroundColor)
+          Spacer().frame(height: 24)
 
-              Spacer()
-                .frame(height: 16)
-                .frame(maxWidth: .infinity)
-                .background(backgroundColor)
-
-              VStack(alignment: .leading, spacing: 4) {
-                Text("\(viewModel.chaptersCount) chapters")
-                  .font(.headline)
-                  .foregroundStyle(foregroundColor)
-                  .padding(.horizontal, 24)
-
-                Text("Missing \(viewModel.missingChaptersCount) chapters")
-                  .font(.caption)
-                  .foregroundStyle(.red)
-                  .padding(.horizontal, 24)
-                  .frame(height: viewModel.missingChaptersCount > 0 ? nil : 0)
-                  .opacity(viewModel.missingChaptersCount > 0 ? 1 : 0)
-              }
-              .frame(maxWidth: .infinity, alignment: .leading)
-              .background(backgroundColor)
-
-              Spacer()
-                .frame(height: 24)
-                .frame(maxWidth: .infinity)
-                .background(backgroundColor)
-
-              chaptersView()
-                .padding(.horizontal, 24)
-                .background(backgroundColor)
-            }
-            .offset(
-              y: textOffset(availableWidth: descriptionWidth)
-            )
-          }
+          chaptersView()
+            .padding(.horizontal, 24)
         }
       }
       .scrollIndicators(.hidden)
@@ -198,7 +142,6 @@ struct MangaDetailsView: View {
         .aspectRatio(contentMode: .fill)
         .frame(width: 100, height: 160)
         .clipShape(RoundedRectangle(cornerRadius: 8))
-        .animation(nil, value: isExpanded)
 
       VStack(alignment: .leading, spacing: 8) {
         Text(viewModel.manga.title)
@@ -207,9 +150,10 @@ struct MangaDetailsView: View {
 
         if let author = viewModel.manga.authors.first {
           HStack(spacing: 4) {
-            Image(systemName: "person")
+            Image("person")
               .resizable()
-              .frame(width: 15, height: 15)
+              .scaledToFit()
+              .frame(width: 18)
               .foregroundStyle(foregroundColor)
 
             Text(author.name)
@@ -219,9 +163,10 @@ struct MangaDetailsView: View {
         }
 
         HStack(spacing: 4) {
-          Image(systemName: getStatusIcon(viewModel.manga.status))
+          Image(getStatusIcon(viewModel.manga.status))
             .resizable()
-            .frame(width: 15, height: 15)
+            .scaledToFit()
+            .frame(width: 18)
             .foregroundStyle(foregroundColor)
 
           Text(viewModel.manga.status.value.localizedCapitalized)
@@ -274,6 +219,21 @@ struct MangaDetailsView: View {
       .padding(.horizontal, 24)
     }
     .scrollIndicators(.hidden)
+  }
+
+  @ViewBuilder
+  private func chaptersCountView() -> some View {
+    VStack(alignment: .leading, spacing: 4) {
+      Text("\(viewModel.chaptersCount) chapters")
+        .font(.headline)
+        .foregroundStyle(foregroundColor)
+
+      Text("Missing \(viewModel.missingChaptersCount) chapters")
+        .font(.caption)
+        .foregroundStyle(.red)
+        .frame(height: viewModel.missingChaptersCount > 0 ? nil : 0)
+        .opacity(viewModel.missingChaptersCount > 0 ? 1 : 0)
+    }
   }
 
   @ViewBuilder
@@ -341,70 +301,20 @@ struct MangaDetailsView: View {
   private func getStatusIcon(_ status: MangaStatus) -> String {
     switch status {
     case .completed:
-      return "checkmark.circle"
+      return "done_all"
 
     case .ongoing:
-      return "clock"
+      return "ongoing"
 
     case .cancelled:
-      return "xmark.circle"
+      return "cancelled"
 
     case .hiatus:
-      return "clock.badge.xmark"
+      return "hiatus"
 
     case .unknown:
-      return "questionmark.circle"
+      return "unknown"
     }
-  }
-
-  private func textOffset(
-    availableWidth: CGFloat
-  ) -> CGFloat {
-    if isExpanded {
-      return textSizeWithoutLimit(
-        availableWidth: availableWidth
-      ).height + 16
-    }
-
-    return textSizeWithLimit(
-      availableWidth: availableWidth
-    ).height
-  }
-
-  private func textSizeWithoutLimit(
-    availableWidth: CGFloat
-  ) -> CGSize {
-    let text = viewModel.manga.description ?? ""
-
-    let textSize = text.boundingRect(
-      with: CGSize(
-        width: availableWidth,
-        height: .infinity
-      ),
-      options: .usesLineFragmentOrigin,
-      attributes: [.font: Font.footnote.uiFont],
-      context: nil
-    ).size
-
-    return textSize
-  }
-
-  private func textSizeWithLimit(
-    availableWidth: CGFloat
-  ) -> CGSize {
-    let text = viewModel.manga.description ?? ""
-
-    let textSize = text.boundingRect(
-      with: CGSize(
-        width: availableWidth,
-        height: 3 * Font.footnote.uiFont.lineHeight
-      ),
-      options: .usesLineFragmentOrigin,
-      attributes: [.font: Font.footnote.uiFont],
-      context: nil
-    ).size
-
-    return textSize
   }
 
 }
@@ -444,53 +354,6 @@ extension MangaDetailsView {
       systemDateTime: systemDateTime,
       viewMoc: moc
     )
-  }
-
-}
-
-extension Font {
-
-  var uiFont: UIFont {
-    let style: UIFont.TextStyle
-
-    switch self {
-    case .largeTitle:
-      style = .largeTitle
-
-    case .title:
-      style = .title1
-
-    case .title2:
-      style = .title2
-
-    case .title3:
-      style = .title3
-
-    case .headline:
-      style = .headline
-
-    case .subheadline:
-      style = .subheadline
-
-    case .callout:
-      style = .callout
-
-    case .caption:
-      style = .caption1
-
-    case .caption2:
-      style = .caption2
-
-    case .footnote:
-      style = .footnote
-
-    case .body:
-      fallthrough
-
-    default:
-      style = .body
-    }
-    return  UIFont.preferredFont(forTextStyle: style)
   }
 
 }
