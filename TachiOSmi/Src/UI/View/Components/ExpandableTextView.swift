@@ -12,10 +12,12 @@ struct ExpandableTextView: View {
   @State var text: String
   @State private var shouldShowExpandButton = false
   @State private var textWidth = CGFloat.zero
+  @State private var iconRotation = Double.zero
 
   let lineLimit: Int
   let font: Font
   let foregroundColor: Color
+  let backgroundColor: Color
 
   @Binding var isExpanded: Bool
 
@@ -43,32 +45,31 @@ struct ExpandableTextView: View {
       .disabled(true)
       .frame(height: viewHeight())
 
-      VStack(spacing: 0) {
-        Spacer()
-          .frame(height: isExpanded ? 16 : 0)
+      ZStack(alignment: .bottom) {
+        LinearGradient(
+          gradient: Gradient(
+            colors: [.clear, backgroundColor]
+          ),
+          startPoint: .top,
+          endPoint: .bottom
+        )
+        .opacity(!isExpanded && shouldShowExpandButton ? 1 : 0)
 
-        ZStack(alignment: .bottom) {
-          LinearGradient(
-            gradient: Gradient(colors: [.clear, .white.opacity(0.8), .white]),
-            startPoint: .top,
-            endPoint: .bottom
-          )
-          .opacity(!isExpanded && shouldShowExpandButton ? 1 : 0)
-
-          Button {
-            withAnimation {
-              isExpanded.toggle()
-            }
-          } label: {
-            Image(isExpanded ? "expand_less" : "expand_more")
-              .foregroundColor(.black)
-          }
-          .contentTransition(.symbolEffect(.replace))
+        Image("expand_more")
+          .foregroundColor(foregroundColor)
+          .rotationEffect(.degrees(iconRotation))
           .opacity(shouldShowExpandButton ? 1 : 0)
-        }
       }
     }
     .frame(height: viewHeight())
+    .contentShape(Rectangle())
+    .onTapGesture {
+      withAnimation {
+        isExpanded.toggle()
+
+        iconRotation += 180
+      }
+    }
   }
 
   private func viewHeight() -> CGFloat {
@@ -105,7 +106,7 @@ struct ExpandableTextView: View {
     let textSize = text.boundingRect(
       with: CGSize(
         width: availableWidth,
-        height: CGFloat(lineLimit) * font.uiFont.lineHeight
+        height: CGFloat(lineLimit + 1) * font.uiFont.lineHeight
       ),
       options: .usesLineFragmentOrigin,
       attributes: [.font: font.uiFont],
@@ -174,9 +175,9 @@ struct ExpandableTextView_Preview: View {
       lineLimit: 3,
       font: .footnote,
       foregroundColor: .black,
+      backgroundColor: .white,
       isExpanded: $isExpanded
     )
-    .background(.gray)
   }
 
 }

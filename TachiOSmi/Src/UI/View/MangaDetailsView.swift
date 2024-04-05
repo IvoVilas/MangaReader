@@ -17,13 +17,6 @@ struct MangaDetailsView: View {
   private let backgroundColor: Color = .white
   private let foregroundColor: Color = .black
 
-
-  init(viewModel: MangaDetailsViewModel) {
-    self.viewModel = viewModel
-
-    
-  }
-
   var body: some View {
     ZStack(alignment: .top) {
       ScrollView {
@@ -48,6 +41,7 @@ struct MangaDetailsView: View {
             lineLimit: 3,
             font: .footnote,
             foregroundColor: foregroundColor,
+            backgroundColor: backgroundColor,
             isExpanded: $isDescriptionExpanded
           )
           .id(viewModel.manga.description ?? "")
@@ -68,7 +62,6 @@ struct MangaDetailsView: View {
             .padding(.horizontal, 24)
         }
       }
-      .scrollIndicators(.hidden)
 
       ProgressView()
         .controlSize(.regular)
@@ -180,9 +173,11 @@ struct MangaDetailsView: View {
           }
         } label: {
           HStack(spacing: 4) {
-            Image(systemName: viewModel.manga.isSaved ?  "book.closed.fill" : "book.closed")
-              .foregroundStyle(viewModel.isLoading ? .gray : foregroundColor)
+            Image(systemName: "book.closed")
               .aspectRatio(1, contentMode: .fill)
+              .symbolVariant(viewModel.manga.isSaved ? .fill : .none)
+              .symbolEffect(.bounce, value: viewModel.manga.isSaved)
+              .foregroundStyle(viewModel.isLoading ? .gray : foregroundColor)
 
             Text(viewModel.manga.isSaved ? "In library" : "Add to library")
               .font(.caption2)
