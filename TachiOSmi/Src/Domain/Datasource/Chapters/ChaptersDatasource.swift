@@ -141,7 +141,9 @@ final class ChaptersDatasource {
       var erro: DatasourceError?
 
       do {
-        results = try await self.delegate.fetchChapters(mangaId: mangaId).map { $0.converToModel() }
+        let remote = try await self.delegate.fetchChapters(mangaId: mangaId)
+
+        results = await mapWithLocalData(remote)
 
         self.chapters.value = results
 
@@ -188,6 +190,26 @@ final class ChaptersDatasource {
     return try chapterCrud
       .getAllChapters(mangaId: mangaId, moc: viewMoc)
       .map { ChapterModel.from($0) }
+  }
+
+  private func mapWithLocalData(
+    _ chapters: [ChapterIndexResult]
+  ) async -> [ChapterModel] {
+    await viewMoc.perform {
+      var res = [ChapterModel]()
+
+      for chapter in chapters {
+        let local = try? self.chapterCrud.getChapter(chapter.id, moc: self.viewMoc)
+
+        if let local {
+          res.append(chapter.converToModel(isRead: local.isRead, lastPageRead: local.lastPageRead?.intValue))
+        } else {
+          res.append(chapter.converToModel())
+        }
+      }
+
+      return res
+    }
   }
 
 }

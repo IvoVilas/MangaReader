@@ -64,10 +64,12 @@ struct ExpandableTextView: View {
     .frame(height: viewHeight())
     .contentShape(Rectangle())
     .onTapGesture {
-      withAnimation {
-        isExpanded.toggle()
+      if shouldShowExpandButton {
+        withAnimation {
+          isExpanded.toggle()
 
-        iconRotation += 180
+          iconRotation += 180
+        }
       }
     }
   }

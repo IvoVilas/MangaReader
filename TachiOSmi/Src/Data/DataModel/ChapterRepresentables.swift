@@ -138,6 +138,8 @@ struct ChapterIndexResult: Identifiable {
   let downloadInfo: String
 
   func converToModel(
+    isRead: Bool = false,
+    lastPageRead: Int? = nil
   ) -> ChapterModel {
     return ChapterModel(
       id: id,
@@ -145,8 +147,8 @@ struct ChapterIndexResult: Identifiable {
       number: number,
       numberOfPages: numberOfPages,
       publishAt: publishAt,
-      isRead: false,
-      lastPageRead: nil,
+      isRead: isRead,
+      lastPageRead: lastPageRead,
       downloadInfo: downloadInfo
     )
   }
