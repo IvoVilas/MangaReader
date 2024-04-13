@@ -9,11 +9,14 @@ import SwiftUI
 
 struct MangaSourcesView: View {
 
+  @Environment(\.colorScheme) private var scheme
+
   let viewModel: MangaSourcesViewModel
 
   var body: some View {
     VStack(alignment: .leading) {
       Text("Sources")
+        .foregroundStyle(scheme.foregroundColor)
         .font(.title)
 
       ScrollView {
@@ -26,6 +29,7 @@ struct MangaSourcesView: View {
         }
       }
     }
+    .background(scheme.backgroundColor)
   }
 
   @ViewBuilder
@@ -40,19 +44,19 @@ struct MangaSourcesView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
 
       Text(source.name)
+        .foregroundStyle(scheme.secondaryColor)
         .font(.title2)
-        .tint(.gray)
 
       Spacer()
 
       Image(systemName: "chevron.right")
-        .tint(.gray)
+        .foregroundStyle(scheme.secondaryColor)
     }
     .padding(12)
     .background(
       RoundedRectangle(cornerRadius: 12)
-        .fill(.white)
-        .stroke(.gray, lineWidth: 1)
+        .fill(scheme.backgroundColor)
+        .stroke(scheme.secondaryColor, lineWidth: 1)
     )
   }
 

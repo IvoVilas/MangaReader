@@ -36,15 +36,13 @@ private enum ResultLayout {
 // MARK: Search
 struct MangaSearchView: View {
 
+  @Environment(\.colorScheme) private var scheme
+
   @Bindable var viewModel: MangaSearchViewModel
   @State private var toast: Toast?
   @State private var listLayout = ResultLayout.compact
 
-  private let backgroundColor = Color.white
-  private let foregroundColor = Color.gray
-  private let secondaryColor  = Color.black
-
-  let columns = Array(
+  private let columns = Array(
     repeating: GridItem(.flexible(), spacing: 16),
     count: 3
   )
@@ -53,8 +51,8 @@ struct MangaSearchView: View {
     VStack(spacing: 0) {
       HeaderView(
         name: viewModel.sourceName,
-        tintColor: foregroundColor,
-        textColor: secondaryColor,
+        tintColor: scheme.secondaryColor,
+        textColor: scheme.foregroundColor,
         doSearch: viewModel.doSearch,
         input: $viewModel.input,
         layout: $listLayout
@@ -64,7 +62,7 @@ struct MangaSearchView: View {
       ZStack {
         ProgressView()
           .progressViewStyle(.circular)
-          .tint(secondaryColor)
+          .tint(scheme.foregroundColor)
           .opacity(viewModel.isLoading ? 1 : 0)
 
         ScrollView {
@@ -75,7 +73,7 @@ struct MangaSearchView: View {
                   id: result.id,
                   cover: result.cover,
                   title: result.title,
-                  textColor: secondaryColor,
+                  textColor: scheme.foregroundColor,
                   isSaved: result.isSaved,
                   layout: $listLayout
                 )
@@ -116,7 +114,7 @@ struct MangaSearchView: View {
         }
       }
     }
-    .background(backgroundColor)
+    .background(scheme.backgroundColor)
     .navigationBarBackButtonHidden(true)
   }
 
@@ -231,8 +229,6 @@ private struct MangaResultView: View, Equatable {
     }
   }
 
-  // We should avoid using conditional views
-  // Specially on a view that is drawn so many times like this one
   var body: some View {
     ZStack(alignment: .topLeading) {
       makeResultView()
@@ -251,12 +247,14 @@ private struct MangaResultView: View, Equatable {
     }
   }
 
+  // We should avoid using conditional views
+  // Specially on a view that is drawn so many times like this one
   @ViewBuilder
   private func makeResultView() -> some View {
     switch layout {
     case .normal:
       VStack(alignment: .leading, spacing: 4) {
-        Image(uiImage: UIImage(data: cover ?? Data()) ?? UIImage())
+        Image(uiImage: cover.toUIImage() ?? UIImage())
           .resizable()
           .aspectRatio(0.625, contentMode: .fill)
           .background(.gray)

@@ -39,9 +39,6 @@ final class ChaptersDatasource {
     state.value
   }
 
-  @MainActor private var hasMorePages = true
-  @MainActor private var currentPage = 0
-
   private var fetchTask: Task<Void, Never>?
 
   init(
@@ -75,8 +72,6 @@ final class ChaptersDatasource {
       state.valueOnMain = .loading
       chapters.valueOnMain = []
       error.valueOnMain = nil
-      hasMorePages = true
-      currentPage = 0
     }
 
     fetchTask = Task { [weak self] in
@@ -87,16 +82,6 @@ final class ChaptersDatasource {
 
       do {
         results = try await self.fetchLocalChapters()
-
-        if results.isEmpty {
-          results = try await self.delegate.fetchChapters(mangaId: mangaId).map { $0.converToModel() }
-
-          if results.isEmpty {
-            await MainActor.run { self.hasMorePages = false }
-
-            throw DatasourceError.otherError("No chapters found")
-          }
-        }
 
         self.chapters.value = results
 

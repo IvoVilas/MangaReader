@@ -9,13 +9,12 @@ import SwiftUI
 
 struct MangaDetailsView: View {
 
+  @Environment(\.colorScheme) private var scheme
+
   let viewModel: MangaDetailsViewModel
 
   @State private var toast: Toast?
   @State private var isDescriptionExpanded = false
-
-  private let backgroundColor: Color = .white
-  private let foregroundColor: Color = .black
 
   var body: some View {
     ZStack(alignment: .top) {
@@ -40,8 +39,8 @@ struct MangaDetailsView: View {
             text: viewModel.manga.description ?? "",
             lineLimit: 3,
             font: .footnote,
-            foregroundColor: foregroundColor,
-            backgroundColor: backgroundColor,
+            foregroundColor: scheme.foregroundColor,
+            backgroundColor: scheme.backgroundColor,
             isExpanded: $isDescriptionExpanded
           )
           .id(viewModel.manga.description ?? "")
@@ -66,13 +65,13 @@ struct MangaDetailsView: View {
       ProgressView()
         .controlSize(.regular)
         .progressViewStyle(.circular)
-        .tint(foregroundColor)
+        .tint(scheme.foregroundColor)
         .opacity(viewModel.isLoading ? 1 : 0)
         .offset(y: 75)
     }
     .navigationBarBackButtonHidden(true)
     .ignoresSafeArea(.all, edges: .top)
-    .background(backgroundColor)
+    .background(scheme.backgroundColor)
     .onAppear {
       Task(priority: .medium) { await viewModel.setupData() }
     }
@@ -114,7 +113,7 @@ struct MangaDetailsView: View {
       .opacity(0.4)
       .overlay {
         LinearGradient(
-          gradient: Gradient(colors: [.clear, backgroundColor]),
+          gradient: Gradient(colors: [.clear, scheme.backgroundColor]),
           startPoint: .top,
           endPoint: .bottom
         )
@@ -123,7 +122,7 @@ struct MangaDetailsView: View {
 
   @ViewBuilder
   private func navbarView() -> some View {
-    CustomBackAction(tintColor: foregroundColor)
+    CustomBackAction(tintColor: scheme.foregroundColor)
       .frame(width: 20, height: 20)
   }
 
@@ -138,7 +137,7 @@ struct MangaDetailsView: View {
 
       VStack(alignment: .leading, spacing: 8) {
         Text(viewModel.manga.title)
-          .foregroundStyle(foregroundColor)
+          .foregroundStyle(scheme.foregroundColor)
           .font(.headline)
 
         if let author = viewModel.manga.authors.first {
@@ -147,10 +146,10 @@ struct MangaDetailsView: View {
               .resizable()
               .scaledToFit()
               .frame(width: 18)
-              .foregroundStyle(foregroundColor)
+              .foregroundStyle(scheme.foregroundColor)
 
             Text(author.name)
-              .foregroundStyle(foregroundColor)
+              .foregroundStyle(scheme.foregroundColor)
               .font(.footnote)
           }
         }
@@ -160,10 +159,10 @@ struct MangaDetailsView: View {
             .resizable()
             .scaledToFit()
             .frame(width: 18)
-            .foregroundStyle(foregroundColor)
+            .foregroundStyle(scheme.foregroundColor)
 
           Text(viewModel.manga.status.value.localizedCapitalized)
-            .foregroundStyle(foregroundColor)
+            .foregroundStyle(scheme.foregroundColor)
             .font(.footnote)
         }
 
@@ -177,11 +176,11 @@ struct MangaDetailsView: View {
               .aspectRatio(1, contentMode: .fill)
               .symbolVariant(viewModel.manga.isSaved ? .fill : .none)
               .symbolEffect(.bounce, value: viewModel.manga.isSaved)
-              .foregroundStyle(viewModel.isLoading ? .gray : foregroundColor)
+              .foregroundStyle(viewModel.isLoading ? .gray : scheme.foregroundColor)
 
             Text(viewModel.manga.isSaved ? "In library" : "Add to library")
               .font(.caption2)
-              .foregroundStyle(viewModel.isLoading ? .gray : foregroundColor)
+              .foregroundStyle(viewModel.isLoading ? .gray : scheme.foregroundColor)
           }
           .padding(.top, 4)
         }
@@ -200,13 +199,13 @@ struct MangaDetailsView: View {
           Text(tag.title)
             .font(.footnote)
             .lineLimit(1)
-            .foregroundStyle(foregroundColor)
+            .foregroundStyle(scheme.foregroundColor)
             .padding(.vertical, 4)
             .padding(.horizontal, 8)
             .background(
               RoundedRectangle(cornerRadius: 4)
-                .fill(backgroundColor)
-                .stroke(foregroundColor, lineWidth: 1)
+                .fill(scheme.backgroundColor)
+                .stroke(scheme.foregroundColor, lineWidth: 1)
             )
         }
         .padding(.vertical, 1)
@@ -221,7 +220,7 @@ struct MangaDetailsView: View {
     VStack(alignment: .leading, spacing: 4) {
       Text("\(viewModel.chaptersCount) chapters")
         .font(.headline)
-        .foregroundStyle(foregroundColor)
+        .foregroundStyle(scheme.foregroundColor)
 
       Text("Missing \(viewModel.missingChaptersCount) chapters")
         .font(.caption)
@@ -256,12 +255,12 @@ struct MangaDetailsView: View {
       Text(chapter.description)
         .font(.subheadline)
         .lineLimit(1)
-        .foregroundStyle(chapter.isRead ? .gray : foregroundColor)
+        .foregroundStyle(chapter.isRead ? .gray : scheme.foregroundColor)
 
       HStack(spacing: 16) {
         Text(chapter.createdAtDescription)
           .font(.caption2)
-          .foregroundStyle(chapter.isRead ? .gray : foregroundColor)
+          .foregroundStyle(chapter.isRead ? .gray : scheme.foregroundColor)
 
         Text(chapter.lastPageReadDescription ?? "")
           .font(.caption2)

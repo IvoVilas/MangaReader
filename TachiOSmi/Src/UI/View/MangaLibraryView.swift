@@ -9,16 +9,19 @@ import SwiftUI
 
 struct MangaLibraryView: View {
 
+  @Environment(\.colorScheme) private var scheme
+
   let viewModel: MangaLibraryViewModel
 
-  let columns = Array(
+  private let columns = Array(
     repeating: GridItem(.flexible(), spacing: 16),
     count: 3
   )
-  
+
   var body: some View {
     VStack(alignment: .leading) {
       Text("Library")
+        .foregroundStyle(scheme.foregroundColor)
         .font(.title)
 
       ZStack {
@@ -40,16 +43,17 @@ struct MangaLibraryView: View {
           Image(systemName: "books.vertical")
             .resizable()
             .scaledToFit()
-            .foregroundStyle(.gray)
+            .foregroundStyle(scheme.secondaryColor)
             .frame(width: 150)
 
           Text("Your library is emtpy")
-            .foregroundStyle(.gray)
+            .foregroundStyle(scheme.secondaryColor)
             .font(.title3)
         }
         .opacity(viewModel.mangas.count > 0 ? 0 : 1)
       }
     }
+    .background(scheme.backgroundColor)
   }
 
   @ViewBuilder

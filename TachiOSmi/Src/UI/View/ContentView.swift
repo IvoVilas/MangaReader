@@ -53,7 +53,6 @@ struct ContentView: View {
           }
           .toolbarBackground(.visible, for: .tabBar)
       }
-      .background(.white)
       .navigationDestination(for: MangaLibraryViewModel.MangaWrapper.self) { wrapper in
         MangaDetailsView(
           viewModel: libraryViewModel.buildDetailsViewModel(for: wrapper)
@@ -81,4 +80,34 @@ struct ContentView: View {
       inMemory: true
     )
   )
+}
+
+extension ColorScheme {
+
+  var backgroundColor: Color {
+    switch self {
+    case .light:
+      return .white
+    case .dark:
+      return .black
+    @unknown default:
+      fatalError()
+    }
+  }
+
+  var foregroundColor: Color {
+    switch self {
+    case .light:
+      return .black
+    case .dark:
+      return .white
+    @unknown default:
+      fatalError()
+    }
+  }
+
+  var secondaryColor: Color {
+    return .gray
+  }
+
 }
