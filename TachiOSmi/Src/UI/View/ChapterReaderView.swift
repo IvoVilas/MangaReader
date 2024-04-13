@@ -37,11 +37,6 @@ struct ChapterReaderView: View {
               await viewModel.prepareDatasource()
             }
           }
-          .onTapGesture {
-            withAnimation {
-              showingToolBar.toggle()
-            }
-          }
       }
 
       toolBarView()
@@ -78,6 +73,11 @@ struct ChapterReaderView: View {
     }
     .onReceive(viewModel.closeReaderEvent) { 
       dismiss()
+    }
+    .onTapGesture {
+      withAnimation {
+        showingToolBar.toggle()
+      }
     }
   }
 
