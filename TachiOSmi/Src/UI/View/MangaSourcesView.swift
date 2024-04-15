@@ -27,6 +27,7 @@ struct MangaSourcesView: View {
             }
           }
         }
+        .padding(1)
       }
     }
     .background(scheme.backgroundColor)

@@ -37,10 +37,11 @@ final class ChapterReaderViewModel: ObservableObject {
   private let viewMoc: NSManagedObjectContext
 
   let closeReaderEvent = PassthroughSubject<Void, Never>()
-  private let changedChapter: PassthroughSubject<ChapterModel, Never>
-  private let changedReadingDirection: PassthroughSubject<ReadingDirection, Never>
   private let receivedPagesEvent = CurrentValueSubject<Bool, Never>(false)
   private var observers = Set<AnyCancellable>()
+
+  private var changedData = ChangedData()
+  private let completion: ((ChangedData) -> Void)?
 
   init(
     source: Source,
@@ -51,9 +52,8 @@ final class ChapterReaderViewModel: ObservableObject {
     mangaCrud: MangaCrud,
     chapterCrud: ChapterCrud,
     httpClient: HttpClient,
-    changedChapter: PassthroughSubject<ChapterModel, Never>,
-    changedReadingDirection: PassthroughSubject<ReadingDirection, Never>,
-    viewMoc: NSManagedObjectContext
+    viewMoc: NSManagedObjectContext,
+    completion: ((ChangedData) -> Void)? = nil
   ) {
     self.source = source
     self.mangaId = mangaId
@@ -61,9 +61,8 @@ final class ChapterReaderViewModel: ObservableObject {
     self.mangaCrud = mangaCrud
     self.chapterCrud = chapterCrud
     self.httpClient = httpClient
-    self.changedChapter = changedChapter
-    self.changedReadingDirection = changedReadingDirection
     self.viewMoc = viewMoc
+    self.completion = completion
 
     delegate = source.pagesDelegateType.init(httpClient: httpClient)
     datasource = PagesDatasource(
@@ -91,11 +90,11 @@ final class ChapterReaderViewModel: ObservableObject {
     setupObservers()
 
     // TODO: Some of these tasks can be parallel
-    Task.detached {
-      await self.fetchAdjacentChapters()
+    Task {
+      await fetchAdjacentChapters()
 
       if prepareDatasource {
-        await self.datasource.prepareDatasource()
+        await datasource.prepareDatasource()
       }
     }
   }
@@ -120,25 +119,21 @@ final class ChapterReaderViewModel: ObservableObject {
       .sink { [weak self] pages in
         guard let self else { return }
 
-        Task(priority: .userInitiated) {
-          await self.setPages(pages)
+        self.setPages(pages)
 
-          self.receivedPagesEvent.value = true
+        self.receivedPagesEvent.value = true
 
-          var pageId: String?
-          let firstId = pages.first?.id
+        var pageId: String?
+        let firstId = pages.first?.id
 
-          if self.chapter.isRead {
-            pageId = firstId
-          } else {
-            pageId = pages.safeGet(self.chapter.lastPageRead)?.id ?? firstId
-          }
+        if self.chapter.isRead {
+          pageId = firstId
+        } else {
+          pageId = pages.safeGet(self.chapter.lastPageRead)?.id ?? firstId
+        }
 
-          await MainActor.run { [pageId] in
-            if self.pageId == nil {
-              self.pageId = pageId
-            }
-          }
+        if self.pageId == nil {
+          self.pageId = pageId
         }
       }
       .store(in: &observers)
@@ -189,10 +184,12 @@ final class ChapterReaderViewModel: ObservableObject {
       previousChapter = nil
     }
 
-    await updateTransitionPages(
-      previous: makeEndTransitionPage(),
-      next: makeStartTransitionPage()
-    )
+    DispatchQueue.main.async {
+      self.updateTransitionPages(
+        previous: self.makeEndTransitionPage(),
+        next: self.makeStartTransitionPage()
+      )
+    }
   }
 
   private func updateReadingDirection(to direction: ReadingDirection) async throws {
@@ -245,7 +242,7 @@ extension ChapterReaderViewModel {
 
           switch self.viewMoc.saveIfNeeded(rollbackOnError: true) {
           case .success:
-            self.changedChapter.send(.from(chapter))
+            self.changedData.readPages[chapter.id] = pageIndex
 
           default:
             break
@@ -261,8 +258,7 @@ extension ChapterReaderViewModel {
     do {
       try await updateReadingDirection(to: direction)
 
-      // TODO: Implement
-      // changedReadingDirection.send(direction)
+      changedData.readingDirection = direction
     } catch {
       return
     }
@@ -291,6 +287,10 @@ extension ChapterReaderViewModel {
     }
 
     await datasource.reloadPages(pages)
+  }
+
+  func onDismiss() {
+    completion?(changedData)
   }
 
 }
@@ -396,20 +396,18 @@ extension ChapterReaderViewModel {
     return .noNextChapter(currentChapter: chapter.description)
   }
 
-  private func setPages(_ pages: [PageModel]) async {
+  private func setPages(_ pages: [PageModel]) {
     let start = [ChapterPage.transition(makeStartTransitionPage())]
     let end = [ChapterPage.transition(makeEndTransitionPage())]
     let pages = pages.map { ChapterPage.page($0) }
 
-    await MainActor.run {
-      self.pages = start + pages + end
-    }
+    self.pages = start + pages + end
   }
 
   private func updateTransitionPages(
     previous: TransitionPageModel,
     next: TransitionPageModel
-  ) async {
+  ) {
     let start = ChapterPage.transition(makeStartTransitionPage())
     let end = ChapterPage.transition(makeEndTransitionPage())
 
@@ -446,23 +444,15 @@ extension ChapterReaderViewModel {
     }
 
     if let startIndex {
-      await MainActor.run {
-        self.pages[startIndex] = start
-      }
+      self.pages[startIndex] = start
     } else {
-      await MainActor.run {
-        self.pages.insert(start, at: 0)
-      }
+      self.pages.insert(start, at: 0)
     }
 
     if let endIndex {
-      await MainActor.run {
-        self.pages[endIndex] = end
-      }
+      self.pages[endIndex] = end
     } else {
-      await MainActor.run {
-        self.pages.append(end)
-      }
+      self.pages.append(end)
     }
   }
 
@@ -486,3 +476,17 @@ extension ChapterReaderViewModel {
 
 }
 
+extension ChapterReaderViewModel {
+
+  struct ChangedData {
+    var readingDirection: ReadingDirection?
+    var readPages: [String: Int]
+
+    init() {
+      readingDirection = nil
+      readPages = [:]
+    }
+
+  }
+
+}

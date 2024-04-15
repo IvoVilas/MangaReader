@@ -56,8 +56,6 @@ final class MangaDetailsViewModel {
   private let sortChaptersUseCase: SortChaptersUseCase
   private let missingChaptersUseCase: MissingChaptersUseCase
 
-  private let changedChapter: PassthroughSubject<ChapterModel, Never>
-  private let changedReadingDirection: PassthroughSubject<ReadingDirection, Never>
   private var observers = Set<AnyCancellable>()
 
   init(
@@ -78,9 +76,6 @@ final class MangaDetailsViewModel {
 
     sortChaptersUseCase = SortChaptersUseCase()
     missingChaptersUseCase = MissingChaptersUseCase()
-
-    changedChapter = PassthroughSubject()
-    changedReadingDirection = PassthroughSubject()
 
     chaptersDatasource = ChaptersDatasource(
       mangaId: manga.id,
@@ -152,34 +147,6 @@ final class MangaDetailsViewModel {
     }
     .sink { [weak self] in self?.error = $0 }
     .store(in: &observers)
-
-    changedReadingDirection
-      .removeDuplicates()
-      .receive(on: DispatchQueue.main)
-      .sink { [weak self] in
-        guard let self else { return }
-
-        let manga = self.manga
-
-        self.manga = MangaModel(
-          id: manga.id,
-          title: manga.title,
-          description: manga.description,
-          isSaved: manga.isSaved,
-          status: manga.status,
-          readingDirection: $0,
-          cover: manga.cover,
-          tags: manga.tags,
-          authors: manga.authors
-        )
-      }
-      .store(in: &observers)
-
-    changedChapter
-      .removeDuplicates()
-      .receive(on: DispatchQueue.main)
-      .sink { [weak self] in self?.changeChapter($0) }
-      .store(in: &observers)
   }
 
   private func saveManga(isSaved: Bool) async throws {
@@ -204,22 +171,6 @@ final class MangaDetailsViewModel {
     self.chapters = addMissingChapters(missing, to: sortedChapters)
     self.chaptersCount = chapters.count
     self.missingChaptersCount = missing.reduce(into: 0) { $0 += $1.count }
-  }
-
-  private func changeChapter(_ changed: ChapterModel) {
-    let index = self.chapters.firstIndex{
-      switch $0 {
-      case .chapter(let chapter):
-        return chapter.id == changed.id
-
-      case .missing:
-        return false
-      }
-    }
-
-    if let index {
-      self.chapters[index] = .chapter(changed)
-    }
   }
 
 }
@@ -280,10 +231,55 @@ extension MangaDetailsViewModel {
       mangaCrud: AppEnv.env.mangaCrud,
       chapterCrud: AppEnv.env.chapterCrud,
       httpClient: AppEnv.env.httpClient,
-      changedChapter: changedChapter,
-      changedReadingDirection: changedReadingDirection,
       viewMoc: viewMoc
-    )
+    ) { [weak self] in
+      guard let self else { return }
+
+      if let direction = $0.readingDirection {
+        self.manga = MangaModel(
+          id: self.manga.id,
+          title: self.manga.title,
+          description: self.manga.description,
+          isSaved: self.manga.isSaved,
+          status: self.manga.status,
+          readingDirection: direction,
+          cover: self.manga.cover,
+          tags: self.manga.tags,
+          authors: self.manga.authors
+        )
+      }
+
+      for pageRead in $0.readPages {
+        let index = self.chapters.firstIndex{
+          switch $0 {
+          case .chapter(let chapter):
+            return chapter.id == pageRead.key
+
+          case .missing:
+            return false
+          }
+        }
+
+        if let index {
+          switch self.chapters[index] {
+          case .missing:
+            break
+
+          case .chapter(let chapter):
+            self.chapters[index] = .chapter(ChapterModel(
+              id: chapter.id,
+              title: chapter.title,
+              number: chapter.number,
+              numberOfPages: chapter.numberOfPages,
+              publishAt: chapter.publishAt,
+              isRead: pageRead.value >= chapter.numberOfPages - 1,
+              lastPageRead: pageRead.value,
+              downloadInfo: chapter.downloadInfo
+            ))
+          }
+        }
+      }
+    }
   }
 
 }
@@ -291,7 +287,7 @@ extension MangaDetailsViewModel {
 // MARK: Helpers
 extension MangaDetailsViewModel {
 
-  func addMissingChapters(
+  private func addMissingChapters(
     _ missing: [MissingChaptersModel],
     to chapters: [ChapterModel]
   ) -> [ChapterCell] {
@@ -308,12 +304,8 @@ extension MangaDetailsViewModel {
           return false
 
         case .chapter(let chapter):
-          if chapter.number == m.number - 1 {
-            return true
-          }
+          return chapter.number == m.number - 1
         }
-
-        return false
       }
 
       if let index {

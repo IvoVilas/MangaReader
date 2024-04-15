@@ -79,6 +79,9 @@ struct ChapterReaderView: View {
         showingToolBar.toggle()
       }
     }
+    .onDisappear {
+      viewModel.onDismiss()
+    }
   }
 
   @ViewBuilder
@@ -262,8 +265,6 @@ struct ChapterReaderView: View {
       mangaCrud: MangaCrud(),
       chapterCrud: ChapterCrud(),
       httpClient: HttpClient(),
-      changedChapter: .init(),
-      changedReadingDirection: .init(),
       viewMoc: PersistenceController.getViewMoc(for: .mangadex, inMemory: true)
     )
   )
