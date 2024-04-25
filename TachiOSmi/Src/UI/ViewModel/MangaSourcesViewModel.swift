@@ -11,15 +11,9 @@ import SwiftUI
 @Observable
 final class MangaSourcesViewModel {
 
-  private let inMemory: Bool
-
   private(set) var sources: [Source]
 
-  init(
-    inMemory: Bool = false
-  ) {
-    self.inMemory = inMemory
-
+  init() {
     sources = Source.allSources()
   }
 
@@ -35,7 +29,7 @@ extension MangaSourcesViewModel {
       mangaCrud: AppEnv.env.mangaCrud,
       coverCrud: AppEnv.env.coverCrud,
       httpClient: AppEnv.env.httpClient,
-      viewMoc: PersistenceController.getViewMoc(for: source, inMemory: inMemory)
+      viewMoc: PersistenceController.shared.container.viewContext
     )
   }
 

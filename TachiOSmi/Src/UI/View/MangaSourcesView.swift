@@ -65,6 +65,6 @@ struct MangaSourcesView: View {
 
 #Preview {
   MangaSourcesView(
-    viewModel: MangaSourcesViewModel(inMemory: true)
+    viewModel: MangaSourcesViewModel()
   )
 }

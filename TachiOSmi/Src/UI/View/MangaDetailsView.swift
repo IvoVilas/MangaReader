@@ -328,7 +328,7 @@ extension MangaDetailsView {
     let coverCrud = CoverCrud()
     let chapterCrud = ChapterCrud()
     let httpClient = HttpClient()
-    let moc = PersistenceController.preview.mangaDex.viewMoc
+    let moc = PersistenceController.preview.container.viewContext
     let manga = MangaSearchResult(
       id: "c52b2ce3-7f95-469c-96b0-479524fb7a1a",
       title: "Jujutsu Kaisen",

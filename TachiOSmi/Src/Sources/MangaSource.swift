@@ -89,26 +89,3 @@ enum Source: Identifiable {
   }
 
 }
-
-extension PersistenceController {
-
-  static func getViewMoc(
-    for source: Source,
-    inMemory: Bool
-  ) -> NSManagedObjectContext {
-    switch (source, inMemory) {
-    case (.mangadex, false):
-      return shared.mangaDex.viewMoc
-
-    case (.mangadex, true):
-      return preview.mangaDex.viewMoc
-
-    case (.manganelo, false):
-      return shared.mangaNelo.viewMoc
-
-    case (.manganelo, true):
-      return preview.mangaNelo.viewMoc
-    }
-  }
-
-}

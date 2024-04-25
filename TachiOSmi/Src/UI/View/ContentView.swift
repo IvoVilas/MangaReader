@@ -74,11 +74,9 @@ struct ContentView: View {
       mangaCrud: MangaCrud(),
       coverCrud: CoverCrud(),
       chapterCrud: ChapterCrud(),
-      inMemory: true
+      viewMoc: PersistenceController.preview.container.viewContext
     ),
-    sourcesViewModel: MangaSourcesViewModel(
-      inMemory: true
-    )
+    sourcesViewModel: MangaSourcesViewModel()
   )
 }
 

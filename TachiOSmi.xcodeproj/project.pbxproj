@@ -32,7 +32,6 @@
 		1EA9CD672B925CE9000E3086 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 1EA9CD662B925CE9000E3086 /* Alamofire */; };
 		1EC8BD282B92789E0017ACF0 /* ManganeloSearchDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EC8BD272B92789E0017ACF0 /* ManganeloSearchDelegate.swift */; };
 		1EC8BD2A2B92879A0017ACF0 /* MangaSearchType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EC8BD292B92879A0017ACF0 /* MangaSearchType.swift */; };
-		1EC8BD2F2B928F6D0017ACF0 /* Manganelo.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 1EC8BD2D2B928F6D0017ACF0 /* Manganelo.xcdatamodeld */; };
 		1EC8BD312B929CDD0017ACF0 /* ManganeloPagesDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EC8BD302B929CDD0017ACF0 /* ManganeloPagesDelegate.swift */; };
 		1EC8BD332B929D8B0017ACF0 /* ManganeloDetailsDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EC8BD322B929D8B0017ACF0 /* ManganeloDetailsDelegate.swift */; };
 		1EC8BD352B929D9C0017ACF0 /* ManganeloChaptersDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EC8BD342B929D9C0017ACF0 /* ManganeloChaptersDelegate.swift */; };
@@ -79,7 +78,7 @@
 		1EF815F82B82163F00D9759F /* MangaSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF815F72B82163F00D9759F /* MangaSearchView.swift */; };
 		1EF815FA2B82164300D9759F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1EF815F92B82164300D9759F /* Assets.xcassets */; };
 		1EF815FF2B82164300D9759F /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF815FE2B82164300D9759F /* Persistence.swift */; };
-		1EF816022B82164300D9759F /* Mangadex.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 1EF816002B82164300D9759F /* Mangadex.xcdatamodeld */; };
+		1EF816022B82164300D9759F /* TachiOSmi.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 1EF816002B82164300D9759F /* TachiOSmi.xcdatamodeld */; };
 		1EF8160D2B82468100D9759F /* MangaSearchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF8160C2B82468100D9759F /* MangaSearchViewModel.swift */; };
 		1EF816162B82A89B00D9759F /* MangaDetailsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF816152B82A89B00D9759F /* MangaDetailsViewModel.swift */; };
 		1EF816212B83983F00D9759F /* DatasourceState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF816202B83983F00D9759F /* DatasourceState.swift */; };
@@ -125,7 +124,6 @@
 		1E79A4D32B8929D80075C234 /* HttpClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HttpClient.swift; sourceTree = "<group>"; };
 		1EC8BD272B92789E0017ACF0 /* ManganeloSearchDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManganeloSearchDelegate.swift; sourceTree = "<group>"; };
 		1EC8BD292B92879A0017ACF0 /* MangaSearchType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaSearchType.swift; sourceTree = "<group>"; };
-		1EC8BD2E2B928F6D0017ACF0 /* Manganelo.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Manganelo.xcdatamodel; sourceTree = "<group>"; };
 		1EC8BD302B929CDD0017ACF0 /* ManganeloPagesDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManganeloPagesDelegate.swift; sourceTree = "<group>"; };
 		1EC8BD322B929D8B0017ACF0 /* ManganeloDetailsDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManganeloDetailsDelegate.swift; sourceTree = "<group>"; };
 		1EC8BD342B929D9C0017ACF0 /* ManganeloChaptersDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManganeloChaptersDelegate.swift; sourceTree = "<group>"; };
@@ -468,8 +466,7 @@
 		1EF8160B2B8216B700D9759F /* CoreData */ = {
 			isa = PBXGroup;
 			children = (
-				1EF816002B82164300D9759F /* Mangadex.xcdatamodeld */,
-				1EC8BD2D2B928F6D0017ACF0 /* Manganelo.xcdatamodeld */,
+				1EF816002B82164300D9759F /* TachiOSmi.xcdatamodeld */,
 			);
 			path = CoreData;
 			sourceTree = "<group>";
@@ -725,10 +722,9 @@
 				D7736CC12BBC8B2B0081AE98 /* TransitionPageView.swift in Sources */,
 				D7221EAD2B9BD4C400B72F9F /* ReadingDirection.swift in Sources */,
 				1EC8BD2A2B92879A0017ACF0 /* MangaSearchType.swift in Sources */,
-				1EC8BD2F2B928F6D0017ACF0 /* Manganelo.xcdatamodeld in Sources */,
 				1E1235462B8534580022652F /* SystemDateTimeRounderType.swift in Sources */,
 				1EF815F62B82163F00D9759F /* TachiOSmiApp.swift in Sources */,
-				1EF816022B82164300D9759F /* Mangadex.xcdatamodeld in Sources */,
+				1EF816022B82164300D9759F /* TachiOSmi.xcdatamodeld in Sources */,
 				1EE89F5A2B84CDC5000CAA20 /* ChapterCrud.swift in Sources */,
 				1EF20A512B912F9300D17A65 /* MangadexDetailsDelegate.swift in Sources */,
 				1E1235442B8534580022652F /* SystemClockType.swift in Sources */,
@@ -999,23 +995,13 @@
 /* End XCSwiftPackageProductDependency section */
 
 /* Begin XCVersionGroup section */
-		1EC8BD2D2B928F6D0017ACF0 /* Manganelo.xcdatamodeld */ = {
-			isa = XCVersionGroup;
-			children = (
-				1EC8BD2E2B928F6D0017ACF0 /* Manganelo.xcdatamodel */,
-			);
-			currentVersion = 1EC8BD2E2B928F6D0017ACF0 /* Manganelo.xcdatamodel */;
-			path = Manganelo.xcdatamodeld;
-			sourceTree = "<group>";
-			versionGroupType = wrapper.xcdatamodel;
-		};
-		1EF816002B82164300D9759F /* Mangadex.xcdatamodeld */ = {
+		1EF816002B82164300D9759F /* TachiOSmi.xcdatamodeld */ = {
 			isa = XCVersionGroup;
 			children = (
 				1EF816012B82164300D9759F /* TachiOSmi.xcdatamodel */,
 			);
 			currentVersion = 1EF816012B82164300D9759F /* TachiOSmi.xcdatamodel */;
-			path = Mangadex.xcdatamodeld;
+			path = TachiOSmi.xcdatamodeld;
 			sourceTree = "<group>";
 			versionGroupType = wrapper.xcdatamodel;
 		};

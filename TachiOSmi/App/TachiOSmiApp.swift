@@ -26,7 +26,8 @@ struct TachiOSmiApp: App {
         libraryViewModel: MangaLibraryViewModel(
           mangaCrud: AppEnv.env.mangaCrud,
           coverCrud: AppEnv.env.coverCrud,
-          chapterCrud: AppEnv.env.chapterCrud
+          chapterCrud: AppEnv.env.chapterCrud,
+          viewMoc: PersistenceController.shared.container.viewContext
         ),
         sourcesViewModel: MangaSourcesViewModel()
       )

@@ -265,7 +265,7 @@ struct ChapterReaderView: View {
       mangaCrud: MangaCrud(),
       chapterCrud: ChapterCrud(),
       httpClient: HttpClient(),
-      viewMoc: PersistenceController.getViewMoc(for: .mangadex, inMemory: true)
+      viewMoc: PersistenceController.preview.container.viewContext
     )
   )
 }

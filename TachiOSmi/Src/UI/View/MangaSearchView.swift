@@ -303,7 +303,7 @@ private struct MangaResultView: View, Equatable {
       mangaCrud: MangaCrud(),
       coverCrud: CoverCrud(),
       httpClient: HttpClient(),
-      viewMoc: PersistenceController.getViewMoc(for: .mangadex, inMemory: true)
+      viewMoc: PersistenceController.preview.container.viewContext
     )
   )
 }

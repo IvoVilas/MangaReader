@@ -104,7 +104,8 @@ struct MangaLibraryView: View {
     viewModel: MangaLibraryViewModel(
       mangaCrud: MangaCrud(),
       coverCrud: CoverCrud(),
-      chapterCrud: ChapterCrud()
+      chapterCrud: ChapterCrud(),
+      viewMoc: PersistenceController.preview.container.viewContext
     )
   )
 }
