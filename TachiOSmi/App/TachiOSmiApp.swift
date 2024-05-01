@@ -29,6 +29,12 @@ struct TachiOSmiApp: App {
           chapterCrud: AppEnv.env.chapterCrud,
           viewMoc: PersistenceController.shared.container.viewContext
         ),
+        updatesViewModel: MangaUpdatesViewModel(
+          coverCrud: AppEnv.env.coverCrud,
+          chapterCrud: AppEnv.env.chapterCrud,
+          systemDateTime: AppEnv.env.systemDateTime,
+          viewMoc: PersistenceController.shared.container.viewContext
+        ),
         sourcesViewModel: MangaSourcesViewModel()
       )
     }

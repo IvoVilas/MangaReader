@@ -10,6 +10,7 @@ import SwiftUI
 struct ContentView: View {
 
   let libraryViewModel: MangaLibraryViewModel
+  let updatesViewModel: MangaUpdatesViewModel
   let sourcesViewModel: MangaSourcesViewModel
 
   var body: some View {
@@ -25,7 +26,8 @@ struct ContentView: View {
           }
           .toolbarBackground(.visible, for: .tabBar)
 
-        Text("TODO")
+        MangaUpdatesView(viewModel: updatesViewModel)
+          .padding(24)
           .tabItem {
             Label(
               title: { Text("Updates") },
@@ -74,6 +76,12 @@ struct ContentView: View {
       mangaCrud: MangaCrud(),
       coverCrud: CoverCrud(),
       chapterCrud: ChapterCrud(),
+      viewMoc: PersistenceController.preview.container.viewContext
+    ),
+    updatesViewModel: MangaUpdatesViewModel(
+      coverCrud: CoverCrud(),
+      chapterCrud: ChapterCrud(),
+      systemDateTime: SystemDateTime(),
       viewMoc: PersistenceController.preview.container.viewContext
     ),
     sourcesViewModel: MangaSourcesViewModel()

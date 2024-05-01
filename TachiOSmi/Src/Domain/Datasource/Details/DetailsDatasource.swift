@@ -89,15 +89,15 @@ final class DetailsDatasource {
       let mangaModel: MangaModel
       var didRequest = false
 
-      let cover = try viewMoc.performAndWait {
-        try coverCrud.getCoverData(for: mangaId, moc: viewMoc)
+      let cover = try await viewMoc.perform {
+        try self.coverCrud.getCoverData(for: self.mangaId, moc: self.viewMoc)
       }
 
       if let cover {
         await update(cover: cover)
 
-        let manga = try viewMoc.performAndWait {
-          try mangaCrud.getManga(mangaId, moc: viewMoc)
+        let manga = try await viewMoc.perform {
+          try self.mangaCrud.getManga(self.mangaId, moc: self.viewMoc)
         }
 
         if let manga {

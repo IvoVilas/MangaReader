@@ -83,7 +83,7 @@ final class SearchDatasource {
         var mangas = [MangaSearchResult]()
 
         for result in results {
-          let local = try viewMoc.performAndWait {
+          let local = try await viewMoc.perform {
             try self.mangaCrud.getManga(result.id, moc: self.viewMoc)
           }
 
@@ -148,7 +148,7 @@ final class SearchDatasource {
         var searchResult = [MangaSearchResult]()
 
         for result in results {
-          let local = try viewMoc.performAndWait {
+          let local = try await viewMoc.perform {
             try self.mangaCrud.getManga(result.id, moc: self.viewMoc)
           }
 
@@ -231,8 +231,8 @@ final class SearchDatasource {
     downloadInfo: String
   ) async -> Data? {
     do {
-      let localCoverData = try viewMoc.performAndWait {
-        try coverCrud.getCoverData(for: mangaId, moc: viewMoc)
+      let localCoverData = try await viewMoc.perform {
+        try self.coverCrud.getCoverData(for: mangaId, moc: self.viewMoc)
       }
 
       if let localCoverData {

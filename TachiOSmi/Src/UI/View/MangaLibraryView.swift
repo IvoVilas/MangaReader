@@ -8,22 +8,22 @@
 import SwiftUI
 
 struct MangaLibraryView: View {
-
+  
   @Environment(\.colorScheme) private var scheme
-
+  
   let viewModel: MangaLibraryViewModel
-
+  
   private let columns = Array(
     repeating: GridItem(.flexible(), spacing: 16),
     count: 3
   )
-
+  
   var body: some View {
     VStack(alignment: .leading) {
       Text("Library")
         .foregroundStyle(scheme.foregroundColor)
         .font(.title)
-
+      
       ZStack {
         ScrollView {
           LazyVGrid(columns: columns, spacing: 16) {
@@ -35,17 +35,25 @@ struct MangaLibraryView: View {
           }
         }
         .scrollIndicators(.hidden)
-        .onAppear { viewModel.refreshLibrary() }
-        .refreshable { viewModel.refreshLibrary() }
+        .onAppear {
+          Task(priority: .userInitiated) {
+            await viewModel.refreshLibrary()
+          }
+        }
+        .refreshable {
+          Task(priority: .userInitiated) {
+            await viewModel.refreshLibrary()
+          }
+        }
         .opacity(viewModel.mangas.count > 0 ? 1 : 0)
-
+        
         VStack(spacing: 8) {
           Image(systemName: "books.vertical")
             .resizable()
             .scaledToFit()
             .foregroundStyle(scheme.secondaryColor)
             .frame(width: 150)
-
+          
           Text("Your library is emtpy")
             .foregroundStyle(scheme.secondaryColor)
             .font(.title3)
@@ -55,7 +63,7 @@ struct MangaLibraryView: View {
     }
     .background(scheme.backgroundColor)
   }
-
+  
   @ViewBuilder
   private func makeMangaView(
     _ manga: MangaLibraryViewModel.MangaWrapper
@@ -72,7 +80,7 @@ struct MangaLibraryView: View {
               startPoint: .center,
               endPoint: .bottom
             )
-
+            
             Text(manga.manga.title)
               .font(.footnote)
               .lineLimit(2)
@@ -83,7 +91,7 @@ struct MangaLibraryView: View {
           }
         }
         .clipShape(RoundedRectangle(cornerRadius: 8))
-
+      
       Text("\(manga.unreadChapters)")
         .font(.footnote)
         .lineLimit(1)
@@ -96,7 +104,7 @@ struct MangaLibraryView: View {
         .opacity(manga.unreadChapters > 0 ? 1 : 0)
     }
   }
-
+  
 }
 
 #Preview {

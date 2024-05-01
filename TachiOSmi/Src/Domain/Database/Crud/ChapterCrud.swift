@@ -28,6 +28,28 @@ final class ChapterCrud {
     }
   }
 
+  func getChaptersPublished(
+    before date: Date,
+    count: Int,
+    moc: NSManagedObjectContext
+  ) throws -> [ChapterMO] {
+    let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Chapter")
+
+    fetchRequest.predicate = NSPredicate(format: "publishAt < %@ AND manga.isSaved == true", date as NSDate)
+    fetchRequest.sortDescriptors = [NSSortDescriptor(key: "publishAt", ascending: false)]
+    fetchRequest.fetchLimit = count
+
+    do {
+      guard let results = try moc.fetch(fetchRequest) as? [ChapterMO] else {
+        throw CrudError.wrongRequestType
+      }
+
+      return results
+    } catch {
+      throw CrudError.requestError(error)
+    }
+  }
+
   func getAllChapters(
     mangaId: String,
     moc: NSManagedObjectContext

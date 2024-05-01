@@ -149,8 +149,8 @@ final class ChaptersDatasource {
   }
 
   private func fetchChaptersIfNeeded() async throws -> [ChapterModel] {
-    let manga = try viewMoc.performAndWait {
-      try mangaCrud.getManga(mangaId, moc: viewMoc)
+    let manga = try await viewMoc.perform {
+      try self.mangaCrud.getManga(self.mangaId, moc: self.viewMoc)
     }
 
     guard let manga else {

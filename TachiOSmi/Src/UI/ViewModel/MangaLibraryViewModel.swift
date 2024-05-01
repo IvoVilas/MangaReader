@@ -33,16 +33,16 @@ final class MangaLibraryViewModel {
     mangas = []
   }
 
-  func refreshLibrary() {
+  func refreshLibrary() async {
     var res = [MangaWrapper]()
 
-    viewMoc.performAndWait {
-      guard let mangas = try? mangaCrud.getAllSavedMangas(moc: self.viewMoc) else {
+    await viewMoc.perform {
+      guard let mangas = try? self.mangaCrud.getAllSavedMangas(moc: self.viewMoc) else {
         return
       }
 
       for manga in mangas {
-        let unreadChapter = try? chapterCrud.getUnreadChaptersCount(
+        let unreadChapter = try? self.chapterCrud.getUnreadChaptersCount(
           mangaId: manga.id,
           moc: self.viewMoc
         )
@@ -53,7 +53,7 @@ final class MangaLibraryViewModel {
             manga: MangaSearchResult(
               id: manga.id,
               title: manga.title,
-              cover: try? coverCrud.getCoverData(for: manga.id, moc: self.viewMoc),
+              cover: try? self.coverCrud.getCoverData(for: manga.id, moc: self.viewMoc),
               isSaved: manga.isSaved
             )
           )
