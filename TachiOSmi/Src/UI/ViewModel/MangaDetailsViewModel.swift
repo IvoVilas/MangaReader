@@ -86,6 +86,7 @@ final class MangaDetailsViewModel {
       viewMoc: viewMoc
     )
     detailsDatasource = DetailsDatasource(
+      source: source, 
       manga: manga,
       delegate: source.detailsDelegateType.init(httpClient: httpClient),
       mangaCrud: mangaCrud,
@@ -100,6 +101,7 @@ final class MangaDetailsViewModel {
       title: manga.title,
       description: nil,
       isSaved: manga.isSaved,
+      source: source,
       status: .unknown,
       readingDirection: .leftToRight,
       cover: manga.cover,
@@ -186,6 +188,7 @@ extension MangaDetailsViewModel {
         title: manga.title,
         description: manga.description,
         isSaved: save,
+        source: manga.source,
         status: manga.status,
         readingDirection: manga.readingDirection,
         cover: manga.cover,
@@ -241,6 +244,7 @@ extension MangaDetailsViewModel {
           title: self.manga.title,
           description: self.manga.description,
           isSaved: self.manga.isSaved,
+          source: self.manga.source,
           status: self.manga.status,
           readingDirection: direction,
           cover: self.manga.cover,

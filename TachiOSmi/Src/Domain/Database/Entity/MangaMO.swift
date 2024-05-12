@@ -17,6 +17,7 @@ class MangaMO: NSManagedObject {
   @NSManaged var lastUpdateAt: Date?
   @NSManaged var isSaved: Bool
   @NSManaged var readingDirection: Int16
+  @NSManaged var sourceId: String
 
   // Relationships
   @NSManaged var chapters: Set<ChapterMO>
@@ -29,6 +30,7 @@ class MangaMO: NSManagedObject {
     synopsis: String?,
     statusId: Int16,
     lastUpdateAt: Date?,
+    sourceId: String,
     moc: NSManagedObjectContext
   ) {
     guard let entity = NSEntityDescription.entity(forEntityName: "Manga", in: moc) else {
@@ -44,6 +46,7 @@ class MangaMO: NSManagedObject {
     self.lastUpdateAt     = lastUpdateAt
     self.isSaved          = false
     self.readingDirection = 0
+    self.sourceId         = sourceId
 
     self.chapters = Set<ChapterMO>()
     self.tags     = Set<TagMO>()

@@ -14,6 +14,7 @@ final class DetailsDatasource {
 
   let mangaId: String
 
+  private let source: Source
   private let delegate: DetailsDelegateType
   private let mangaCrud: MangaCrud
   private let coverCrud: CoverCrud
@@ -38,6 +39,7 @@ final class DetailsDatasource {
   }
 
   init(
+    source: Source,
     manga: MangaSearchResult,
     delegate: DetailsDelegateType,
     mangaCrud: MangaCrud,
@@ -48,6 +50,7 @@ final class DetailsDatasource {
   ) {
     mangaId = manga.id
 
+    self.source = source
     self.delegate = delegate
     self.mangaCrud = mangaCrud
     self.coverCrud = coverCrud
@@ -63,6 +66,7 @@ final class DetailsDatasource {
         title: manga.title,
         description: nil,
         isSaved: manga.isSaved,
+        source: source,
         status: .unknown,
         readingDirection: .leftToRight,
         cover: manga.cover,
@@ -106,13 +110,13 @@ final class DetailsDatasource {
           let data = try await delegate.fetchDetails(mangaId)
 
           didRequest = true
-          mangaModel = data.convertToModel(cover: cover)
+          mangaModel = data.convertToModel(source: source, cover: cover)
         }
 
         await update(using: mangaModel)
       } else {
         let data = try await delegate.fetchDetails(mangaId)
-        let model = data.convertToModel()
+        let model = data.convertToModel(source: source)
 
         await update(using: model)
 
@@ -156,6 +160,7 @@ final class DetailsDatasource {
       let data = try await delegate.fetchDetails(mangaId)
       let (isSaved, readingDirection) = await fetchSavedMangaDetails(mangaId)
       let model = data.convertToModel(
+        source: source,
         isSaved: isSaved,
         readingDirection: readingDirection
       )
@@ -169,7 +174,7 @@ final class DetailsDatasource {
 
       await update(cover: cover)
 
-      try await updateDatabase(data.convertToModel(cover: cover))
+      try await updateDatabase(data.convertToModel(source: source, cover: cover))
     } catch {
       erro = .catchError(error)
     }
@@ -200,6 +205,7 @@ final class DetailsDatasource {
       title: manga.title,
       description: manga.description,
       isSaved: manga.isSaved,
+      source: manga.source,
       status: manga.status,
       readingDirection: manga.readingDirection,
       cover: cover,
@@ -237,6 +243,7 @@ extension DetailsDatasource {
         title: manga.title,
         synopsis: manga.description,
         status: manga.status,
+        source: self.source,
         moc: self.viewMoc
       )
 

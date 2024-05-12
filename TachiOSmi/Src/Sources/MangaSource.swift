@@ -13,9 +13,23 @@ enum Source: Identifiable {
 
   case mangadex
   case manganelo
+  case unknown
 
   static func allSources() -> [Source] {
     [.mangadex, .manganelo]
+  }
+
+  static func safeInit(from id: String) -> Source {
+    switch id {
+    case Source.mangadex.id:
+      return .mangadex
+
+    case Source.manganelo.id:
+      return .manganelo
+
+    default:
+      return .unknown
+    }
   }
 
   var id: String {
@@ -25,12 +39,15 @@ enum Source: Identifiable {
 
     case .manganelo:
       return "1"
+
+    case .unknown:
+      return "-1"
     }
   }
 
   var name: String {
     switch self {
-    case .mangadex:
+    case .mangadex, .unknown:
       return "MangaDex"
 
     case .manganelo:
@@ -40,7 +57,7 @@ enum Source: Identifiable {
 
   var logo: UIImage {
     switch self {
-    case .mangadex:
+    case .mangadex, .unknown:
       return .mangadex
 
     case .manganelo:
@@ -50,7 +67,7 @@ enum Source: Identifiable {
 
   var searchDelegateType: SearchDelegateType.Type {
     switch self {
-    case .mangadex:
+    case .mangadex, .unknown:
       return MangadexSearchDelegate.self
 
     case .manganelo:
@@ -60,7 +77,7 @@ enum Source: Identifiable {
 
   var detailsDelegateType: DetailsDelegateType.Type {
     switch self {
-    case .mangadex:
+    case .mangadex, .unknown:
       return MangadexDetailsDelegate.self
 
     case .manganelo:
@@ -70,7 +87,7 @@ enum Source: Identifiable {
 
   var chaptersDelegateType: ChaptersDelegateType.Type {
     switch self {
-    case .mangadex:
+    case .mangadex, .unknown:
       return MangadexChaptersDelegate.self
 
     case .manganelo:
@@ -80,7 +97,7 @@ enum Source: Identifiable {
 
   var pagesDelegateType: PagesDelegateType.Type {
     switch self {
-    case .mangadex:
+    case .mangadex, .unknown:
       return MangadexPagesDelegate.self
 
     case .manganelo:

@@ -14,6 +14,7 @@ struct MangaModel: Identifiable, Hashable {
   let title: String
   let description: String?
   let isSaved: Bool
+  let source: Source
   let status: MangaStatus
   let readingDirection: ReadingDirection
   let cover: Data?
@@ -28,7 +29,8 @@ struct MangaModel: Identifiable, Hashable {
       id: manga.id,
       title: manga.title,
       description: manga.synopsis,
-      isSaved: manga.isSaved,
+      isSaved: manga.isSaved, 
+      source: .safeInit(from: manga.sourceId),
       status: .safeInit(from: manga.statusId),
       readingDirection: .safeInit(from: manga.readingDirection),
       cover: cover,
@@ -69,6 +71,7 @@ struct MangaDetailsParsedData {
   let coverInfo: String
 
   func convertToModel(
+    source: Source,
     isSaved: Bool = false,
     readingDirection: ReadingDirection = .leftToRight,
     cover: Data? = nil
@@ -78,6 +81,7 @@ struct MangaDetailsParsedData {
       title: title,
       description: description,
       isSaved: isSaved,
+      source: source,
       status: status,
       readingDirection: readingDirection,
       cover: cover,

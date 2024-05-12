@@ -50,6 +50,7 @@ final class MangaLibraryViewModel {
         res.append(
           MangaWrapper(
             unreadChapters: unreadChapter ?? 0,
+            source: .safeInit(from: manga.sourceId),
             manga: MangaSearchResult(
               id: manga.id,
               title: manga.title,
@@ -71,10 +72,11 @@ extension MangaLibraryViewModel {
   func buildDetailsViewModel(
     for manga: MangaWrapper
   ) -> MangaDetailsViewModel {
+    let source = manga.source
     let manga = manga.manga
 
     return MangaDetailsViewModel(
-      source: .mangadex, // TODO: Get manga source from database
+      source: source,
       manga: manga,
       mangaCrud: AppEnv.env.mangaCrud,
       chapterCrud: AppEnv.env.chapterCrud,
@@ -94,6 +96,7 @@ extension MangaLibraryViewModel {
   struct MangaWrapper: Hashable, Identifiable {
 
     let unreadChapters: Int
+    let source: Source
     let manga: MangaSearchResult
 
     var id: String { manga.id }
