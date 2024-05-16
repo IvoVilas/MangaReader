@@ -12,7 +12,7 @@ struct MangaLibraryView: View {
   @Environment(\.colorScheme) private var scheme
   
   let viewModel: MangaLibraryViewModel
-  
+
   private let columns = Array(
     repeating: GridItem(.flexible(), spacing: 16),
     count: 3

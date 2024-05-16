@@ -15,17 +15,30 @@ struct MangaUpdatesView: View {
 
   var body: some View {
     VStack(alignment: .center) {
-      HStack {
-        Text("Updates")
-          .foregroundStyle(scheme.foregroundColor)
-          .font(.title)
-
-        Spacer()
-
-        Button {} label: {
-          Image(systemName: "arrow.clockwise")
+      ZStack {
+        HStack {
+          Text("Updates")
             .foregroundStyle(scheme.foregroundColor)
+            .font(.title)
+
+          Spacer()
+
+          Button {
+            Task(priority: .userInitiated) {
+              await viewModel.refreshLibrary()
+            }
+          } label: {
+            Image(systemName: "arrow.clockwise")
+              .foregroundStyle(scheme.foregroundColor)
+          }
         }
+
+        ProgressView()
+          .controlSize(.regular)
+          .progressViewStyle(.circular)
+          .opacity(viewModel.isLoading ? 1 : 0)
+          .offset(y: viewModel.isLoading ? 0 : -75)
+          .animation(.easeInOut, value: viewModel.isLoading)
       }
 
       ScrollView {
@@ -103,10 +116,15 @@ private struct MangaUpdateLogView: View {
           .lineLimit(1)
           .foregroundStyle(log.isRead ? .gray : foregroundColor)
 
-        HStack(spacing: 16) {
+        HStack(spacing: 2) {
           Text(log.chapterTitle)
             .font(.caption2)
             .foregroundStyle(log.isRead ? .gray : foregroundColor)
+
+          Text("\u{2022}")
+            .font(.caption)
+            .foregroundStyle(.black)
+            .opacity((log.lastPageRead ?? 0) > 0 && !log.isRead ? 1 : 0)
 
           Text(log.lastPageReadDescription ?? "")
             .font(.caption2)
@@ -125,6 +143,12 @@ private struct MangaUpdateLogView: View {
     viewModel: MangaUpdatesViewModel(
       coverCrud: CoverCrud(),
       chapterCrud: ChapterCrud(),
+      refreshLibraryUseCase: RefreshLibraryUseCase(
+        mangaCrud: MangaCrud(),
+        chapterCrud: ChapterCrud(),
+        httpClient: HttpClient(),
+        viewMoc: PersistenceController.preview.container.viewContext
+      ),
       systemDateTime: SystemDateTime(),
       viewMoc: PersistenceController.preview.container.viewContext
     )

@@ -86,20 +86,25 @@ final class MangaUpdatesViewModel: ObservableObject {
   }
 
   @Published var logs: [MangaUpdatesLogDate]
+  @Published var isLoading: Bool
 
   private let datasource: MangaUpdatesDatasource
   private let systemDateTime: SystemDateTimeType
+  private let refreshLibraryUseCase: RefreshLibraryUseCase
 
   private var observers = Set<AnyCancellable>()
 
   init(
     coverCrud: CoverCrud,
     chapterCrud: ChapterCrud,
+    refreshLibraryUseCase: RefreshLibraryUseCase,
     systemDateTime: SystemDateTimeType,
     viewMoc: NSManagedObjectContext
   ) {
     self.logs = []
+    self.isLoading = false
     self.systemDateTime = systemDateTime
+    self.refreshLibraryUseCase = refreshLibraryUseCase
     self.datasource = MangaUpdatesDatasource(
       coverCrud: coverCrud,
       chapterCrud: chapterCrud,
@@ -134,6 +139,13 @@ final class MangaUpdatesViewModel: ObservableObject {
     await datasource.fetchNextUpdateLogs()
   }
 
+  func refreshLibrary() async {
+    await MainActor.run { isLoading = true }
+
+    await refreshLibraryUseCase.refresh()
+
+    await MainActor.run { isLoading = false }
+  }
 
 
 }

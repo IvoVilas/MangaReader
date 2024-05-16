@@ -27,7 +27,9 @@ struct ContentView: View {
           .toolbarBackground(.visible, for: .tabBar)
 
         MangaUpdatesView(viewModel: updatesViewModel)
-          .padding(24)
+          .padding(.top, 24)
+          .padding(.leading, 24)
+          .padding(.trailing, 24)
           .tabItem {
             Label(
               title: { Text("Updates") },
@@ -81,6 +83,12 @@ struct ContentView: View {
     updatesViewModel: MangaUpdatesViewModel(
       coverCrud: CoverCrud(),
       chapterCrud: ChapterCrud(),
+      refreshLibraryUseCase: RefreshLibraryUseCase(
+        mangaCrud: MangaCrud(),
+        chapterCrud: ChapterCrud(),
+        httpClient: HttpClient(),
+        viewMoc: PersistenceController.preview.container.viewContext
+      ),
       systemDateTime: SystemDateTime(),
       viewMoc: PersistenceController.preview.container.viewContext
     ),
