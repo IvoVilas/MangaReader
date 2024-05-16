@@ -83,16 +83,11 @@ final class SearchDatasource {
         var mangas = [MangaSearchResult]()
 
         for result in results {
-          let local = try await viewMoc.perform {
-            try self.mangaCrud.getManga(result.id, moc: self.viewMoc)
-          }
-
           mangas.append(
             MangaSearchResult(
               id: result.id,
               title: result.title,
-              cover: nil,
-              isSaved: local?.isSaved ?? false
+              cover: nil
             )
           )
         }
@@ -148,16 +143,11 @@ final class SearchDatasource {
         var searchResult = [MangaSearchResult]()
 
         for result in results {
-          let local = try await viewMoc.perform {
-            try self.mangaCrud.getManga(result.id, moc: self.viewMoc)
-          }
-
           searchResult.append(
             MangaSearchResult(
               id: result.id,
               title: result.title,
-              cover: nil,
-              isSaved: local?.isSaved ?? false
+              cover: nil
             )
           )
         }
@@ -274,8 +264,7 @@ final class SearchDatasource {
       mangas.valueOnMain[i] = MangaSearchResult(
         id: manga.id,
         title: manga.title,
-        cover: cover,
-        isSaved: manga.isSaved
+        cover: cover
       )
     }
   }

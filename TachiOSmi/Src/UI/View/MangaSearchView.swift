@@ -38,9 +38,27 @@ struct MangaSearchView: View {
 
   @Environment(\.colorScheme) private var scheme
 
-  @Bindable var viewModel: MangaSearchViewModel
+  @StateObject var viewModel: MangaSearchViewModel
   @State private var toast: Toast?
   @State private var listLayout = ResultLayout.compact
+
+  init(
+    source: Source,
+    mangaCrud: MangaCrud = AppEnv.env.mangaCrud,
+    coverCrud: CoverCrud = AppEnv.env.coverCrud,
+    httpClient: HttpClient = AppEnv.env.httpClient,
+    viewMoc: NSManagedObjectContext
+  ) {
+    _viewModel = StateObject(
+      wrappedValue: MangaSearchViewModel(
+        source: source,
+        mangaCrud: mangaCrud,
+        coverCrud: coverCrud,
+        httpClient: httpClient,
+        viewMoc: viewMoc
+      )
+    )
+  }
 
   private let columns = Array(
     repeating: GridItem(.flexible(), spacing: 16),
@@ -68,13 +86,13 @@ struct MangaSearchView: View {
         ScrollView {
           LazyVGrid(columns: columns, spacing: 16) {
             ForEach(viewModel.results) { result in
-              NavigationLink(value: result) {
+              NavigationLink(value: viewModel.getNavigator(result)) {
                 MangaResultView(
                   id: result.id,
                   cover: result.cover,
                   title: result.title,
                   textColor: scheme.foregroundColor,
-                  isSaved: result.isSaved,
+                  isSaved: viewModel.savedMangas.contains(result.id),
                   layout: $listLayout
                 )
                 .equatable()
@@ -100,9 +118,6 @@ struct MangaSearchView: View {
             await viewModel.doSearch()
           }
         }
-      }
-      .navigationDestination(for: MangaSearchResult.self) { manga in
-        MangaDetailsView(viewModel: viewModel.buildMangaDetailsViewModel(manga))
       }
       .toastView(toast: $toast)
       .onChange(of: viewModel.error) { _, error in
@@ -298,13 +313,8 @@ private struct MangaResultView: View, Equatable {
 
 #Preview {
   MangaSearchView(
-    viewModel: MangaSearchViewModel(
-      source: .mangadex,
-      mangaCrud: MangaCrud(),
-      coverCrud: CoverCrud(),
-      httpClient: HttpClient(),
-      viewMoc: PersistenceController.preview.container.viewContext
-    )
+    source: .mangadex,
+    viewMoc: PersistenceController.preview.container.viewContext
   )
 }
 

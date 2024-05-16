@@ -18,19 +18,3 @@ final class MangaSourcesViewModel {
   }
 
 }
-
-extension MangaSourcesViewModel {
-
-  func buildSearchViewModel(
-    for source: Source
-  ) -> MangaSearchViewModel {
-    return MangaSearchViewModel(
-      source: source,
-      mangaCrud: AppEnv.env.mangaCrud,
-      coverCrud: AppEnv.env.coverCrud,
-      httpClient: AppEnv.env.httpClient,
-      viewMoc: PersistenceController.shared.container.viewContext
-    )
-  }
-
-}

@@ -30,17 +30,19 @@ final class AppEnvironment {
 
   // Tools
   let systemDateTime: SystemDateTimeType
+  let formatter: Formatter
 
   init() {
     httpClient = HttpClient()
 
-    mangaCrud   = MangaCrud()
+    mangaCrud = MangaCrud()
     chapterCrud = ChapterCrud()
-    authorCrud  = AuthorCrud()
-    tagCrud     = TagCrud()
-    coverCrud   = CoverCrud()
+    authorCrud = AuthorCrud()
+    tagCrud = TagCrud()
+    coverCrud = CoverCrud()
 
     systemDateTime = SystemDateTime()
+    formatter = Formatter(systemDateTime: systemDateTime)
   }
 
 }

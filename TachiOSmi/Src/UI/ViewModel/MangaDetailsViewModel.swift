@@ -10,48 +10,27 @@ import SwiftUI
 import Combine
 import CoreData
 
-@Observable
-final class MangaDetailsViewModel {
+final class MangaDetailsViewModel: ObservableObject {
 
-  enum ChapterCell: Identifiable {
-    case chapter(ChapterModel)
-    case missing(MissingChaptersModel)
+  @Published var manga: MangaModel
+  @Published var chapters: [ChapterCell]
+  @Published var chaptersCount: Int
+  @Published var missingChaptersCount: Int
+  @Published var isLoading: Bool
+  @Published var isImageLoading: Bool
+  @Published var error: DatasourceError?
+  @Published var info: String?
 
-    var id: String {
-      switch self {
-      case .chapter(let chapter):
-        return chapter.id
+  private let chaptersProvider: MangaChaptersProvider
+  private let chaptersDatasource: ChaptersDatasource
 
-      case .missing(let missing):
-        return missing.id
-      }
-    }
-
-    var number: Double? {
-      switch self {
-      case .chapter(let chapter):
-        return chapter.number
-
-      case .missing(let missing):
-        return Double(missing.number)
-      }
-    }
-  }
-
-  var manga: MangaModel
-  var chapters: [ChapterCell]
-  var chaptersCount: Int
-  var missingChaptersCount: Int
-  var isLoading: Bool
-  var isImageLoading: Bool
-  var error: DatasourceError?
-  var info: String?
+  private let detailsProvider: MangaDetailsProvider
+  private let detailsDatasource: DetailsDatasource
 
   private let source: Source
-  private let chaptersDatasource: ChaptersDatasource
-  private let detailsDatasource: DetailsDatasource
   private let mangaCrud: MangaCrud
   private let viewMoc: NSManagedObjectContext
+  private let moc: NSManagedObjectContext
 
   private let sortChaptersUseCase: SortChaptersUseCase
   private let missingChaptersUseCase: MissingChaptersUseCase
@@ -68,39 +47,51 @@ final class MangaDetailsViewModel {
     tagCrud: TagCrud,
     httpClient: HttpClient,
     systemDateTime: SystemDateTimeType,
-    viewMoc: NSManagedObjectContext
+    viewMoc: NSManagedObjectContext,
+    moc: NSManagedObjectContext
   ) {
     self.source = source
     self.mangaCrud = mangaCrud
     self.viewMoc = viewMoc
+    self.moc = moc
 
     sortChaptersUseCase = SortChaptersUseCase()
     missingChaptersUseCase = MissingChaptersUseCase()
 
+    chaptersProvider = MangaChaptersProvider(
+      mangaId: manga.id,
+      viewMoc: viewMoc
+    )
     chaptersDatasource = ChaptersDatasource(
       mangaId: manga.id,
       delegate: source.chaptersDelegateType.init(httpClient: httpClient),
       mangaCrud: mangaCrud,
       chapterCrud: chapterCrud,
       systemDateTime: systemDateTime,
+      moc: moc
+    )
+
+    detailsProvider = MangaDetailsProvider(
+      mangaId: manga.id,
+      coverCrud: coverCrud,
       viewMoc: viewMoc
     )
     detailsDatasource = DetailsDatasource(
       source: source, 
-      manga: manga,
+      mangaId: manga.id,
       delegate: source.detailsDelegateType.init(httpClient: httpClient),
       mangaCrud: mangaCrud,
       coverCrud: coverCrud,
       authorCrud: authorCrud, 
       tagCrud: tagCrud,
-      viewMoc: viewMoc
+      moc: moc
     )
 
     self.manga = MangaModel(
       id: manga.id,
       title: manga.title,
       description: nil,
-      isSaved: manga.isSaved,
+      isSaved: false,
       source: source,
       status: .unknown,
       readingDirection: .leftToRight,
@@ -115,15 +106,20 @@ final class MangaDetailsViewModel {
     chaptersCount = 0
     missingChaptersCount = 0
 
-    detailsDatasource.detailsPublisher
+    detailsProvider.$details
       .removeDuplicates()
+      .compactMap { $0 }
       .receive(on: DispatchQueue.main)
-      .sink { [weak self] in self?.manga = $0 }
+      .sink { [weak self] in
+        self?.manga = $0
+      }
       .store(in: &observers)
 
-    chaptersDatasource.chaptersPublisher
+    chaptersProvider.$chapters
       .receive(on: DispatchQueue.main)
-      .sink { [weak self] in self?.setChapters($0) }
+      .sink { [weak self] in
+        self?.setChapters($0)
+      }
       .store(in: &observers)
 
     Publishers.CombineLatest(
@@ -211,79 +207,13 @@ extension MangaDetailsViewModel {
   }
 
   func setupData() async {
-    if chapters.isEmpty {
-      await detailsDatasource.setupData()
-      await chaptersDatasource.setupData()
-    }
-  }
-
-  func forceRefresh() async {
     await detailsDatasource.refresh()
     await chaptersDatasource.refresh()
   }
 
-  func buildReaderViewModel(
-    _ chapter: ChapterModel
-  ) -> ChapterReaderViewModel {
-    return ChapterReaderViewModel(
-      source: source,
-      mangaId: manga.id,
-      mangaTitle: manga.title,
-      chapter: chapter,
-      readingDirection: manga.readingDirection,
-      mangaCrud: AppEnv.env.mangaCrud,
-      chapterCrud: AppEnv.env.chapterCrud,
-      httpClient: AppEnv.env.httpClient,
-      viewMoc: viewMoc
-    ) { [weak self] in
-      guard let self else { return }
-
-      if let direction = $0.readingDirection {
-        self.manga = MangaModel(
-          id: self.manga.id,
-          title: self.manga.title,
-          description: self.manga.description,
-          isSaved: self.manga.isSaved,
-          source: self.manga.source,
-          status: self.manga.status,
-          readingDirection: direction,
-          cover: self.manga.cover,
-          tags: self.manga.tags,
-          authors: self.manga.authors
-        )
-      }
-
-      for pageRead in $0.readPages {
-        let index = self.chapters.firstIndex{
-          switch $0 {
-          case .chapter(let chapter):
-            return chapter.id == pageRead.key
-
-          case .missing:
-            return false
-          }
-        }
-
-        if let index {
-          switch self.chapters[index] {
-          case .missing:
-            break
-
-          case .chapter(let chapter):
-            self.chapters[index] = .chapter(ChapterModel(
-              id: chapter.id,
-              title: chapter.title,
-              number: chapter.number,
-              numberOfPages: chapter.numberOfPages,
-              publishAt: chapter.publishAt,
-              isRead: pageRead.value >= chapter.numberOfPages - 1,
-              lastPageRead: pageRead.value,
-              downloadInfo: chapter.downloadInfo
-            ))
-          }
-        }
-      }
-    }
+  func forceRefresh() async {
+    await detailsDatasource.refresh(force: true)
+    await chaptersDatasource.refresh(force: true)
   }
 
 }
@@ -318,6 +248,50 @@ extension MangaDetailsViewModel {
     }
 
     return mappedChapters
+  }
+
+}
+
+extension MangaDetailsViewModel {
+
+  enum ChapterCell: Identifiable {
+    case chapter(ChapterModel)
+    case missing(MissingChaptersModel)
+
+    var id: String {
+      switch self {
+      case .chapter(let chapter):
+        return chapter.id
+
+      case .missing(let missing):
+        return missing.id
+      }
+    }
+
+    var number: Double? {
+      switch self {
+      case .chapter(let chapter):
+        return chapter.number
+
+      case .missing(let missing):
+        return Double(missing.number)
+      }
+    }
+  }
+
+}
+
+extension MangaDetailsViewModel {
+
+  func getNavigator(_ chapter: ChapterModel) -> MangaReaderNavigator {
+    return MangaReaderNavigator(
+      source: source, 
+      mangaId: manga.id,
+      mangaTitle: manga.title,
+      chapter: chapter,
+      readingDirection: manga.readingDirection,
+      viewMoc: viewMoc
+    )
   }
 
 }

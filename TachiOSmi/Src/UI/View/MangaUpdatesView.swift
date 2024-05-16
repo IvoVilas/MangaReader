@@ -6,12 +6,36 @@
 //
 
 import SwiftUI
+import CoreData
 
 struct MangaUpdatesView: View {
 
   @Environment(\.colorScheme) private var scheme
 
-  @ObservedObject var viewModel: MangaUpdatesViewModel
+  @StateObject var viewModel: MangaUpdatesViewModel
+
+  init(
+    coverCrud: CoverCrud = AppEnv.env.coverCrud,
+    chapterCurd: ChapterCrud = AppEnv.env.chapterCrud,
+    formatter: Formatter = AppEnv.env.formatter,
+    systemDateTime: SystemDateTimeType = AppEnv.env.systemDateTime,
+    refreshLibraryUseCase: RefreshLibraryUseCase,
+    viewMoc: NSManagedObjectContext
+  ) {
+    _viewModel = StateObject(
+      wrappedValue: MangaUpdatesViewModel(
+        provider: MangaUpdatesProvider(
+          coverCrud: coverCrud,
+          chapterCrud: chapterCurd,
+          formatter: formatter,
+          systemDateTime: systemDateTime,
+          viewMoc: viewMoc
+        ),
+        refreshLibraryUseCase: refreshLibraryUseCase,
+        viewMoc: viewMoc
+      )
+    )
+  }
 
   var body: some View {
     VStack(alignment: .center) {
@@ -42,17 +66,16 @@ struct MangaUpdatesView: View {
       }
 
       ScrollView {
-        VStack(spacing: 16) {
-          ForEach(viewModel.logs) { log in
+        LazyVStack(spacing: 16) {
+          ForEach($viewModel.logs) { log in
             MangaUpdateLogDateView(
               logs: log,
-              foregroundColor: scheme.foregroundColor
+              foregroundColor: scheme.foregroundColor,
+              getNavigator: viewModel.getNavigator
             )
             .onAppear {
               if log.id == viewModel.logs.last?.id {
-                Task(priority: .userInitiated) {
-                  await viewModel.fetchNextLogs()
-                }
+                viewModel.loadMoreLogs()
               }
             }
           }
@@ -61,20 +84,16 @@ struct MangaUpdatesView: View {
       .scrollIndicators(.hidden)
     }
     .background(scheme.backgroundColor)
-    .onAppear {
-      Task(priority: .high) {
-        await viewModel.fetchNextLogs()
-      }
-    }
   }
 
 }
 
 private struct MangaUpdateLogDateView: View {
 
-  @State var logs: MangaUpdatesViewModel.MangaUpdatesLogDate
+  @Binding var logs: MangaUpdatesProvider.MangaUpdatesLogDate
 
   let foregroundColor: Color
+  let getNavigator: (MangaUpdatesProvider.MangaUpdateLogModel) -> MangaReaderNavigator
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -85,51 +104,45 @@ private struct MangaUpdateLogDateView: View {
 
       VStack(spacing: 8) {
         ForEach(logs.logs) { log in
-          MangaUpdateLogView(
-            log: log,
-            foregroundColor: foregroundColor
-          )
+          NavigationLink(value: getNavigator(log)) {
+            logView(log)
+          }
         }
       }
     }
   }
 
-}
-
-private struct MangaUpdateLogView: View {
-
-  @State var log: MangaUpdateLogModel
-
-  let foregroundColor: Color
-
-  var body: some View {
+  @ViewBuilder
+  private func logView(
+    _ log: MangaUpdatesProvider.MangaUpdateLogModel
+  ) -> some View {
     HStack(spacing: 16) {
-      Image(uiImage: log.mangaCover.toUIImage() ?? .coverNotFound)
+      Image(uiImage: log.manga.cover.toUIImage() ?? .coverNotFound)
         .resizable()
         .aspectRatio(contentMode: .fill)
         .frame(width: 48, height: 48)
         .clipShape(RoundedRectangle(cornerRadius: 8))
 
       VStack(alignment: .leading, spacing: 8) {
-        Text(log.mangaTitle)
+        Text(log.manga.title)
           .font(.subheadline)
           .lineLimit(1)
-          .foregroundStyle(log.isRead ? .gray : foregroundColor)
+          .foregroundStyle(log.chapter.isRead ? .gray : foregroundColor)
 
         HStack(spacing: 2) {
           Text(log.chapterTitle)
             .font(.caption2)
-            .foregroundStyle(log.isRead ? .gray : foregroundColor)
+            .foregroundStyle(log.chapter.isRead ? .gray : foregroundColor)
 
           Text("\u{2022}")
             .font(.caption)
-            .foregroundStyle(.black)
-            .opacity((log.lastPageRead ?? 0) > 0 && !log.isRead ? 1 : 0)
+            .foregroundStyle(foregroundColor)
+            .opacity((log.chapter.lastPageRead ?? 0) > 0 && !log.chapter.isRead ? 1 : 0)
 
           Text(log.lastPageReadDescription ?? "")
             .font(.caption2)
             .foregroundStyle(.gray)
-            .opacity((log.lastPageRead ?? 0) > 0 && !log.isRead ? 1 : 0)
+            .opacity((log.chapter.lastPageRead ?? 0) > 0 && !log.chapter.isRead ? 1 : 0)
         }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
@@ -140,17 +153,13 @@ private struct MangaUpdateLogView: View {
 
 #Preview {
   MangaUpdatesView(
-    viewModel: MangaUpdatesViewModel(
-      coverCrud: CoverCrud(),
+    refreshLibraryUseCase: RefreshLibraryUseCase(
+      mangaCrud: MangaCrud(),
       chapterCrud: ChapterCrud(),
-      refreshLibraryUseCase: RefreshLibraryUseCase(
-        mangaCrud: MangaCrud(),
-        chapterCrud: ChapterCrud(),
-        httpClient: HttpClient(),
-        viewMoc: PersistenceController.preview.container.viewContext
-      ),
+      httpClient: HttpClient(),
       systemDateTime: SystemDateTime(),
-      viewMoc: PersistenceController.preview.container.viewContext
-    )
+      moc: PersistenceController.preview.container.newBackgroundContext()
+    ),
+    viewMoc: PersistenceController.preview.container.viewContext
   )
 }

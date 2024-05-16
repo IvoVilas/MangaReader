@@ -13,35 +13,49 @@ final class RefreshLibraryUseCase {
   private let mangaCrud: MangaCrud
   private let chapterCrud: ChapterCrud
   private let httpClient: HttpClient
-  private let viewMoc: NSManagedObjectContext
+  private let systemDateTime: SystemDateTimeType
+  private let moc: NSManagedObjectContext
 
   init(
     mangaCrud: MangaCrud,
     chapterCrud: ChapterCrud,
     httpClient: HttpClient,
-    viewMoc: NSManagedObjectContext
+    systemDateTime: SystemDateTimeType,
+    moc: NSManagedObjectContext
   ) {
     self.mangaCrud = mangaCrud
     self.httpClient = httpClient
     self.chapterCrud = chapterCrud
-    self.viewMoc = viewMoc
+    self.systemDateTime = systemDateTime
+    self.moc = moc
   }
 
   func refresh() async {
     do {
-      let localMangas = try await viewMoc.perform {
-        try self.mangaCrud.getAllSavedMangas(moc: self.viewMoc)
+      let context = moc
+
+      let now = systemDateTime.now
+      let mangas = try await context.perform {
+        try self.mangaCrud
+          .getAllSavedMangas(moc: context)
+          .reduce(into: [String: Source]()) { $0[$1.id] = .safeInit(from: $1.sourceId) }
       }
 
+      print("RefreshLibraryUseCase -> Refreshing \(mangas.count) mangas...")
+
       await withThrowingTaskGroup(of: Void.self) { taskGroup in
-        for manga in localMangas {
-          let source = Source.safeInit(from: manga.sourceId)
+        for (id, source) in mangas {
           let delegate = source.chaptersDelegateType.init(httpClient: self.httpClient)
 
           taskGroup.addTask {
-            let chapters = try await delegate.fetchChapters(mangaId: manga.id)
+            let chapters = try await delegate.fetchChapters(mangaId: id)
+            let context = PersistenceController.shared.container.newBackgroundContext()
 
-            try self.viewMoc.performAndWait {
+            try context.performAndWait {
+              guard let manga = try self.mangaCrud.getManga(id, moc: context) else {
+                throw DatasourceError.databaseError("Manga \(id) not found")
+              }
+
               for chapter in chapters {
                 _ = try self.chapterCrud.createOrUpdateChapter(
                   id: chapter.id,
@@ -51,15 +65,23 @@ final class RefreshLibraryUseCase {
                   publishAt: chapter.publishAt,
                   urlInfo: chapter.downloadInfo,
                   manga: manga,
-                  moc: self.viewMoc
+                  moc: context
                 )
+              }
+
+              self.mangaCrud.updateLastUpdateAt(manga, date: now)
+
+              if !context.saveIfNeeded(rollbackOnError: true).isSuccess {
+                throw CrudError.saveError
               }
             }
           }
         }
       }
+
+      print("RefreshLibraryUseCase -> Finished refreshing library")
     } catch {
-      print("RefreshLibraryUseCase -> Error during refresh: \(error)")
+      print("RefreshLibraryUseCase -> Error during library refresh: \(error)")
     }
   }
 

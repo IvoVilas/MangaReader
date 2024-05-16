@@ -7,136 +7,44 @@
 
 import Foundation
 import SwiftUI
-import CoreData
 import Combine
-
-struct MangaUpdateLogModel: Identifiable {
-
-  var id: String { chapterId }
-
-  let chapterId: String
-  let mangaTitle: String
-  let chapterTitle: String
-  let publishDate: Date
-  let lastPageRead: Int?
-  let isRead: Bool
-  let mangaCover: Data?
-
-  var lastPageReadDescription: String? {
-    if let lastPageRead {
-      return "Page: \(lastPageRead + 1)"
-    }
-
-    return nil
-  }
-
-}
+import CoreData
 
 final class MangaUpdatesViewModel: ObservableObject {
 
-  struct MangaUpdatesLogDate: Identifiable {
-
-    var id: String { date.ISO8601Format() }
-
-    let date: Date
-    let logs: [MangaUpdateLogModel]
-
-    // TODO: Why use date.month == today.month? If today is the 1st, the condition fails
-    var dateDescription: String {
-      let calendar = Calendar.current
-
-      let today = calendar.dateComponents([.year, .month, .day], from: Date())
-      let date  = calendar.dateComponents([.year, .month, .day], from: date)
-
-      if
-        date.year == today.year,
-        date.month == today.month,
-        date.day == today.day
-      {
-        return "Today"
-      }
-
-      if
-        let day = today.day,
-        date.year == today.year,
-        date.month == today.month,
-        date.day == day + 1
-      {
-        return "Yesterday"
-      }
-
-      if
-        let todayDay = today.day,
-        let dateDay = date.day,
-        date.year == today.year,
-        date.month == today.month,
-        todayDay <= dateDay + 7
-      {
-        return "\(todayDay - dateDay) days ago"
-      }
-
-      let formatter = DateFormatter()
-
-      formatter.dateStyle = .medium
-      formatter.timeStyle = .none
-
-      return formatter.string(from: self.date)
-    }
-
-  }
-
-  @Published var logs: [MangaUpdatesLogDate]
+  @Published var logs: [MangaUpdatesProvider.MangaUpdatesLogDate]
   @Published var isLoading: Bool
 
-  private let datasource: MangaUpdatesDatasource
-  private let systemDateTime: SystemDateTimeType
+  private let provider: MangaUpdatesProvider
   private let refreshLibraryUseCase: RefreshLibraryUseCase
+  private let viewMoc: NSManagedObjectContext
 
-  private var observers = Set<AnyCancellable>()
+  private var logsPage: Int
+
+  private var observer: AnyCancellable?
 
   init(
-    coverCrud: CoverCrud,
-    chapterCrud: ChapterCrud,
+    provider: MangaUpdatesProvider,
     refreshLibraryUseCase: RefreshLibraryUseCase,
-    systemDateTime: SystemDateTimeType,
     viewMoc: NSManagedObjectContext
   ) {
-    self.logs = []
-    self.isLoading = false
-    self.systemDateTime = systemDateTime
+    self.provider = provider
     self.refreshLibraryUseCase = refreshLibraryUseCase
-    self.datasource = MangaUpdatesDatasource(
-      coverCrud: coverCrud,
-      chapterCrud: chapterCrud,
-      systemDateTime: systemDateTime,
-      viewMoc: viewMoc
-    )
+    self.viewMoc = viewMoc
 
-    datasource
-      .logsPublisher
-      .map { [weak self] (logs) -> [Date: [MangaUpdateLogModel]] in
-        guard let self else { return [:] }
+    logs = []
+    isLoading = false
+    logsPage = 0
 
-        return Dictionary(grouping: logs) {
-          self.systemDateTime.calculator.getStartOfDay($0.publishDate)
-        }
-      }
-      .map { logs in
-        logs.map {
-          MangaUpdatesLogDate(date: $0.key, logs: $0.value)
-        }
-      }
+    observer = provider.$updateLogs
       .receive(on: DispatchQueue.main)
-      .sink { [weak self] values in
-        guard let self else { return }
-
-        self.logs = values.sorted { $0.date > $1.date }
-      }
-      .store(in: &observers)
+      .sink { [weak self] in self?.logs = $0 }
   }
 
-  func fetchNextLogs() async {
-    await datasource.fetchNextUpdateLogs()
+  func loadMoreLogs() {
+    logsPage += 1
+
+    provider.updatePublishedValue(withPage: logsPage)
   }
 
   func refreshLibrary() async {
@@ -147,5 +55,21 @@ final class MangaUpdatesViewModel: ObservableObject {
     await MainActor.run { isLoading = false }
   }
 
+}
+
+extension MangaUpdatesViewModel {
+
+  func getNavigator(
+    _ log: MangaUpdatesProvider.MangaUpdateLogModel
+  ) -> MangaReaderNavigator {
+    return MangaReaderNavigator(
+      source: log.manga.source,
+      mangaId: log.manga.id,
+      mangaTitle: log.manga.title,
+      chapter: log.chapter,
+      readingDirection: log.manga.readingDirection,
+      viewMoc: viewMoc
+    )
+  }
 
 }

@@ -9,15 +9,16 @@ import SwiftUI
 
 struct ContentView: View {
 
-  let libraryViewModel: MangaLibraryViewModel
-  let updatesViewModel: MangaUpdatesViewModel
+  @Environment(\.managedObjectContext) private var viewMoc
+
   let sourcesViewModel: MangaSourcesViewModel
+  let refreshLibraryUseCase: RefreshLibraryUseCase
 
   var body: some View {
     NavigationStack {
       TabView {
-        MangaLibraryView(viewModel: libraryViewModel)
-          .padding(24)
+        MangaLibraryView(viewMoc: viewMoc)
+          .padding(top: 24, leading: 24, trailing: 24)
           .tabItem {
             Label(
               title: { Text("Library") },
@@ -26,20 +27,21 @@ struct ContentView: View {
           }
           .toolbarBackground(.visible, for: .tabBar)
 
-        MangaUpdatesView(viewModel: updatesViewModel)
-          .padding(.top, 24)
-          .padding(.leading, 24)
-          .padding(.trailing, 24)
-          .tabItem {
-            Label(
-              title: { Text("Updates") },
-              icon: { Image(systemName: "clock.arrow.2.circlepath") }
-            )
-          }
-          .toolbarBackground(.visible, for: .tabBar)
+        MangaUpdatesView(
+          refreshLibraryUseCase: refreshLibraryUseCase,
+          viewMoc: viewMoc
+        )
+        .padding(top: 24, leading: 24, trailing: 24)
+        .tabItem {
+          Label(
+            title: { Text("Updates") },
+            icon: { Image(systemName: "clock.arrow.2.circlepath") }
+          )
+        }
+        .toolbarBackground(.visible, for: .tabBar)
 
         MangaSourcesView(viewModel: sourcesViewModel)
-          .padding(24)
+          .padding(top: 24, leading: 24, trailing: 24)
           .tabItem {
             Label(
               title: { Text("Search") },
@@ -57,16 +59,9 @@ struct ContentView: View {
           }
           .toolbarBackground(.visible, for: .tabBar)
       }
-      .navigationDestination(for: MangaLibraryViewModel.MangaWrapper.self) { wrapper in
-        MangaDetailsView(
-          viewModel: libraryViewModel.buildDetailsViewModel(for: wrapper)
-        )
-      }
-      .navigationDestination(for: Source.self) { source in
-        MangaSearchView(
-          viewModel: sourcesViewModel.buildSearchViewModel(for: source)
-        )
-      }
+      .registerNavigator(MangaDetailsNavigator.self)
+      .registerNavigator(MangaReaderNavigator.self)
+      .registerNavigator(MangaSearchNavigator.self)
     }
   }
 
@@ -74,54 +69,13 @@ struct ContentView: View {
 
 #Preview {
   ContentView(
-    libraryViewModel: MangaLibraryViewModel(
+    sourcesViewModel: MangaSourcesViewModel(),
+    refreshLibraryUseCase: RefreshLibraryUseCase(
       mangaCrud: MangaCrud(),
-      coverCrud: CoverCrud(),
       chapterCrud: ChapterCrud(),
-      viewMoc: PersistenceController.preview.container.viewContext
-    ),
-    updatesViewModel: MangaUpdatesViewModel(
-      coverCrud: CoverCrud(),
-      chapterCrud: ChapterCrud(),
-      refreshLibraryUseCase: RefreshLibraryUseCase(
-        mangaCrud: MangaCrud(),
-        chapterCrud: ChapterCrud(),
-        httpClient: HttpClient(),
-        viewMoc: PersistenceController.preview.container.viewContext
-      ),
+      httpClient: HttpClient(),
       systemDateTime: SystemDateTime(),
-      viewMoc: PersistenceController.preview.container.viewContext
-    ),
-    sourcesViewModel: MangaSourcesViewModel()
+      moc: PersistenceController.preview.container.newBackgroundContext()
+    )
   )
-}
-
-extension ColorScheme {
-
-  var backgroundColor: Color {
-    switch self {
-    case .light:
-      return .white
-    case .dark:
-      return .black
-    @unknown default:
-      fatalError()
-    }
-  }
-
-  var foregroundColor: Color {
-    switch self {
-    case .light:
-      return .black
-    case .dark:
-      return .white
-    @unknown default:
-      fatalError()
-    }
-  }
-
-  var secondaryColor: Color {
-    return .gray
-  }
-
 }

@@ -40,9 +40,6 @@ final class ChapterReaderViewModel: ObservableObject {
   private let receivedPagesEvent = CurrentValueSubject<Bool, Never>(false)
   private var observers = Set<AnyCancellable>()
 
-  private var changedData = ChangedData()
-  private let completion: ((ChangedData) -> Void)?
-
   init(
     source: Source,
     mangaId: String,
@@ -52,8 +49,7 @@ final class ChapterReaderViewModel: ObservableObject {
     mangaCrud: MangaCrud,
     chapterCrud: ChapterCrud,
     httpClient: HttpClient,
-    viewMoc: NSManagedObjectContext,
-    completion: ((ChangedData) -> Void)? = nil
+    viewMoc: NSManagedObjectContext
   ) {
     self.source = source
     self.mangaId = mangaId
@@ -62,7 +58,6 @@ final class ChapterReaderViewModel: ObservableObject {
     self.chapterCrud = chapterCrud
     self.httpClient = httpClient
     self.viewMoc = viewMoc
-    self.completion = completion
 
     delegate = source.pagesDelegateType.init(httpClient: httpClient)
     datasource = PagesDatasource(
@@ -169,20 +164,26 @@ final class ChapterReaderViewModel: ObservableObject {
         moc: self.viewMoc
       )
 
-      return (next, previous)
+      let nextChapter: ChapterModel?
+      let previousChapter: ChapterModel?
+
+      if let next {
+        nextChapter = .from(next)
+      } else {
+        nextChapter = nil
+      }
+
+      if let previous {
+        previousChapter = .from(previous)
+      } else {
+        previousChapter = nil
+      }
+
+      return (nextChapter, previousChapter)
     }
 
-    if let next {
-      nextChapter = .from(next)
-    } else {
-      nextChapter = nil
-    }
-
-    if let previous {
-      previousChapter = .from(previous)
-    } else {
-      previousChapter = nil
-    }
+    nextChapter = next
+    previousChapter = previous
 
     DispatchQueue.main.async {
       self.updateTransitionPages(
@@ -240,13 +241,8 @@ extension ChapterReaderViewModel {
           self.chapterCrud.updateLastPageRead(chapter, lastPageRead: pageIndex)
           self.chapterCrud.updateIsRead(chapter, isRead: pageIndex >= self.pagesCount - 1)
 
-          switch self.viewMoc.saveIfNeeded(rollbackOnError: true) {
-          case .success:
-            self.changedData.readPages[chapter.id] = pageIndex
-
-          default:
-            break
-          }
+          // TODO: Save when important, not in each page
+          _ = self.viewMoc.saveIfNeeded(rollbackOnError: true)
         }
       }
     }
@@ -257,8 +253,6 @@ extension ChapterReaderViewModel {
 
     do {
       try await updateReadingDirection(to: direction)
-
-      changedData.readingDirection = direction
     } catch {
       return
     }
@@ -287,10 +281,6 @@ extension ChapterReaderViewModel {
     }
 
     await datasource.reloadPages(pages)
-  }
-
-  func onDismiss() {
-    completion?(changedData)
   }
 
 }
@@ -472,21 +462,6 @@ extension ChapterReaderViewModel {
     } else {
       pages.append(.page(page))
     }
-  }
-
-}
-
-extension ChapterReaderViewModel {
-
-  struct ChangedData {
-    var readingDirection: ReadingDirection?
-    var readPages: [String: Int]
-
-    init() {
-      readingDirection = nil
-      readPages = [:]
-    }
-
   }
 
 }

@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import CoreData
 
 // LazyStacks does not work well with layoutDirection rightToLeft
 // To make it work I had to also enable flipsForRightToLeftLayoutDirection
@@ -16,9 +17,35 @@ struct ChapterReaderView: View {
 
   @Environment(\.dismiss) private var dismiss
 
-  @ObservedObject var viewModel: ChapterReaderViewModel
+  @StateObject var viewModel: ChapterReaderViewModel
   @State private var toast: Toast?
   @State private var showingToolBar = false
+
+  init(
+    source: Source,
+    mangaId: String,
+    mangaTitle: String,
+    chapter: ChapterModel,
+    readingDirection: ReadingDirection,
+    mangaCrud: MangaCrud = AppEnv.env.mangaCrud,
+    chapterCrud: ChapterCrud = AppEnv.env.chapterCrud,
+    httpClient: HttpClient = AppEnv.env.httpClient,
+    viewMoc: NSManagedObjectContext
+  ) {
+    _viewModel = StateObject(
+      wrappedValue: ChapterReaderViewModel(
+        source: source,
+        mangaId: mangaId,
+        mangaTitle: mangaTitle,
+        chapter: chapter,
+        readingDirection: readingDirection,
+        mangaCrud: mangaCrud,
+        chapterCrud: chapterCrud,
+        httpClient: httpClient,
+        viewMoc: viewMoc
+      )
+    )
+  }
 
   var body: some View {
     ZStack(alignment: .center) {
@@ -78,9 +105,6 @@ struct ChapterReaderView: View {
       withAnimation {
         showingToolBar.toggle()
       }
-    }
-    .onDisappear {
-      viewModel.onDismiss()
     }
   }
 
@@ -247,25 +271,20 @@ struct ChapterReaderView: View {
 
 #Preview {
   ChapterReaderView(
-    viewModel: ChapterReaderViewModel(
-      source: .mangadex,
-      mangaId: "c52b2ce3-7f95-469c-96b0-479524fb7a1a",
-      mangaTitle: "Jujutsu Kaisen",
-      chapter: ChapterModel(
-        id: "5624518b-f062-49e8-84ec-e4f40e0de038",
-        title: nil,
-        number: nil,
-        numberOfPages: 0,
-        publishAt: Date(),
-        isRead: false,
-        lastPageRead: nil,
-        downloadInfo: "5624518b-f062-49e8-84ec-e4f40e0de038"
-      ),
-      readingDirection: .leftToRight,
-      mangaCrud: MangaCrud(),
-      chapterCrud: ChapterCrud(),
-      httpClient: HttpClient(),
-      viewMoc: PersistenceController.preview.container.viewContext
-    )
+    source: .mangadex,
+    mangaId: "c52b2ce3-7f95-469c-96b0-479524fb7a1a",
+    mangaTitle: "Jujutsu Kaisen",
+    chapter: ChapterModel(
+      id: "5624518b-f062-49e8-84ec-e4f40e0de038",
+      title: nil,
+      number: nil,
+      numberOfPages: 0,
+      publishAt: Date(),
+      isRead: false,
+      lastPageRead: nil,
+      downloadInfo: "5624518b-f062-49e8-84ec-e4f40e0de038"
+    ),
+    readingDirection: .leftToRight,
+    viewMoc: PersistenceController.preview.container.viewContext
   )
 }

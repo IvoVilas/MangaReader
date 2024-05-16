@@ -10,16 +10,17 @@ import SwiftUI
 import Combine
 import CoreData
 
-@Observable
-final class MangaSearchViewModel {
+final class MangaSearchViewModel: ObservableObject {
 
-  var sourceName: String
-  var results: [MangaSearchResult]
-  var input: String
-  var isLoading: Bool
-  var error: DatasourceError?
+  @Published var sourceName: String
+  @Published var results: [MangaSearchResult]
+  @Published var savedMangas: [String]
+  @Published var input: String
+  @Published var isLoading: Bool
+  @Published var error: DatasourceError?
 
   private let source: Source
+  private let provider: MangaSearchProvider
   private let datasource: SearchDatasource
   private let viewMoc: NSManagedObjectContext
 
@@ -42,6 +43,10 @@ final class MangaSearchViewModel {
   ) {
     self.source = source
     self.viewMoc = viewMoc
+
+    self.provider = MangaSearchProvider(
+      viewMoc: viewMoc
+    )
     self.datasource = SearchDatasource(
       delegate: source.searchDelegateType.init(httpClient: httpClient),
       mangaCrud: mangaCrud,
@@ -51,9 +56,15 @@ final class MangaSearchViewModel {
 
     sourceName = source.name
     results = []
+    savedMangas = []
     input = ""
     isLoading = false
     error = nil
+
+    provider.$savedMangas
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in self?.savedMangas = $0 }
+      .store(in: &observers)
 
     datasource.mangasPublisher
       .receive(on: DispatchQueue.main)
@@ -89,20 +100,16 @@ extension MangaSearchViewModel {
     }
   }
 
-  func buildMangaDetailsViewModel(
-    _ manga: MangaSearchResult
-  ) -> MangaDetailsViewModel {
-    return MangaDetailsViewModel(
+}
+
+extension MangaSearchViewModel {
+
+  func getNavigator(_ result: MangaSearchResult) -> MangaDetailsNavigator {
+    return MangaDetailsNavigator(
       source: source,
-      manga: manga,
-      mangaCrud: AppEnv.env.mangaCrud,
-      chapterCrud: AppEnv.env.chapterCrud,
-      coverCrud: AppEnv.env.coverCrud,
-      authorCrud: AppEnv.env.authorCrud,
-      tagCrud: AppEnv.env.tagCrud,
-      httpClient: AppEnv.env.httpClient,
-      systemDateTime: AppEnv.env.systemDateTime,
-      viewMoc: viewMoc
+      manga: result,
+      viewMoc: viewMoc,
+      moc: PersistenceController.shared.container.newBackgroundContext()
     )
   }
 

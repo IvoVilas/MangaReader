@@ -6,12 +6,38 @@
 //
 
 import SwiftUI
+import CoreData
 
 struct MangaLibraryView: View {
   
   @Environment(\.colorScheme) private var scheme
-  
-  let viewModel: MangaLibraryViewModel
+
+  @StateObject var provider: MangaLibraryProvider
+
+  private let getNavigator: (MangaLibraryProvider.MangaWrapper) -> MangaDetailsNavigator
+
+  init(
+    coverCrud: CoverCrud = AppEnv.env.coverCrud,
+    chapterCrud: ChapterCrud = AppEnv.env.chapterCrud,
+    viewMoc: NSManagedObjectContext
+  ) {
+    getNavigator = {
+      MangaDetailsNavigator(
+        source: $0.source,
+        manga: $0.manga,
+        viewMoc: viewMoc,
+        moc: PersistenceController.shared.container.newBackgroundContext()
+      )
+    }
+
+    _provider = StateObject(
+      wrappedValue: MangaLibraryProvider(
+        coverCrud: coverCrud,
+        chapterCrud: chapterCrud,
+        viewMoc: viewMoc
+      )
+    )
+  }
 
   private let columns = Array(
     repeating: GridItem(.flexible(), spacing: 16),
@@ -27,26 +53,16 @@ struct MangaLibraryView: View {
       ZStack {
         ScrollView {
           LazyVGrid(columns: columns, spacing: 16) {
-            ForEach(viewModel.mangas) { result in
-              NavigationLink(value: result) {
+            ForEach(provider.mangas) { result in
+              NavigationLink(value: getNavigator(result)) {
                 makeMangaView(result)
               }
             }
           }
         }
         .scrollIndicators(.hidden)
-        .onAppear {
-          Task(priority: .userInitiated) {
-            await viewModel.refreshLibrary()
-          }
-        }
-        .refreshable {
-          Task(priority: .userInitiated) {
-            await viewModel.refreshLibrary()
-          }
-        }
-        .opacity(viewModel.mangas.count > 0 ? 1 : 0)
-        
+        .opacity(provider.mangas.count > 0 ? 1 : 0)
+
         VStack(spacing: 8) {
           Image(systemName: "books.vertical")
             .resizable()
@@ -58,7 +74,7 @@ struct MangaLibraryView: View {
             .foregroundStyle(scheme.secondaryColor)
             .font(.title3)
         }
-        .opacity(viewModel.mangas.count > 0 ? 0 : 1)
+        .opacity(provider.mangas.count > 0 ? 0 : 1)
       }
     }
     .background(scheme.backgroundColor)
@@ -66,7 +82,7 @@ struct MangaLibraryView: View {
   
   @ViewBuilder
   private func makeMangaView(
-    _ manga: MangaLibraryViewModel.MangaWrapper
+    _ manga: MangaLibraryProvider.MangaWrapper
   ) -> some View {
     ZStack(alignment: .topLeading) {
       Image(uiImage: manga.manga.cover.toUIImage() ?? UIImage())
@@ -109,11 +125,6 @@ struct MangaLibraryView: View {
 
 #Preview {
   MangaLibraryView(
-    viewModel: MangaLibraryViewModel(
-      mangaCrud: MangaCrud(),
-      coverCrud: CoverCrud(),
-      chapterCrud: ChapterCrud(),
-      viewMoc: PersistenceController.preview.container.viewContext
-    )
+    viewMoc: PersistenceController.preview.container.viewContext
   )
 }

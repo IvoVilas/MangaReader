@@ -6,61 +6,102 @@
 //
 
 import SwiftUI
+import CoreData
 
 struct MangaDetailsView: View {
 
   @Environment(\.colorScheme) private var scheme
 
-  let viewModel: MangaDetailsViewModel
+  @StateObject var viewModel: MangaDetailsViewModel
 
   @State private var toast: Toast?
   @State private var isDescriptionExpanded = false
+  @State private var offset = CGPoint.zero
+
+  private let coordinateSpaceName = UUID()
+
+  init(
+    source: Source,
+    manga: MangaSearchResult,
+    mangaCrud: MangaCrud = AppEnv.env.mangaCrud,
+    chapterCrud: ChapterCrud = AppEnv.env.chapterCrud,
+    coverCrud: CoverCrud = AppEnv.env.coverCrud,
+    authorCrud: AuthorCrud = AppEnv.env.authorCrud,
+    tagCrud: TagCrud = AppEnv.env.tagCrud,
+    httpClient: HttpClient = AppEnv.env.httpClient,
+    systemDateTime: SystemDateTimeType = AppEnv.env.systemDateTime,
+    viewMoc: NSManagedObjectContext,
+    moc: NSManagedObjectContext
+  ) {
+    _viewModel = StateObject(
+      wrappedValue: MangaDetailsViewModel(
+        source: source,
+        manga: manga,
+        mangaCrud: mangaCrud,
+        chapterCrud: chapterCrud,
+        coverCrud: coverCrud,
+        authorCrud: authorCrud,
+        tagCrud: tagCrud,
+        httpClient: httpClient,
+        systemDateTime: systemDateTime,
+        viewMoc: viewMoc,
+        moc: moc
+      )
+    )
+  }
 
   var body: some View {
     ZStack(alignment: .top) {
       ScrollView {
-        VStack(alignment: .leading, spacing: 0) {
-          ZStack(alignment: .topLeading) {
-            ZStack(alignment: .bottom) {
-              backgroundView()
+        PositionObservingView(
+          coordinateSpace: .named(coordinateSpaceName),
+          position: $offset
+        ) {
+          VStack(alignment: .leading, spacing: 0) {
+            ZStack(alignment: .topLeading) {
+              ZStack(alignment: .bottom) {
+                backgroundView()
+                  .offset(y: -max(offset.y, 0))
 
-              infoView()
+                infoView()
+                  .padding(.horizontal, 24)
+              }
+
+              navbarView()
                 .padding(.horizontal, 24)
+                .offset(y: 64)
             }
 
-            navbarView()
+            Spacer().frame(height: 16)
+
+            ExpandableTextView(
+              text: viewModel.manga.description ?? "",
+              lineLimit: 3,
+              font: .footnote,
+              foregroundColor: scheme.foregroundColor,
+              backgroundColor: scheme.backgroundColor,
+              isExpanded: $isDescriptionExpanded
+            )
+            .id(viewModel.manga.description ?? "")
+            .padding(.horizontal, 24)
+
+            Spacer().frame(height: 24)
+
+            tagsView()
+
+            Spacer().frame(height: 16)
+
+            chaptersCountView()
               .padding(.horizontal, 24)
-              .offset(y: 64)
+
+            Spacer().frame(height: 24)
+
+            chaptersView()
+              .padding(.horizontal, 24)
           }
-
-          Spacer().frame(height: 16)
-
-          ExpandableTextView(
-            text: viewModel.manga.description ?? "",
-            lineLimit: 3,
-            font: .footnote,
-            foregroundColor: scheme.foregroundColor,
-            backgroundColor: scheme.backgroundColor,
-            isExpanded: $isDescriptionExpanded
-          )
-          .id(viewModel.manga.description ?? "")
-          .padding(.horizontal, 24)
-
-          Spacer().frame(height: 24)
-
-          tagsView()
-
-          Spacer().frame(height: 16)
-
-          chaptersCountView()
-            .padding(.horizontal, 24)
-
-          Spacer().frame(height: 24)
-
-          chaptersView()
-            .padding(.horizontal, 24)
         }
       }
+      .coordinateSpace(name: coordinateSpaceName)
 
       ProgressView()
         .controlSize(.regular)
@@ -77,11 +118,6 @@ struct MangaDetailsView: View {
     }
     .refreshable {
       Task(priority: .medium) { await viewModel.forceRefresh() }
-    }
-    .navigationDestination(for: ChapterModel.self) { chapter in
-      ChapterReaderView(
-        viewModel: viewModel.buildReaderViewModel(chapter)
-      )
     }
     .toastView(toast: $toast)
     .onChange(of: viewModel.error) { _, error in
@@ -236,7 +272,7 @@ struct MangaDetailsView: View {
       ForEach(viewModel.chapters) { chapter in
         switch chapter {
         case .chapter(let chapter):
-          NavigationLink(value: chapter) {
+          NavigationLink(value: viewModel.getNavigator(chapter)) {
             chapterView(chapter)
           }
 
@@ -257,10 +293,15 @@ struct MangaDetailsView: View {
         .lineLimit(1)
         .foregroundStyle(chapter.isRead ? .gray : scheme.foregroundColor)
 
-      HStack(spacing: 16) {
+      HStack(spacing: 2) {
         Text(chapter.createdAtDescription)
           .font(.caption2)
           .foregroundStyle(chapter.isRead ? .gray : scheme.foregroundColor)
+
+        Text("\u{2022}")
+          .font(.caption)
+          .foregroundStyle(.black)
+          .opacity((chapter.lastPageRead ?? 0) > 0 && !chapter.isRead ? 1 : 0)
 
         Text(chapter.lastPageReadDescription ?? "")
           .font(.caption2)
@@ -313,41 +354,44 @@ struct MangaDetailsView: View {
 
 }
 
-#Preview {
-  MangaDetailsView(
-    viewModel: MangaDetailsView.buildPreviewViewModel()
-  )
-}
+private struct PositionObservingView<Content: View>: View {
 
-extension MangaDetailsView {
+  struct PreferenceKey: SwiftUI.PreferenceKey {
+    static var defaultValue: CGPoint { .zero }
 
-  static func buildPreviewViewModel(
-  ) -> MangaDetailsViewModel {
-    let systemDateTime = SystemDateTime()
-    let mangaCrud = MangaCrud()
-    let coverCrud = CoverCrud()
-    let chapterCrud = ChapterCrud()
-    let httpClient = HttpClient()
-    let moc = PersistenceController.preview.container.viewContext
-    let manga = MangaSearchResult(
-      id: "c52b2ce3-7f95-469c-96b0-479524fb7a1a",
-      title: "Jujutsu Kaisen",
-      cover: UIImage.jujutsuCover.jpegData(compressionQuality: 1),
-      isSaved: false
-    )
-
-    return MangaDetailsViewModel(
-      source: .mangadex,
-      manga: manga,
-      mangaCrud: mangaCrud,
-      chapterCrud: chapterCrud,
-      coverCrud: coverCrud,
-      authorCrud: AuthorCrud(),
-      tagCrud: TagCrud(),
-      httpClient: httpClient,
-      systemDateTime: systemDateTime,
-      viewMoc: moc
-    )
+    static func reduce(value: inout CGPoint, nextValue: () -> CGPoint) { }
   }
 
+  var coordinateSpace: CoordinateSpace
+  @Binding var position: CGPoint
+  @ViewBuilder var content: () -> Content
+
+  var body: some View {
+    content()
+      .background(
+        GeometryReader { geometry in
+          SwiftUI.Color.clear.preference(
+            key: PreferenceKey.self,
+            value: geometry.frame(in: coordinateSpace).origin
+          )
+        }
+      )
+      .onPreferenceChange(PreferenceKey.self) { position in
+        self.position = position
+      }
+  }
+
+}
+
+#Preview {
+  MangaDetailsView(
+    source: .mangadex,
+    manga: MangaSearchResult(
+      id: "c52b2ce3-7f95-469c-96b0-479524fb7a1a",
+      title: "Jujutsu Kaisen",
+      cover: UIImage.jujutsuCover.jpegData(compressionQuality: 1)
+    ),
+    viewMoc: PersistenceController.preview.container.viewContext,
+    moc: PersistenceController.preview.container.newBackgroundContext()
+  )
 }
