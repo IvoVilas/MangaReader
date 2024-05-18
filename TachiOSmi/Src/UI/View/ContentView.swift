@@ -9,14 +9,24 @@ import SwiftUI
 
 struct ContentView: View {
 
+  enum Tabs: String {
+    case library
+    case updates
+    case search
+    case options
+  }
+
   @Environment(\.managedObjectContext) private var viewMoc
+  @Environment(\.colorScheme) private var scheme
+
+  @State private var selectedTab: Tabs = .library
 
   let sourcesViewModel: MangaSourcesViewModel
   let refreshLibraryUseCase: RefreshLibraryUseCase
 
   var body: some View {
     NavigationStack {
-      TabView {
+      TabView(selection: $selectedTab) {
         MangaLibraryView(viewMoc: viewMoc)
           .padding(top: 24, leading: 24, trailing: 24)
           .tabItem {
@@ -26,6 +36,7 @@ struct ContentView: View {
             )
           }
           .toolbarBackground(.visible, for: .tabBar)
+          .tag(Tabs.library)
 
         MangaUpdatesView(
           refreshLibraryUseCase: refreshLibraryUseCase,
@@ -39,6 +50,7 @@ struct ContentView: View {
           )
         }
         .toolbarBackground(.visible, for: .tabBar)
+        .tag(Tabs.updates)
 
         MangaSourcesView(viewModel: sourcesViewModel)
           .padding(top: 24, leading: 24, trailing: 24)
@@ -49,8 +61,10 @@ struct ContentView: View {
             )
           }
           .toolbarBackground(.visible, for: .tabBar)
+          .tag(Tabs.search)
 
-        Text("TODO")
+        AppOptionsView()
+          .padding(top: 24, leading: 24, trailing: 24)
           .tabItem {
             Label(
               title: { Text("More") },
@@ -58,7 +72,10 @@ struct ContentView: View {
             )
           }
           .toolbarBackground(.visible, for: .tabBar)
+          .tag(Tabs.options)
       }
+      .navigationTitle(selectedTab.rawValue.capitalized)
+      .toolbar(.hidden, for: .navigationBar)
       .registerNavigator(MangaDetailsNavigator.self)
       .registerNavigator(MangaReaderNavigator.self)
       .registerNavigator(MangaSearchNavigator.self)

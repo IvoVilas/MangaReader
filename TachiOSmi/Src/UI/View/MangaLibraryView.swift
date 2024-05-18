@@ -16,6 +16,11 @@ struct MangaLibraryView: View {
 
   private let getNavigator: (MangaLibraryProvider.MangaWrapper) -> MangaDetailsNavigator
 
+  private let columns = Array(
+    repeating: GridItem(.flexible(), spacing: 16),
+    count: 3
+  )
+
   init(
     coverCrud: CoverCrud = AppEnv.env.coverCrud,
     chapterCrud: ChapterCrud = AppEnv.env.chapterCrud,
@@ -38,11 +43,6 @@ struct MangaLibraryView: View {
       )
     )
   }
-
-  private let columns = Array(
-    repeating: GridItem(.flexible(), spacing: 16),
-    count: 3
-  )
   
   var body: some View {
     VStack(alignment: .leading) {
