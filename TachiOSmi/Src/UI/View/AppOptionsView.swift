@@ -19,9 +19,13 @@ struct AppOptionsView: View {
     count: 3
   )
 
-  init() {
+  init(
+    store: AppOptionsStore
+  ) {
     _viewModel = StateObject(
-      wrappedValue: AppOptionsViewModel()
+      wrappedValue: AppOptionsViewModel(
+        store: store
+      )
     )
   }
 
@@ -58,6 +62,7 @@ struct AppOptionsView: View {
 
 }
 
+// MARK: Selection view
 private struct OptionSelectionView<T: Hashable & CustomStringConvertible>: View {
 
   @ObservedObject var viewModel: OptionSelectionViewModel<T>
@@ -89,19 +94,20 @@ private struct OptionSelectionView<T: Hashable & CustomStringConvertible>: View 
           .foregroundStyle(.blue)
           .font(.caption2)
 
-        Spacer().frame(height: 16)
+        Spacer().frame(idealHeight: 16, maxHeight: 16)
 
         Image(.expandMore)
           .foregroundStyle(.black)
       }
       .padding(.vertical)
-      .padding(.horizontal, 1)
+      .padding(.horizontal, 4)
       .background(Color(uiColor: .systemFill))
       .clipShape(RoundedRectangle(cornerRadius: 8))
     }
   }
 }
 
+// MARK: Toggle view
 private struct OptionToggleView: View {
 
   @ObservedObject var viewModel: OptionToggleViewModel
@@ -132,13 +138,13 @@ private struct OptionToggleView: View {
           .font(.caption2)
           .animation(.bouncy, value: viewModel.value)
 
-        Spacer().frame(height: 16)
+        Spacer().frame(maxHeight: 16)
 
         Toggle(isOn: $viewModel.value) { }
           .toggleStyle(MyToggleStyle())
       }
       .padding(.vertical)
-      .padding(.horizontal, 1)
+      .padding(.horizontal, 4)
       .background(Color(uiColor: .systemFill))
       .clipShape(RoundedRectangle(cornerRadius: 8))
     }
@@ -147,6 +153,7 @@ private struct OptionToggleView: View {
 
 }
 
+// MARK: Action view
 private struct OptionActionView: View {
 
   @ObservedObject var viewModel: OptionActionViewModel
@@ -177,10 +184,10 @@ private struct OptionActionView: View {
           .foregroundStyle(.blue)
           .font(.caption2)
 
-        Spacer().frame(height: 16)
+        Spacer().frame(idealHeight: 16, maxHeight: 16)
       }
       .padding(.vertical)
-      .padding(.horizontal, 1)
+      .padding(.horizontal, 4)
       .background(Color(uiColor: .systemFill))
       .clipShape(RoundedRectangle(cornerRadius: 8))
     }
@@ -195,6 +202,7 @@ private struct OptionActionView: View {
 
 }
 
+// MARK: Styles
 private struct NoTapAnimationStyle: PrimitiveButtonStyle {
 
   func makeBody(configuration: Configuration) -> some View {
@@ -231,9 +239,10 @@ private struct MyToggleStyle: ToggleStyle {
 
 }
 
+// MARK: Preview
 #Preview {
   NavigationStack {
-    AppOptionsView()
+    AppOptionsView(store: AppOptionsStore())
       .padding(.horizontal, 24)
   }
 }

@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum ReadingDirection {
+enum ReadingDirection: Identifiable {
 
   case leftToRight
   case upToDown

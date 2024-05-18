@@ -21,8 +21,10 @@ struct ContentView: View {
 
   @State private var selectedTab: Tabs = .library
 
+  // TODO: Move to env or something
   let sourcesViewModel: MangaSourcesViewModel
   let refreshLibraryUseCase: RefreshLibraryUseCase
+  let appOptionsStore: AppOptionsStore
 
   var body: some View {
     NavigationStack {
@@ -63,7 +65,7 @@ struct ContentView: View {
           .toolbarBackground(.visible, for: .tabBar)
           .tag(Tabs.search)
 
-        AppOptionsView()
+        AppOptionsView(store: appOptionsStore)
           .padding(top: 24, leading: 24, trailing: 24)
           .tabItem {
             Label(
@@ -93,6 +95,7 @@ struct ContentView: View {
       httpClient: HttpClient(),
       systemDateTime: SystemDateTime(),
       moc: PersistenceController.preview.container.newBackgroundContext()
-    )
+    ), 
+    appOptionsStore: AppOptionsStore()
   )
 }

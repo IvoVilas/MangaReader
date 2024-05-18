@@ -117,7 +117,8 @@
 		D7F7F5402BF8EE34004CD67E /* ThemePalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F7F53F2BF8EE34004CD67E /* ThemePalette.swift */; };
 		D7F7F5422BF8EE5F004CD67E /* AppOptionsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F7F5412BF8EE5F004CD67E /* AppOptionsViewModel.swift */; };
 		D7F7F5452BF8F001004CD67E /* IconSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F7F5442BF8F001004CD67E /* IconSource.swift */; };
-		D7F7F5482BF901F5004CD67E /* AppOptionsSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F7F5472BF901F5004CD67E /* AppOptionsSession.swift */; };
+		D7F7F5482BF901F5004CD67E /* AppOptionsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F7F5472BF901F5004CD67E /* AppOptionsStore.swift */; };
+		D7F7F54A2BF9031C004CD67E /* KVMProperty.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F7F5492BF9031C004CD67E /* KVMProperty.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -229,7 +230,8 @@
 		D7F7F53F2BF8EE34004CD67E /* ThemePalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemePalette.swift; sourceTree = "<group>"; };
 		D7F7F5412BF8EE5F004CD67E /* AppOptionsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppOptionsViewModel.swift; sourceTree = "<group>"; };
 		D7F7F5442BF8F001004CD67E /* IconSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IconSource.swift; sourceTree = "<group>"; };
-		D7F7F5472BF901F5004CD67E /* AppOptionsSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppOptionsSession.swift; sourceTree = "<group>"; };
+		D7F7F5472BF901F5004CD67E /* AppOptionsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppOptionsStore.swift; sourceTree = "<group>"; };
+		D7F7F5492BF9031C004CD67E /* KVMProperty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KVMProperty.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -515,7 +517,7 @@
 			children = (
 				1EE89F562B84CB94000CAA20 /* Database */,
 				1E79A4D72B892ADD0075C234 /* Rest */,
-				D7F7F5462BF901DE004CD67E /* Session */,
+				D7F7F5462BF901DE004CD67E /* UserDefaultsStore */,
 				D773543C2BF6D19100871FE5 /* Refreshers */,
 				D773542C2BF699D200871FE5 /* Providers */,
 				D74C8A872BBF0169001274C4 /* UseCase */,
@@ -633,12 +635,13 @@
 			path = Enum;
 			sourceTree = "<group>";
 		};
-		D7F7F5462BF901DE004CD67E /* Session */ = {
+		D7F7F5462BF901DE004CD67E /* UserDefaultsStore */ = {
 			isa = PBXGroup;
 			children = (
-				D7F7F5472BF901F5004CD67E /* AppOptionsSession.swift */,
+				D7F7F5472BF901F5004CD67E /* AppOptionsStore.swift */,
+				D7F7F5492BF9031C004CD67E /* KVMProperty.swift */,
 			);
-			path = Session;
+			path = UserDefaultsStore;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -782,7 +785,7 @@
 				D77354412BF6EAEA00871FE5 /* MangaDetailsNavigator.swift in Sources */,
 				1EC8BD282B92789E0017ACF0 /* ManganeloSearchDelegate.swift in Sources */,
 				1EE89F702B84DD65000CAA20 /* AuthorDataModel.swift in Sources */,
-				D7F7F5482BF901F5004CD67E /* AppOptionsSession.swift in Sources */,
+				D7F7F5482BF901F5004CD67E /* AppOptionsStore.swift in Sources */,
 				D77354322BF6A49600871FE5 /* MangaSearchProvider.swift in Sources */,
 				1EF8732D2B95B6F7005E59D3 /* CustomBackAction.swift in Sources */,
 				1E12352E2B8524B10022652F /* ChapterParser.swift in Sources */,
@@ -816,6 +819,7 @@
 				D7736CC12BBC8B2B0081AE98 /* TransitionPageView.swift in Sources */,
 				D7221EAD2B9BD4C400B72F9F /* ReadingDirection.swift in Sources */,
 				1EC8BD2A2B92879A0017ACF0 /* MangaSearchType.swift in Sources */,
+				D7F7F54A2BF9031C004CD67E /* KVMProperty.swift in Sources */,
 				1E1235462B8534580022652F /* SystemDateTimeRounderType.swift in Sources */,
 				D77354342BF6B08E00871FE5 /* MangaUpdatesProvider.swift in Sources */,
 				1EF815F62B82163F00D9759F /* TachiOSmiApp.swift in Sources */,

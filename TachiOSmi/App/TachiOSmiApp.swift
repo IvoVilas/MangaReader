@@ -30,7 +30,8 @@ struct TachiOSmiApp: App {
           httpClient: AppEnv.env.httpClient,
           systemDateTime: AppEnv.env.systemDateTime,
           moc: persistenceController.container.newBackgroundContext()
-        )
+        ),
+        appOptionsStore: AppOptionsStore()
       )
       .environment(\.managedObjectContext, persistenceController.container.viewContext)
     }

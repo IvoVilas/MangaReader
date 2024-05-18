@@ -7,43 +7,52 @@
 
 import Foundation
 import SwiftUI
+import Combine
 
 final class AppOptionsViewModel: ObservableObject {
 
   @Published var options: [Option]
 
-  init() {
+  private let store: AppOptionsStore
+
+  private var observers = Set<AnyCancellable>()
+
+  init(
+    store: AppOptionsStore
+  ) {
+    self.store = store
+
+    let themeSelectionViewModel = OptionSelectionViewModel(
+      id: "select_app_theme",
+      options: [ThemePalette.system, .light, .dark] ,
+      selectedOption: store.appTheme,
+      title: "Theme",
+      icon: .system("paintpalette"),
+      iconColor: .indigo
+    )
+
+    let readerDirectionSelectionViewModel = OptionSelectionViewModel(
+      id: "select_default_reader_direction",
+      options: [ReadingDirection.leftToRight, .upToDown],
+      selectedOption: store.defaultDirection,
+      title: "Default direction",
+      icon: .system("iphone.gen3.badge.play"),
+      iconColor: .teal
+    )
+
+    let dataSavingToggleViewModel = OptionToggleViewModel(
+      id: "toggle_data_saving",
+      value: store.isDataSavingOn,
+      title: "Data saving",
+      icon: .system("exclamationmark.icloud"),
+      iconColorOn: .green,
+      iconColorOff: .pink
+    )
+
     options = [
-      .themeSelection(
-        OptionSelectionViewModel(
-          id: "select_app_theme",
-          options: [.system, .light, .dark] ,
-          selectedOption: .system,
-          title: "Theme",
-          icon: .system("paintpalette"),
-          iconColor: .indigo
-        )
-      ),
-      .readerDirectionSelection(
-        OptionSelectionViewModel(
-          id: "select_default_reader_direction",
-          options: [.leftToRight, .upToDown],
-          selectedOption: .leftToRight,
-          title: "Default reader direction",
-          icon: .system("iphone.gen3.badge.play"),
-          iconColor: .teal
-        )
-      ),
-      .toggle(
-        OptionToggleViewModel(
-          id: "toggle_data_saving",
-          value: false,
-          title: "Data saving",
-          icon: .system("exclamationmark.icloud"),
-          iconColorOn: .green,
-          iconColorOff: .pink
-        )
-      ),
+      .themeSelection(themeSelectionViewModel),
+      .readerDirectionSelection(readerDirectionSelectionViewModel),
+      .toggle(dataSavingToggleViewModel),
       .action(
         OptionActionViewModel(
           id: "action_clean_database",
@@ -58,6 +67,21 @@ final class AppOptionsViewModel: ObservableObject {
         }
       )
     ]
+
+    themeSelectionViewModel.$selectedOption
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in self?.store.changeProperty(.appTheme($0))}
+      .store(in: &observers)
+
+    readerDirectionSelectionViewModel.$selectedOption
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in self?.store.changeProperty(.defaultDirection($0))}
+      .store(in: &observers)
+
+    dataSavingToggleViewModel.$value
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in self?.store.changeProperty(.isDataSavingOn($0))}
+      .store(in: &observers)
   }
 
 }
