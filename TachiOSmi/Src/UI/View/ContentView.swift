@@ -19,6 +19,7 @@ struct ContentView: View {
   @Environment(\.managedObjectContext) private var viewMoc
   @Environment(\.colorScheme) private var scheme
 
+  @State private var colorScheme: ColorScheme = .light
   @State private var selectedTab: Tabs = .library
 
   // TODO: Move to env or something
@@ -81,6 +82,10 @@ struct ContentView: View {
       .registerNavigator(MangaDetailsNavigator.self)
       .registerNavigator(MangaReaderNavigator.self)
       .registerNavigator(MangaSearchNavigator.self)
+    }
+    .environment(\.colorScheme, colorScheme)
+    .onReceive(appOptionsStore.appThemePublisher) {
+      colorScheme = $0.toColorScheme(system: scheme)
     }
   }
 

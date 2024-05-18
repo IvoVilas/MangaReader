@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 enum ThemePalette: Identifiable {
 
@@ -24,6 +25,19 @@ enum ThemePalette: Identifiable {
     case .dark:
       return 3
 
+    }
+  }
+
+  func toColorScheme(system: ColorScheme) -> ColorScheme {
+    switch self {
+    case .system:
+      return system
+
+    case .light:
+      return .light
+
+    case .dark:
+      return .dark
     }
   }
 

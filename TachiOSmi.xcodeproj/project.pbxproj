@@ -545,7 +545,6 @@
 				1EF816202B83983F00D9759F /* DatasourceState.swift */,
 				1EC8BD292B92879A0017ACF0 /* MangaSearchType.swift */,
 				D7221EAC2B9BD4C400B72F9F /* ReadingDirection.swift */,
-				D7F7F53F2BF8EE34004CD67E /* ThemePalette.swift */,
 			);
 			path = Enum;
 			sourceTree = "<group>";
@@ -631,6 +630,7 @@
 			isa = PBXGroup;
 			children = (
 				D7F7F5442BF8F001004CD67E /* IconSource.swift */,
+				D7F7F53F2BF8EE34004CD67E /* ThemePalette.swift */,
 			);
 			path = Enum;
 			sourceTree = "<group>";
