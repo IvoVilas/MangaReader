@@ -121,6 +121,7 @@ extension MangaCrud {
     synopsis: String?,
     status: MangaStatus,
     source: Source,
+    readingDirection: ReadingDirection,
     moc: NSManagedObjectContext
   ) throws -> MangaMO {
     if let local = try getManga(id, moc: moc) {
@@ -141,6 +142,7 @@ extension MangaCrud {
       synopsis: synopsis,
       status: status,
       source: source,
+      readingDirection: readingDirection,
       moc: moc
     )
   }
@@ -156,6 +158,7 @@ extension MangaCrud {
     synopsis: String?,
     status: MangaStatus,
     source: Source,
+    readingDirection: ReadingDirection,
     moc: NSManagedObjectContext
   ) throws -> MangaMO {
     guard let manga = MangaMO(
@@ -165,6 +168,7 @@ extension MangaCrud {
       statusId: status.id,
       lastUpdateAt: nil,
       sourceId: source.id,
+      readingDirectionId: readingDirection.id,
       moc: moc
     ) else { throw CrudError.failedEntityCreation }
 

@@ -20,6 +20,7 @@ final class DetailsDatasource {
   private let coverCrud: CoverCrud
   private let authorCrud: AuthorCrud
   private let tagCrud: TagCrud
+  private let appOptionsStore: AppOptionsStore
   private let moc: NSManagedObjectContext
 
   private let state: CurrentValueSubject<DatasourceState, Never>
@@ -41,6 +42,7 @@ final class DetailsDatasource {
     coverCrud: CoverCrud,
     authorCrud: AuthorCrud,
     tagCrud: TagCrud,
+    appOptionsStore: AppOptionsStore,
     moc: NSManagedObjectContext
   ) {
     self.mangaId = mangaId
@@ -50,6 +52,7 @@ final class DetailsDatasource {
     self.coverCrud = coverCrud
     self.authorCrud = authorCrud
     self.tagCrud = tagCrud
+    self.appOptionsStore = appOptionsStore
     self.moc = moc
 
     state = CurrentValueSubject(.starting)
@@ -120,6 +123,7 @@ extension DetailsDatasource {
         synopsis: manga.description,
         status: manga.status,
         source: self.source,
+        readingDirection: self.appOptionsStore.defaultDirection,
         moc: context
       )
 

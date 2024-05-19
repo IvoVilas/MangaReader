@@ -30,6 +30,7 @@ struct MangaDetailsView: View {
     tagCrud: TagCrud = AppEnv.env.tagCrud,
     httpClient: HttpClient = AppEnv.env.httpClient,
     systemDateTime: SystemDateTimeType = AppEnv.env.systemDateTime,
+    appOptionsStore: AppOptionsStore = AppEnv.env.appOptionsStore,
     viewMoc: NSManagedObjectContext,
     moc: NSManagedObjectContext
   ) {
@@ -44,6 +45,7 @@ struct MangaDetailsView: View {
         tagCrud: tagCrud,
         httpClient: httpClient,
         systemDateTime: systemDateTime,
+        appOptionsStore: appOptionsStore,
         viewMoc: viewMoc,
         moc: moc
       )

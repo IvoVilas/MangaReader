@@ -47,6 +47,7 @@ final class MangaDetailsViewModel: ObservableObject {
     tagCrud: TagCrud,
     httpClient: HttpClient,
     systemDateTime: SystemDateTimeType,
+    appOptionsStore: AppOptionsStore,
     viewMoc: NSManagedObjectContext,
     moc: NSManagedObjectContext
   ) {
@@ -84,6 +85,7 @@ final class MangaDetailsViewModel: ObservableObject {
       coverCrud: coverCrud,
       authorCrud: authorCrud, 
       tagCrud: tagCrud,
+      appOptionsStore: appOptionsStore,
       moc: moc
     )
 

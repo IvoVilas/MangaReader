@@ -32,6 +32,9 @@ final class AppEnvironment {
   let systemDateTime: SystemDateTimeType
   let formatter: Formatter
 
+  // Store
+  let appOptionsStore: AppOptionsStore
+
   init() {
     httpClient = HttpClient()
 
@@ -43,6 +46,8 @@ final class AppEnvironment {
 
     systemDateTime = SystemDateTime()
     formatter = Formatter(systemDateTime: systemDateTime)
+
+    appOptionsStore = AppOptionsStore()
   }
 
 }

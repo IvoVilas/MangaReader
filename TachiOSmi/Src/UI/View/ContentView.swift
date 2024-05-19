@@ -103,4 +103,8 @@ struct ContentView: View {
     ), 
     appOptionsStore: AppOptionsStore()
   )
+  .environment(
+    \.managedObjectContext,
+     PersistenceController.preview.container.viewContext
+  )
 }

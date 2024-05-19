@@ -20,7 +20,7 @@ struct AppOptionsView: View {
   )
 
   init(
-    store: AppOptionsStore
+    store: AppOptionsStore = AppEnv.env.appOptionsStore
   ) {
     _viewModel = StateObject(
       wrappedValue: AppOptionsViewModel(
@@ -242,7 +242,7 @@ private struct MyToggleStyle: ToggleStyle {
 // MARK: Preview
 #Preview {
   NavigationStack {
-    AppOptionsView(store: AppOptionsStore())
+    AppOptionsView()
       .padding(.horizontal, 24)
   }
 }
