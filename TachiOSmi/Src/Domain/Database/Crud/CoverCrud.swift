@@ -28,6 +28,25 @@ final class CoverCrud {
     }
   }
 
+  func getCovers(
+    for mangaId: String,
+    moc: NSManagedObjectContext
+  ) throws -> [CoverMO] {
+    let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Cover")
+
+    fetchRequest.predicate = NSPredicate(format: "mangaId == %@", mangaId)
+
+    do {
+      guard let results = try moc.fetch(fetchRequest) as? [CoverMO] else {
+        throw CrudError.wrongRequestType
+      }
+
+      return results
+    } catch {
+      throw CrudError.requestError(error)
+    }
+  }
+
   func getCoverData(
     for mangaId: String,
     moc: NSManagedObjectContext

@@ -35,7 +35,12 @@ final class AppEnvironment {
   // Store
   let appOptionsStore: AppOptionsStore
 
-  init() {
+  // Manager
+  let databaseManager: DatabaseManager
+
+  init(
+    persistenceContainer: NSPersistentContainer
+  ) {
     httpClient = HttpClient()
 
     mangaCrud = MangaCrud()
@@ -48,6 +53,11 @@ final class AppEnvironment {
     formatter = Formatter(systemDateTime: systemDateTime)
 
     appOptionsStore = AppOptionsStore()
+    databaseManager = DatabaseManager(
+      mangaCrud: mangaCrud,
+      coverCrud: coverCrud,
+      persistenceContainer: persistenceContainer
+    )
   }
 
 }

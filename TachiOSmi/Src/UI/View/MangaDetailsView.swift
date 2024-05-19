@@ -18,8 +18,6 @@ struct MangaDetailsView: View {
   @State private var isDescriptionExpanded = false
   @State private var offset = CGPoint.zero
 
-  private let coordinateSpaceName = UUID()
-
   init(
     source: Source,
     manga: MangaSearchResult,
@@ -54,56 +52,52 @@ struct MangaDetailsView: View {
 
   var body: some View {
     ZStack(alignment: .top) {
-      ScrollView {
-        PositionObservingView(
-          coordinateSpace: .named(coordinateSpaceName),
-          position: $offset
-        ) {
-          VStack(alignment: .leading, spacing: 0) {
-            ZStack(alignment: .topLeading) {
-              ZStack(alignment: .bottom) {
-                backgroundView()
-                  .offset(y: -max(offset.y, 0))
+      PositionObservingScrollView(
+        offset: $offset
+      ) {
+        VStack(alignment: .leading, spacing: 0) {
+          ZStack(alignment: .topLeading) {
+            ZStack(alignment: .bottom) {
+              backgroundView()
+                .offset(y: -max(offset.y, 0))
 
-                infoView()
-                  .padding(.horizontal, 24)
-              }
-
-              navbarView()
+              infoView()
                 .padding(.horizontal, 24)
-                .offset(y: 64)
             }
 
-            Spacer().frame(height: 16)
+            navbarView()
+              .padding(.horizontal, 24)
+              .offset(y: 64)
+          }
 
-            ExpandableTextView(
-              text: viewModel.manga.description ?? "",
-              lineLimit: 3,
-              font: .footnote,
-              foregroundColor: scheme.foregroundColor,
-              backgroundColor: scheme.backgroundColor,
-              isExpanded: $isDescriptionExpanded
-            )
-            .id(viewModel.manga.description ?? "")
+          Spacer().frame(height: 16)
+
+          ExpandableTextView(
+            text: viewModel.manga.description ?? "",
+            lineLimit: 3,
+            font: .footnote,
+            foregroundColor: scheme.foregroundColor,
+            backgroundColor: scheme.backgroundColor,
+            isExpanded: $isDescriptionExpanded
+          )
+          .id(viewModel.manga.description ?? "")
+          .padding(.horizontal, 24)
+
+          Spacer().frame(height: 24)
+
+          tagsView()
+
+          Spacer().frame(height: 16)
+
+          chaptersCountView()
             .padding(.horizontal, 24)
 
-            Spacer().frame(height: 24)
+          Spacer().frame(height: 24)
 
-            tagsView()
-
-            Spacer().frame(height: 16)
-
-            chaptersCountView()
-              .padding(.horizontal, 24)
-
-            Spacer().frame(height: 24)
-
-            chaptersView()
-              .padding(.horizontal, 24)
-          }
+          chaptersView()
+            .padding(.horizontal, 24)
         }
       }
-      .coordinateSpace(name: coordinateSpaceName)
 
       ProgressView()
         .controlSize(.regular)
@@ -122,7 +116,7 @@ struct MangaDetailsView: View {
       Task(priority: .medium) { await viewModel.forceRefresh() }
     }
     .toastView(toast: $toast)
-    .onChange(of: viewModel.error) { _, error in
+    .onReceive(viewModel.$error) { error in
       if let error {
         toast = Toast(
           style: .error,
@@ -130,7 +124,7 @@ struct MangaDetailsView: View {
         )
       }
     }
-    .onChange(of: viewModel.info) { _, info in
+    .onReceive(viewModel.$info) { info in
       if let info {
         toast = Toast(
           style: .success,
@@ -352,35 +346,6 @@ struct MangaDetailsView: View {
     case .unknown:
       return "unknown"
     }
-  }
-
-}
-
-private struct PositionObservingView<Content: View>: View {
-
-  struct PreferenceKey: SwiftUI.PreferenceKey {
-    static var defaultValue: CGPoint { .zero }
-
-    static func reduce(value: inout CGPoint, nextValue: () -> CGPoint) { }
-  }
-
-  var coordinateSpace: CoordinateSpace
-  @Binding var position: CGPoint
-  @ViewBuilder var content: () -> Content
-
-  var body: some View {
-    content()
-      .background(
-        GeometryReader { geometry in
-          SwiftUI.Color.clear.preference(
-            key: PreferenceKey.self,
-            value: geometry.frame(in: coordinateSpace).origin
-          )
-        }
-      )
-      .onPreferenceChange(PreferenceKey.self) { position in
-        self.position = position
-      }
   }
 
 }

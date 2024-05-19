@@ -32,9 +32,14 @@ extension MangaCrud {
   }
 
   func getAllMangas(
+    saved: Bool? = nil,
     moc: NSManagedObjectContext
   ) throws -> [MangaMO] {
     let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Manga")
+
+    if let saved {
+      fetchRequest.predicate = NSPredicate(format: "isSaved == \(saved ? "true" : "false")")
+    }
 
     do {
       guard let results = try moc.fetch(fetchRequest) as? [MangaMO] else {
@@ -87,24 +92,6 @@ extension MangaCrud {
       }
 
       return results.map { $0.id }
-    } catch {
-      throw CrudError.requestError(error)
-    }
-  }
-
-  func getAllSavedMangas(
-    moc: NSManagedObjectContext
-  ) throws -> [MangaMO] {
-    let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Manga")
-
-    fetchRequest.predicate = NSPredicate(format: "isSaved == true")
-
-    do {
-      guard let results = try moc.fetch(fetchRequest) as? [MangaMO] else {
-        throw CrudError.wrongRequestType
-      }
-
-      return results
     } catch {
       throw CrudError.requestError(error)
     }

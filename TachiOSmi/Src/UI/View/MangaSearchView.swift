@@ -120,7 +120,7 @@ struct MangaSearchView: View {
         }
       }
       .toastView(toast: $toast)
-      .onChange(of: viewModel.error) { _, error in
+      .onReceive(viewModel.$error) { error in
         if let error {
           toast = Toast(
             style: .error,

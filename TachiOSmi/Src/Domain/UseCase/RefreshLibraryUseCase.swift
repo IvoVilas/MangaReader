@@ -37,7 +37,7 @@ final class RefreshLibraryUseCase {
       let now = systemDateTime.now
       let mangas = try await context.perform {
         try self.mangaCrud
-          .getAllSavedMangas(moc: context)
+          .getAllMangas(saved: true, moc: context)
           .reduce(into: [String: Source]()) { $0[$1.id] = .safeInit(from: $1.sourceId) }
       }
 

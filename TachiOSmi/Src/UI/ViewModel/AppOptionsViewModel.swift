@@ -12,16 +12,30 @@ import Combine
 final class AppOptionsViewModel: ObservableObject {
 
   @Published var options: [Option]
+  @Published var isLoading: Bool
+  @Published var error: DatasourceError?
+  @Published var info: String?
 
   private let store: AppOptionsStore
+  private let databaseManager: DatabaseManager
 
   private var observers = Set<AnyCancellable>()
 
   init(
-    store: AppOptionsStore
+    store: AppOptionsStore,
+    databaseManager: DatabaseManager
   ) {
     self.store = store
+    self.databaseManager = databaseManager
 
+    isLoading = false
+    options = []
+    info = nil
+
+    setupOptions()
+  }
+
+  private func setupOptions() {
     let themeSelectionViewModel = OptionSelectionViewModel(
       id: "select_app_theme",
       options: [ThemePalette.system, .light, .dark] ,
@@ -61,10 +75,23 @@ final class AppOptionsViewModel: ObservableObject {
           icon: .asset(.database),
           iconColor: .orange,
           actionTitle: "Delete entities",
-          actionMessage: "App will keep all data about mangas in you library"
-        ) {
-          // TODO: Do something
-        }
+          actionMessage: "App will keep all data about mangas in you library",
+          action: { [weak self] in
+            guard let self else { return }
+
+            self.isLoading = true
+
+            switch self.databaseManager.cleanDatabase() {
+            case .success((let mangaCount, let coverCount)):
+              self.info = "Deleted \(mangaCount) manga(s) and \(coverCount) cover(s)"
+              
+            case .failure(let cause):
+              self.error = cause
+            }
+
+            self.isLoading = false
+          }
+        )
       )
     ]
 
@@ -108,7 +135,7 @@ extension AppOptionsViewModel {
 
       case .action(let viewModel):
         return viewModel.id
-        
+
       }
     }
 

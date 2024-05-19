@@ -12,6 +12,8 @@ struct AppOptionsView: View {
   @Environment(\.colorScheme) private var scheme
 
   @StateObject private var viewModel: AppOptionsViewModel
+
+  @State private var toast: Toast?
   @State private var showingDialog = false
 
   private let columns = Array(
@@ -20,11 +22,13 @@ struct AppOptionsView: View {
   )
 
   init(
-    store: AppOptionsStore = AppEnv.env.appOptionsStore
+    store: AppOptionsStore = AppEnv.env.appOptionsStore,
+    databaseManager: DatabaseManager = AppEnv.env.databaseManager
   ) {
     _viewModel = StateObject(
       wrappedValue: AppOptionsViewModel(
-        store: store
+        store: store,
+        databaseManager: databaseManager
       )
     )
   }
@@ -35,29 +39,57 @@ struct AppOptionsView: View {
         .foregroundStyle(scheme.foregroundColor)
         .font(.title)
 
-      ScrollView {
-        LazyVGrid(columns: columns, spacing: 16) {
-          ForEach(viewModel.options) { option in
-            switch option {
-            case .themeSelection(let viewModel):
-              OptionSelectionView(viewModel: viewModel)
+      ZStack(alignment: .center) {
+        ScrollView {
+          LazyVGrid(columns: columns, spacing: 16) {
+            ForEach(viewModel.options) { option in
+              switch option {
+              case .themeSelection(let viewModel):
+                OptionSelectionView(viewModel: viewModel)
 
-            case .readerDirectionSelection(let viewModel):
-              OptionSelectionView(viewModel: viewModel)
+              case .readerDirectionSelection(let viewModel):
+                OptionSelectionView(viewModel: viewModel)
 
-            case .toggle(let viewModel):
-              OptionToggleView(viewModel: viewModel)
+              case .toggle(let viewModel):
+                OptionToggleView(viewModel: viewModel)
 
-            case .action(let viewModel):
-              OptionActionView(viewModel: viewModel, showingDialog: $showingDialog)
+              case .action(let viewModel):
+                OptionActionView(viewModel: viewModel, showingDialog: $showingDialog)
 
+              }
             }
           }
         }
+        .scrollIndicators(.hidden)
+        .allowsHitTesting(!viewModel.isLoading)
+        .opacity(viewModel.isLoading ? 0.5 : 1)
+        .animation(.easeInOut, value: viewModel.isLoading)
+
+        ProgressView()
+          .controlSize(.regular)
+          .progressViewStyle(.circular)
+          .opacity(viewModel.isLoading ? 1 : 0)
+          .animation(.easeInOut, value: viewModel.isLoading)
       }
-      .scrollIndicators(.hidden)
     }
     .background(scheme.backgroundColor)
+    .toastView(toast: $toast)
+    .onReceive(viewModel.$error) { error in
+      if let error {
+        toast = Toast(
+          style: .error,
+          message: error.localizedDescription
+        )
+      }
+    }
+    .onReceive(viewModel.$info) { info in
+      if let info {
+        toast = Toast(
+          style: .success,
+          message: info
+        )
+      }
+    }
   }
 
 }

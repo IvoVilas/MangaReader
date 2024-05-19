@@ -15,7 +15,9 @@ struct TachiOSmiApp: App {
   init() {
     persistenceController = PersistenceController.shared
 
-    let env = AppEnvironment()
+    let env = AppEnvironment(
+      persistenceContainer: persistenceController.container
+    )
 
     AppEnv.env = env
   }
@@ -31,7 +33,7 @@ struct TachiOSmiApp: App {
           systemDateTime: AppEnv.env.systemDateTime,
           moc: persistenceController.container.newBackgroundContext()
         ),
-        appOptionsStore: AppOptionsStore()
+        appOptionsStore: AppEnv.env.appOptionsStore
       )
       .environment(\.managedObjectContext, persistenceController.container.viewContext)
     }
