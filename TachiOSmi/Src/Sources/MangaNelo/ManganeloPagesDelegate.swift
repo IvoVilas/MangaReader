@@ -19,7 +19,8 @@ final class ManganeloPagesDelegate: PagesDelegateType {
   }
 
   func fetchDownloadInfo(
-    using url: String
+    using url: String,
+    saveData: Bool
   ) async throws -> ChapterDownloadInfo {
     let html = try await httpClient.makeHtmlGetRequest(url)
 

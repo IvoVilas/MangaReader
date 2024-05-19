@@ -34,6 +34,7 @@ final class ChapterReaderViewModel: ObservableObject {
   private let mangaCrud: MangaCrud
   private let chapterCrud: ChapterCrud
   private let httpClient: HttpClient
+  private let appOptionsStore: AppOptionsStore
   private let viewMoc: NSManagedObjectContext
 
   let closeReaderEvent = PassthroughSubject<Void, Never>()
@@ -49,6 +50,7 @@ final class ChapterReaderViewModel: ObservableObject {
     mangaCrud: MangaCrud,
     chapterCrud: ChapterCrud,
     httpClient: HttpClient,
+    appOptionsStore: AppOptionsStore,
     viewMoc: NSManagedObjectContext
   ) {
     self.source = source
@@ -57,12 +59,14 @@ final class ChapterReaderViewModel: ObservableObject {
     self.mangaCrud = mangaCrud
     self.chapterCrud = chapterCrud
     self.httpClient = httpClient
+    self.appOptionsStore = appOptionsStore
     self.viewMoc = viewMoc
 
     delegate = source.pagesDelegateType.init(httpClient: httpClient)
     datasource = PagesDatasource(
       chapter: chapter,
-      delegate: delegate
+      delegate: delegate,
+      appOptionsStore: appOptionsStore
     )
 
     self.pages = []
@@ -310,7 +314,8 @@ extension ChapterReaderViewModel {
 
     datasource = PagesDatasource(
       chapter: nextChapter,
-      delegate: delegate
+      delegate: delegate,
+      appOptionsStore: appOptionsStore
     )
 
     chapter = nextChapter
@@ -326,7 +331,8 @@ extension ChapterReaderViewModel {
 
     datasource = PagesDatasource(
       chapter: previousChapter,
-      delegate: delegate
+      delegate: delegate,
+      appOptionsStore: appOptionsStore
     )
 
     chapter = previousChapter

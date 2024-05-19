@@ -30,6 +30,7 @@ struct ChapterReaderView: View {
     mangaCrud: MangaCrud = AppEnv.env.mangaCrud,
     chapterCrud: ChapterCrud = AppEnv.env.chapterCrud,
     httpClient: HttpClient = AppEnv.env.httpClient,
+    appOptionsStore: AppOptionsStore = AppEnv.env.appOptionsStore,
     viewMoc: NSManagedObjectContext
   ) {
     _viewModel = StateObject(
@@ -42,6 +43,7 @@ struct ChapterReaderView: View {
         mangaCrud: mangaCrud,
         chapterCrud: chapterCrud,
         httpClient: httpClient,
+        appOptionsStore: appOptionsStore,
         viewMoc: viewMoc
       )
     )

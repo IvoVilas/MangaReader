@@ -18,9 +18,13 @@ final class MangadexPagesDelegate: PagesDelegateType {
   }
 
   func fetchDownloadInfo(
-    using chapterId: String
+    using chapterId: String,
+    saveData: Bool
   ) async throws -> ChapterDownloadInfo {
-    return try await makeChapterInfoRequest(chapterId: chapterId)
+    return try await makeChapterInfoRequest(
+      chapterId: chapterId,
+      saveData: saveData
+    )
   }
   
   func fetchPage(
@@ -61,7 +65,8 @@ final class MangadexPagesDelegate: PagesDelegateType {
 extension MangadexPagesDelegate {
 
   private func makeChapterInfoRequest(
-    chapterId: String
+    chapterId: String,
+    saveData: Bool
   ) async throws -> ChapterDownloadInfo {
     let json = try await httpClient.makeJsonGetRequest(
       url: "https://api.mangadex.org/at-home/server/\(chapterId)"
@@ -71,13 +76,13 @@ extension MangadexPagesDelegate {
       let baseUrl = json["baseUrl"] as? String,
       let chapterJson = json["chapter"] as? [String: Any],
       let hash = chapterJson["hash"] as? String,
-      let pages = chapterJson["data"] as? [String]
+      let pages = chapterJson[saveData ? "dataSaver" : "data"] as? [String]
     else {
       throw ParserError.parsingError
     }
 
     return ChapterDownloadInfo(
-      downloadUrl: "\(baseUrl)/data/\(hash)",
+      downloadUrl: "\(baseUrl)/\(saveData ? "data-saver" : "data")/\(hash)",
       pages: pages
     )
   }

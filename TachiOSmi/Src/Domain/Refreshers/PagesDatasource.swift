@@ -19,6 +19,7 @@ final class PagesDatasource {
 
   private let chapter: ChapterModel
   private let delegate: PagesDelegateType
+  private let appOptionsStore: AppOptionsStore
 
   private let pages: CurrentValueSubject<[PageModel], Never>
   private let state: CurrentValueSubject<DatasourceState, Never>
@@ -43,10 +44,12 @@ final class PagesDatasource {
 
   init(
     chapter: ChapterModel,
-    delegate: PagesDelegateType
+    delegate: PagesDelegateType,
+    appOptionsStore: AppOptionsStore
   ) {
     self.chapter = chapter
     self.delegate = delegate
+    self.appOptionsStore = appOptionsStore
 
     pages = CurrentValueSubject([])
     state = CurrentValueSubject(.starting)
@@ -202,7 +205,10 @@ extension PagesDatasource {
       return local
     }
 
-    let remote = try await delegate.fetchDownloadInfo(using: chapter.downloadInfo)
+    let remote = try await delegate.fetchDownloadInfo(
+      using: chapter.downloadInfo,
+      saveData: appOptionsStore.isDataSavingOn
+    )
 
     await MainActor.run { chapterInfo = remote }
 
