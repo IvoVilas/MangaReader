@@ -11,9 +11,13 @@ final class Formatter {
 
   private let systemDateTime: SystemDateTimeType
 
-  private let mediumDateFormater = Formatter.makeDateFormatter(
+  private let mediumDateFormatter = Formatter.makeDateFormatter(
     dateStyle: .medium,
     timeStyle: .none
+  )
+
+  private let iso8601Formatter = Formatter.makeDateFormatter(
+    format: "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZZ"
   )
 
   init(systemDateTime: SystemDateTimeType) {
@@ -33,8 +37,12 @@ final class Formatter {
       return "\(numberOfDays) days ago"
 
     default:
-      return mediumDateFormater.string(from: date)
+      return mediumDateFormatter.string(from: date)
     }
+  }
+
+  func dateAsISO8601(_ date: Date) -> String {
+    return iso8601Formatter.string(from: date)
   }
 
 }
@@ -49,6 +57,16 @@ extension Formatter {
 
     dateFormatter.dateStyle = dateStyle
     dateFormatter.timeStyle = timeStyle
+
+    return dateFormatter
+  }
+
+  static func makeDateFormatter(
+    format: String
+  ) -> DateFormatter {
+    let dateFormatter = DateFormatter()
+
+    dateFormatter.dateFormat = format
 
     return dateFormatter
   }

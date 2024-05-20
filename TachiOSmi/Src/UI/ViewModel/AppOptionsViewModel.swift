@@ -84,12 +84,40 @@ final class AppOptionsViewModel: ObservableObject {
             switch self.databaseManager.cleanDatabase() {
             case .success((let mangaCount, let coverCount)):
               self.info = "Deleted \(mangaCount) manga(s) and \(coverCount) cover(s)"
-              
+
             case .failure(let cause):
               self.error = cause
             }
 
             self.isLoading = false
+          }
+        )
+      ),
+      .share(
+        OptionShareViewModel(
+          id: "action_dump_database",
+          title: "Dump database",
+          description: "Dump database data",
+          icon: .system("square.and.arrow.down"),
+          iconColor: .green,
+          buildFile: { [weak self] in
+            guard let self else { return nil }
+
+            self.isLoading = true
+
+            let result = self.databaseManager.dumpDatabase()
+
+            self.isLoading = false
+
+            switch result {
+            case .success(let url):
+              return url
+
+            case .failure(let error):
+              self.error = error
+            }
+
+            return nil
           }
         )
       )
@@ -121,6 +149,7 @@ extension AppOptionsViewModel {
     case readerDirectionSelection(OptionSelectionViewModel<ReadingDirection>)
     case toggle(OptionToggleViewModel)
     case action(OptionActionViewModel)
+    case share(OptionShareViewModel)
 
     var id: String {
       switch self {
@@ -136,6 +165,8 @@ extension AppOptionsViewModel {
       case .action(let viewModel):
         return viewModel.id
 
+      case .share(let viewModel):
+        return viewModel.id
       }
     }
 
@@ -210,6 +241,7 @@ final class OptionActionViewModel: ObservableObject {
   @Published var iconColor: Color
   @Published var actionTitle: String
   @Published var actionMessage: String
+  @Published var showingDialog: Bool
 
   let id: String
 
@@ -233,10 +265,67 @@ final class OptionActionViewModel: ObservableObject {
     self.actionTitle = actionTitle
     self.actionMessage = actionMessage
     self.action = action
+    self.showingDialog = false
   }
 
   func callAction() {
     action()
+  }
+
+}
+
+// TODO: Remove file after sharing
+final class OptionShareViewModel: ObservableObject {
+
+  @Published var title: String
+  @Published var description: String
+  @Published var icon: IconSource
+  @Published var iconColor: Color
+  @Published var fileUrl: URL?
+  @Published var showingShare: Bool
+
+  let id: String
+
+  private let buildFile: () -> URL?
+
+  init(
+    id: String,
+    title: String,
+    description: String,
+    icon: IconSource,
+    iconColor: Color,
+    buildFile: @escaping () -> URL?
+  ) {
+    self.id = id
+    self.title = title
+    self.description = description
+    self.icon = icon
+    self.iconColor = iconColor
+    self.buildFile = buildFile
+    self.showingShare = false
+  }
+
+  func share() {
+    fileUrl = buildFile()
+    showingShare = true
+  }
+
+  func deleteFile() {
+    guard let fileUrl else {
+      print("Database dump file not found")
+
+      return
+    }
+
+    do {
+      try FileManager.default.removeItem(at: fileUrl)
+
+      self.fileUrl = nil
+
+      print("Database dump file deleted.")
+    } catch {
+      print("Error deleting temporary file: \(error)")
+    }
   }
 
 }

@@ -55,7 +55,11 @@ final class AppEnvironment {
     appOptionsStore = AppOptionsStore()
     databaseManager = DatabaseManager(
       mangaCrud: mangaCrud,
+      chapterCrud: chapterCrud,
+      tagCrud: tagCrud,
+      authorCrud: authorCrud,
       coverCrud: coverCrud,
+      formatter: formatter,
       persistenceContainer: persistenceContainer
     )
   }

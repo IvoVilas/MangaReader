@@ -12,9 +12,7 @@ struct AppOptionsView: View {
   @Environment(\.colorScheme) private var scheme
 
   @StateObject private var viewModel: AppOptionsViewModel
-
   @State private var toast: Toast?
-  @State private var showingDialog = false
 
   private let columns = Array(
     repeating: GridItem(.flexible(), spacing: 16, alignment: .top),
@@ -54,7 +52,10 @@ struct AppOptionsView: View {
                 OptionToggleView(viewModel: viewModel)
 
               case .action(let viewModel):
-                OptionActionView(viewModel: viewModel, showingDialog: $showingDialog)
+                OptionActionView(viewModel: viewModel)
+
+              case .share(let viewModel):
+                OptionShareView(viewModel: viewModel)
 
               }
             }
@@ -189,11 +190,10 @@ private struct OptionToggleView: View {
 private struct OptionActionView: View {
 
   @ObservedObject var viewModel: OptionActionViewModel
-  @Binding var showingDialog: Bool
 
   var body: some View {
     Button {
-      showingDialog.toggle()
+      viewModel.showingDialog.toggle()
     } label: {
       VStack(spacing: 0) {
         viewModel.icon.image()
@@ -223,12 +223,61 @@ private struct OptionActionView: View {
       .background(Color(uiColor: .systemFill))
       .clipShape(RoundedRectangle(cornerRadius: 8))
     }
-    .confirmationDialog("Are you sure?", isPresented: $showingDialog) {
+    .confirmationDialog("Are you sure?", isPresented: $viewModel.showingDialog) {
       Button(viewModel.actionTitle, role: .destructive) {
         viewModel.callAction()
       }
     } message: {
       Text(viewModel.actionMessage)
+    }
+  }
+
+}
+
+// MARK: Share view
+private struct OptionShareView: View {
+
+  @ObservedObject var viewModel: OptionShareViewModel
+
+  var body: some View {
+    Button {
+      viewModel.share()
+    } label: {
+      VStack(spacing: 0) {
+        viewModel.icon.image()
+          .resizable()
+          .scaledToFit()
+          .foregroundStyle(viewModel.iconColor)
+          .frame(width: 24, height: 24)
+
+        Spacer().frame(height: 8)
+
+        Text(viewModel.title)
+          .foregroundStyle(.black)
+          .font(.caption)
+          .frame(maxWidth: .infinity)
+
+        Spacer().frame(height: 8)
+
+        Text(viewModel.description)
+          .multilineTextAlignment(.center)
+          .foregroundStyle(.blue)
+          .font(.caption2)
+
+        Spacer().frame(idealHeight: 16, maxHeight: 16)
+      }
+      .padding(.vertical)
+      .padding(.horizontal, 4)
+      .background(Color(uiColor: .systemFill))
+      .clipShape(RoundedRectangle(cornerRadius: 8))
+      .sheet(isPresented: $viewModel.showingShare) {
+        if let url = viewModel.fileUrl {
+          ShareSheet(activityItems: [url]) {
+            viewModel.deleteFile()
+          }
+          .presentationDetents([.medium, .large])
+        }
+      }
     }
   }
 

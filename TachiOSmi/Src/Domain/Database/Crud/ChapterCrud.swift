@@ -51,6 +51,28 @@ final class ChapterCrud {
   }
 
   func getAllChapters(
+    excludingIds ids: [String],
+    moc: NSManagedObjectContext
+  ) throws -> [ChapterMO] {
+    let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Chapter")
+
+    if !ids.isEmpty {
+      fetchRequest.predicate = NSPredicate(format: "NOT id IN %@", ids)
+    }
+    fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \ChapterMO.manga.id, ascending: true)]
+
+    do {
+      guard let results = try moc.fetch(fetchRequest) as? [ChapterMO] else {
+        throw CrudError.wrongRequestType
+      }
+
+      return results
+    } catch {
+      throw CrudError.requestError(error)
+    }
+  }
+
+  func getAllChapters(
     mangaId: String,
     moc: NSManagedObjectContext
   ) throws -> [ChapterMO] {
