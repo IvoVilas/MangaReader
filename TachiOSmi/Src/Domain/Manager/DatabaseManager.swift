@@ -85,12 +85,12 @@ final class DatabaseManager {
     var json = [String: Any]()
     var mangasJson = [[String: Any]]()
     var chaptersJson = [[String: Any]]()
+    var tagsJson = [[String: Any]]()
+    var authorsJson = [[String: Any]]()
 
     do {
       var mangaIds = [String]()
       var chapterIds = [String]()
-      var tagIds = [String]()
-      var authorIds = [String]()
 
       try context.performAndWait {
         let mangas = try self.mangaCrud.getAllMangas(moc: context)
@@ -104,18 +104,24 @@ final class DatabaseManager {
 
           mangaIds.append(manga.id)
           chapterIds.append(contentsOf: manga.chapters.map { $0.id })
-          tagIds.append(contentsOf: manga.tags.map { $0.id })
-          authorIds.append(contentsOf: manga.authors.map { $0.id })
 
           mangasJson.append(mangaJson)
         }
 
         let chapters = try self.chapterCrud.getAllChapters(excludingIds: chapterIds, moc: context)
         chaptersJson = chapters.map { converter.convert($0) }
+
+        let tags = try self.tagCrud.getAllTags(moc: context)
+        tagsJson = tags.map { converter.convert($0) }
+
+        let authors = try self.authorCrud.getAllAuthors(moc: context)
+        authorsJson = authors.map { converter.convert($0) }
       }
 
       json["mangas"] = mangasJson
       json["chapters"] = chaptersJson
+      json["tags"] = tagsJson
+      json["authors"] = authorsJson
 
       let jsonData = try JSONSerialization.data(withJSONObject: json, options: .prettyPrinted)
       let url = FileManager.default.temporaryDirectory.appendingPathComponent("database.json")

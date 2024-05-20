@@ -14,65 +14,71 @@ final class RefreshLibraryUseCase {
   private let chapterCrud: ChapterCrud
   private let httpClient: HttpClient
   private let systemDateTime: SystemDateTimeType
-  private let moc: NSManagedObjectContext
+  private let container: NSPersistentContainer
 
   init(
     mangaCrud: MangaCrud,
     chapterCrud: ChapterCrud,
     httpClient: HttpClient,
     systemDateTime: SystemDateTimeType,
-    moc: NSManagedObjectContext
+    container: NSPersistentContainer
   ) {
     self.mangaCrud = mangaCrud
     self.httpClient = httpClient
     self.chapterCrud = chapterCrud
     self.systemDateTime = systemDateTime
-    self.moc = moc
+    self.container = container
   }
 
   func refresh() async {
+    print("RefreshLibraryUseCase -> Started library refresh...")
+
     do {
-      let context = moc
+      let context = container.viewContext
 
       let now = systemDateTime.now
-      let mangas = try await context.perform {
+      let sources = try await context.perform {
         try self.mangaCrud
           .getAllMangas(saved: true, moc: context)
-          .reduce(into: [String: Source]()) { $0[$1.id] = .safeInit(from: $1.sourceId) }
+          .reduce(into: [String: [String]]()) { $0[$1.sourceId, default: []].append($1.id) }
       }
 
-      print("RefreshLibraryUseCase -> Refreshing \(mangas.count) mangas...")
-
       await withThrowingTaskGroup(of: Void.self) { taskGroup in
-        for (id, source) in mangas {
+        let context = container.newBackgroundContext()
+
+        for (source, ids) in sources {
+          let source = Source.safeInit(from: source)
           let delegate = source.chaptersDelegateType.init(httpClient: self.httpClient)
 
-          taskGroup.addTask {
-            let chapters = try await delegate.fetchChapters(mangaId: id)
-            let context = PersistenceController.shared.container.newBackgroundContext()
+          print("RefreshLibraryUseCase -> Refresing \(ids.count) \(source.name) mangas ")
 
-            try context.performAndWait {
-              guard let manga = try self.mangaCrud.getManga(id, moc: context) else {
-                throw DatasourceError.databaseError("Manga \(id) not found")
-              }
+          for id in ids {
+            taskGroup.addTask {
+              let chapters = try await delegate.fetchChapters(mangaId: id)
 
-              for chapter in chapters {
-                _ = try self.chapterCrud.createOrUpdateChapter(
-                  id: chapter.id,
-                  chapterNumber: chapter.number,
-                  title: chapter.title,
-                  numberOfPages: chapter.numberOfPages,
-                  publishAt: chapter.publishAt,
-                  urlInfo: chapter.downloadInfo,
-                  manga: manga,
-                  moc: context
-                )
-              }
+              try context.performAndWait {
+                guard let manga = try self.mangaCrud.getManga(id, moc: context) else {
+                  throw DatasourceError.databaseError("Manga \(id) not found")
+                }
 
-              self.mangaCrud.updateLastUpdateAt(manga, date: now)
+                for chapter in chapters {
+                  _ = try self.chapterCrud.createOrUpdateChapter(
+                    id: chapter.id,
+                    chapterNumber: chapter.number,
+                    title: chapter.title,
+                    numberOfPages: chapter.numberOfPages,
+                    publishAt: chapter.publishAt,
+                    urlInfo: chapter.downloadInfo,
+                    manga: manga,
+                    moc: context
+                  )
+                }
 
-              if !context.saveIfNeeded(rollbackOnError: true).isSuccess {
-                throw CrudError.saveError
+                self.mangaCrud.updateLastUpdateAt(manga, date: now)
+
+                if !context.saveIfNeeded(rollbackOnError: true).isSuccess {
+                  throw CrudError.saveError
+                }
               }
             }
           }

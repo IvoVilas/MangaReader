@@ -28,6 +28,24 @@ final class TagCrud {
     }
   }
 
+  func getAllTags(
+    moc: NSManagedObjectContext
+  ) throws -> [TagMO] {
+    let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Tag")
+
+    fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \TagMO.title, ascending: true)]
+
+    do {
+      guard let results = try moc.fetch(fetchRequest) as? [TagMO] else {
+        throw CrudError.wrongRequestType
+      }
+
+      return results
+    } catch {
+      throw CrudError.requestError(error)
+    }
+  }
+
   func createEntity(
     id: String,
     title: String,

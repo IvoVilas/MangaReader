@@ -13,10 +13,8 @@ import CoreData
 final class MangaUpdatesViewModel: ObservableObject {
 
   @Published var logs: [MangaUpdatesProvider.MangaUpdatesLogDate]
-  @Published var isLoading: Bool
 
   private let provider: MangaUpdatesProvider
-  private let refreshLibraryUseCase: RefreshLibraryUseCase
   private let viewMoc: NSManagedObjectContext
 
   private var logsPage: Int
@@ -25,15 +23,12 @@ final class MangaUpdatesViewModel: ObservableObject {
 
   init(
     provider: MangaUpdatesProvider,
-    refreshLibraryUseCase: RefreshLibraryUseCase,
     viewMoc: NSManagedObjectContext
   ) {
     self.provider = provider
-    self.refreshLibraryUseCase = refreshLibraryUseCase
     self.viewMoc = viewMoc
 
     logs = []
-    isLoading = false
     logsPage = 0
 
     observer = provider.$updateLogs
@@ -45,14 +40,6 @@ final class MangaUpdatesViewModel: ObservableObject {
     logsPage += 1
 
     provider.updatePublishedValue(withPage: logsPage)
-  }
-
-  func refreshLibrary() async {
-    await MainActor.run { isLoading = true }
-
-    await refreshLibraryUseCase.refresh()
-
-    await MainActor.run { isLoading = false }
   }
 
 }

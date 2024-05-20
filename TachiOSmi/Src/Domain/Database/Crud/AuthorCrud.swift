@@ -28,6 +28,24 @@ final class AuthorCrud {
     }
   }
 
+  func getAllAuthors(
+    moc: NSManagedObjectContext
+  ) throws -> [AuthorMO] {
+    let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Author")
+
+    fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \AuthorMO.name, ascending: true)]
+
+    do {
+      guard let results = try moc.fetch(fetchRequest) as? [AuthorMO] else {
+        throw CrudError.wrongRequestType
+      }
+
+      return results
+    } catch {
+      throw CrudError.requestError(error)
+    }
+  }
+
   func createEntity(
     id: String,
     name: String,

@@ -26,16 +26,16 @@ struct TachiOSmiApp: App {
     WindowGroup {
       ContentView(
         sourcesViewModel: MangaSourcesViewModel(),
-        refreshLibraryUseCase: RefreshLibraryUseCase(
-          mangaCrud: AppEnv.env.mangaCrud,
-          chapterCrud: AppEnv.env.chapterCrud,
-          httpClient: AppEnv.env.httpClient,
-          systemDateTime: AppEnv.env.systemDateTime,
-          moc: persistenceController.container.newBackgroundContext()
-        ),
         appOptionsStore: AppEnv.env.appOptionsStore
       )
       .environment(\.managedObjectContext, persistenceController.container.viewContext)
+      .environment(\.refreshLibraryUseCase, RefreshLibraryUseCase(
+        mangaCrud: AppEnv.env.mangaCrud,
+        chapterCrud: AppEnv.env.chapterCrud,
+        httpClient: AppEnv.env.httpClient,
+        systemDateTime: AppEnv.env.systemDateTime,
+        container: persistenceController.container
+      ))
     }
   }
 

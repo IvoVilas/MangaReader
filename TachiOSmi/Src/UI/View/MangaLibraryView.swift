@@ -11,8 +11,10 @@ import CoreData
 struct MangaLibraryView: View {
   
   @Environment(\.colorScheme) private var scheme
+  @Environment(\.refreshLibraryUseCase) private var refreshUseCase
 
   @StateObject var provider: MangaLibraryProvider
+  @State var isLoading = false
 
   private let getNavigator: (MangaLibraryProvider.MangaWrapper) -> MangaDetailsNavigator
 
@@ -46,10 +48,28 @@ struct MangaLibraryView: View {
   
   var body: some View {
     VStack(alignment: .leading) {
-      Text("Library")
-        .foregroundStyle(scheme.foregroundColor)
-        .font(.title)
-      
+      ZStack {
+        HStack {
+          Text("Library")
+            .foregroundStyle(scheme.foregroundColor)
+            .font(.title)
+
+          Spacer()
+
+          Button { refreshLibrary() } label: {
+            Image(systemName: "arrow.clockwise")
+              .foregroundStyle(scheme.foregroundColor)
+          }
+        }
+
+        ProgressView()
+          .controlSize(.regular)
+          .progressViewStyle(.circular)
+          .opacity(isLoading ? 1 : 0)
+          .offset(y: isLoading ? 0 : -75)
+          .animation(.easeInOut, value: isLoading)
+      }
+
       ZStack {
         ScrollView {
           LazyVGrid(columns: columns, spacing: 16) {
@@ -120,7 +140,18 @@ struct MangaLibraryView: View {
         .opacity(manga.unreadChapters > 0 ? 1 : 0)
     }
   }
-  
+
+  private func refreshLibrary() {
+    Task(priority: .userInitiated) {
+      await MainActor.run { isLoading = true }
+
+      try await Task.sleep(nanoseconds: 5_000_000_000)
+      await refreshUseCase.refresh()
+
+      await MainActor.run { isLoading = false }
+    }
+  }
+
 }
 
 #Preview {

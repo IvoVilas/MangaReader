@@ -24,7 +24,6 @@ struct ContentView: View {
 
   // TODO: Move to env or something
   let sourcesViewModel: MangaSourcesViewModel
-  let refreshLibraryUseCase: RefreshLibraryUseCase
   let appOptionsStore: AppOptionsStore
 
   var body: some View {
@@ -41,10 +40,7 @@ struct ContentView: View {
           .toolbarBackground(.visible, for: .tabBar)
           .tag(Tabs.library)
 
-        MangaUpdatesView(
-          refreshLibraryUseCase: refreshLibraryUseCase,
-          viewMoc: viewMoc
-        )
+        MangaUpdatesView(viewMoc: viewMoc)
         .padding(top: 24, leading: 24, trailing: 24)
         .tabItem {
           Label(
@@ -94,17 +90,7 @@ struct ContentView: View {
 #Preview {
   ContentView(
     sourcesViewModel: MangaSourcesViewModel(),
-    refreshLibraryUseCase: RefreshLibraryUseCase(
-      mangaCrud: MangaCrud(),
-      chapterCrud: ChapterCrud(),
-      httpClient: HttpClient(),
-      systemDateTime: SystemDateTime(),
-      moc: PersistenceController.preview.container.newBackgroundContext()
-    ), 
     appOptionsStore: AppOptionsStore()
   )
-  .environment(
-    \.managedObjectContext,
-     PersistenceController.preview.container.viewContext
-  )
+  .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
 }

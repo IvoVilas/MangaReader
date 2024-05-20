@@ -89,6 +89,7 @@
 		D74B2F112BFA6DA9001737DC /* Result.swift in Sources */ = {isa = PBXBuildFile; fileRef = D74B2F102BFA6DA9001737DC /* Result.swift */; };
 		D74B2F142BFA75E7001737DC /* DataToJsonConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D74B2F132BFA75E7001737DC /* DataToJsonConverter.swift */; };
 		D74B2F162BFA8D23001737DC /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D74B2F152BFA8D23001737DC /* ShareSheet.swift */; };
+		D74B2F1A2BFBFC6B001737DC /* SwiftUI+Environment.swift in Sources */ = {isa = PBXBuildFile; fileRef = D74B2F192BFBFC6B001737DC /* SwiftUI+Environment.swift */; };
 		D74C8A862BBF00D7001274C4 /* MissingChaptersUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = D74C8A852BBF00D7001274C4 /* MissingChaptersUseCase.swift */; };
 		D74C8A892BBF0184001274C4 /* SortChaptersUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = D74C8A882BBF0184001274C4 /* SortChaptersUseCase.swift */; };
 		D74C8A8B2BBF1C08001274C4 /* MangaDetailsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D74C8A8A2BBF1C08001274C4 /* MangaDetailsView.swift */; };
@@ -208,6 +209,7 @@
 		D74B2F102BFA6DA9001737DC /* Result.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Result.swift; sourceTree = "<group>"; };
 		D74B2F132BFA75E7001737DC /* DataToJsonConverter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataToJsonConverter.swift; sourceTree = "<group>"; };
 		D74B2F152BFA8D23001737DC /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
+		D74B2F192BFBFC6B001737DC /* SwiftUI+Environment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SwiftUI+Environment.swift"; sourceTree = "<group>"; };
 		D74C8A852BBF00D7001274C4 /* MissingChaptersUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MissingChaptersUseCase.swift; sourceTree = "<group>"; };
 		D74C8A882BBF0184001274C4 /* SortChaptersUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SortChaptersUseCase.swift; sourceTree = "<group>"; };
 		D74C8A8A2BBF1C08001274C4 /* MangaDetailsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaDetailsView.swift; sourceTree = "<group>"; };
@@ -416,6 +418,7 @@
 				1EF8732C2B95B6F7005E59D3 /* CustomBackAction.swift */,
 				D773542F2BF6A38900871FE5 /* ColorScheme.swift */,
 				D77354462BF7642600871FE5 /* View+Helpers.swift */,
+				D74B2F192BFBFC6B001737DC /* SwiftUI+Environment.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -845,6 +848,7 @@
 				D74FDDC02BFA15E900C99DBE /* DatabaseManager.swift in Sources */,
 				D7F7F53E2BF8BEE2004CD67E /* ValuePicker.swift in Sources */,
 				1EF20A4E2B91213600D17A65 /* SearchDelegateType.swift in Sources */,
+				D74B2F1A2BFBFC6B001737DC /* SwiftUI+Environment.swift in Sources */,
 				1E1235532B853C940022652F /* Date+Helpers.swift in Sources */,
 				1EE89F6E2B84DD48000CAA20 /* TagDataModel.swift in Sources */,
 				1E1235552B853D0E0022652F /* AppEnvironment.swift in Sources */,

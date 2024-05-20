@@ -73,6 +73,7 @@ final class MangaLibraryProvider: NSObject, ObservableObject {
 
         return res
       }
+      .sorted { $0.unreadChapters > $1.unreadChapters }
   }
 
 }

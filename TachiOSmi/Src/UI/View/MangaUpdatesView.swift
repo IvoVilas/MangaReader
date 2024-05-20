@@ -11,15 +11,16 @@ import CoreData
 struct MangaUpdatesView: View {
 
   @Environment(\.colorScheme) private var scheme
+  @Environment(\.refreshLibraryUseCase) private var refreshUseCase
 
   @StateObject var viewModel: MangaUpdatesViewModel
+  @State var isLoading = false
 
   init(
     coverCrud: CoverCrud = AppEnv.env.coverCrud,
     chapterCurd: ChapterCrud = AppEnv.env.chapterCrud,
     formatter: Formatter = AppEnv.env.formatter,
     systemDateTime: SystemDateTimeType = AppEnv.env.systemDateTime,
-    refreshLibraryUseCase: RefreshLibraryUseCase,
     viewMoc: NSManagedObjectContext
   ) {
     _viewModel = StateObject(
@@ -31,7 +32,6 @@ struct MangaUpdatesView: View {
           systemDateTime: systemDateTime,
           viewMoc: viewMoc
         ),
-        refreshLibraryUseCase: refreshLibraryUseCase,
         viewMoc: viewMoc
       )
     )
@@ -47,11 +47,7 @@ struct MangaUpdatesView: View {
 
           Spacer()
 
-          Button {
-            Task(priority: .userInitiated) {
-              await viewModel.refreshLibrary()
-            }
-          } label: {
+          Button { refreshLibrary() } label: {
             Image(systemName: "arrow.clockwise")
               .foregroundStyle(scheme.foregroundColor)
           }
@@ -60,9 +56,9 @@ struct MangaUpdatesView: View {
         ProgressView()
           .controlSize(.regular)
           .progressViewStyle(.circular)
-          .opacity(viewModel.isLoading ? 1 : 0)
-          .offset(y: viewModel.isLoading ? 0 : -75)
-          .animation(.easeInOut, value: viewModel.isLoading)
+          .opacity(isLoading ? 1 : 0)
+          .offset(y: isLoading ? 0 : -75)
+          .animation(.easeInOut, value: isLoading)
       }
 
       ScrollView {
@@ -84,6 +80,16 @@ struct MangaUpdatesView: View {
       .scrollIndicators(.hidden)
     }
     .background(scheme.backgroundColor)
+  }
+
+  private func refreshLibrary() {
+    Task(priority: .userInitiated) {
+      await MainActor.run { isLoading = true }
+
+      await refreshUseCase.refresh()
+
+      await MainActor.run { isLoading = false }
+    }
   }
 
 }
@@ -153,13 +159,6 @@ private struct MangaUpdateLogDateView: View {
 
 #Preview {
   MangaUpdatesView(
-    refreshLibraryUseCase: RefreshLibraryUseCase(
-      mangaCrud: MangaCrud(),
-      chapterCrud: ChapterCrud(),
-      httpClient: HttpClient(),
-      systemDateTime: SystemDateTime(),
-      moc: PersistenceController.preview.container.newBackgroundContext()
-    ),
     viewMoc: PersistenceController.preview.container.viewContext
   )
 }
