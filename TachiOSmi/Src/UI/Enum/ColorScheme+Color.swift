@@ -1,5 +1,5 @@
 //
-//  ColorScheme.swift
+//  ColorScheme+Color.swift
 //  TachiOSmi
 //
 //  Created by Ivo Vilas Boas  on 16/05/2024.

@@ -162,9 +162,7 @@ extension ChaptersDatasource {
 
       self.mangaCrud.updateLastUpdateAt(manga, date: updatedAt)
 
-      if !context.saveIfNeeded(rollbackOnError: true).isSuccess {
-        throw CrudError.saveError
-      }
+      _ = try context.saveIfNeeded()
     }
   }
 

@@ -16,20 +16,16 @@ struct ContentView: View {
     case options
   }
 
-  @Environment(\.managedObjectContext) private var viewMoc
+  @Environment(\.appOptionsStore) private var optionsStore
   @Environment(\.colorScheme) private var scheme
 
   @State private var colorScheme: ColorScheme = .light
   @State private var selectedTab: Tabs = .library
 
-  // TODO: Move to env or something
-  let sourcesViewModel: MangaSourcesViewModel
-  let appOptionsStore: AppOptionsStore
-
   var body: some View {
     NavigationStack {
       TabView(selection: $selectedTab) {
-        MangaLibraryView(viewMoc: viewMoc)
+        MangaLibraryView()
           .padding(top: 24, leading: 24, trailing: 24)
           .tabItem {
             Label(
@@ -40,7 +36,7 @@ struct ContentView: View {
           .toolbarBackground(.visible, for: .tabBar)
           .tag(Tabs.library)
 
-        MangaUpdatesView(viewMoc: viewMoc)
+        MangaUpdatesView()
         .padding(top: 24, leading: 24, trailing: 24)
         .tabItem {
           Label(
@@ -51,7 +47,7 @@ struct ContentView: View {
         .toolbarBackground(.visible, for: .tabBar)
         .tag(Tabs.updates)
 
-        MangaSourcesView(viewModel: sourcesViewModel)
+        MangaSourcesView()
           .padding(top: 24, leading: 24, trailing: 24)
           .tabItem {
             Label(
@@ -62,7 +58,7 @@ struct ContentView: View {
           .toolbarBackground(.visible, for: .tabBar)
           .tag(Tabs.search)
 
-        AppOptionsView(store: appOptionsStore)
+        AppOptionsView()
           .padding(top: 24, leading: 24, trailing: 24)
           .tabItem {
             Label(
@@ -80,7 +76,7 @@ struct ContentView: View {
       .registerNavigator(MangaSearchNavigator.self)
     }
     .environment(\.colorScheme, colorScheme)
-    .onReceive(appOptionsStore.appThemePublisher) {
+    .onReceive(optionsStore.appThemePublisher) {
       colorScheme = $0.toColorScheme(system: scheme)
     }
   }
@@ -88,9 +84,5 @@ struct ContentView: View {
 }
 
 #Preview {
-  ContentView(
-    sourcesViewModel: MangaSourcesViewModel(),
-    appOptionsStore: AppOptionsStore()
-  )
-  .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+  ContentView()
 }

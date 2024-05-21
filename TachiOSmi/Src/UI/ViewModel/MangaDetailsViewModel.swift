@@ -48,13 +48,12 @@ final class MangaDetailsViewModel: ObservableObject {
     httpClient: HttpClient,
     systemDateTime: SystemDateTimeType,
     appOptionsStore: AppOptionsStore,
-    viewMoc: NSManagedObjectContext,
-    moc: NSManagedObjectContext
+    container: NSPersistentContainer
   ) {
     self.source = source
     self.mangaCrud = mangaCrud
-    self.viewMoc = viewMoc
-    self.moc = moc
+    self.viewMoc = container.viewContext
+    self.moc = container.newBackgroundContext()
 
     sortChaptersUseCase = SortChaptersUseCase()
     missingChaptersUseCase = MissingChaptersUseCase()
@@ -157,9 +156,7 @@ final class MangaDetailsViewModel: ObservableObject {
 
       self.mangaCrud.updateIsSaved(manga, isSaved: isSaved)
 
-      if !self.viewMoc.saveIfNeeded(rollbackOnError: true).isSuccess {
-        throw CrudError.saveError
-      }
+      _ = try self.viewMoc.saveIfNeeded()
     }
   }
 
@@ -291,8 +288,7 @@ extension MangaDetailsViewModel {
       mangaId: manga.id,
       mangaTitle: manga.title,
       chapter: chapter,
-      readingDirection: manga.readingDirection,
-      viewMoc: viewMoc
+      readingDirection: manga.readingDirection
     )
   }
 

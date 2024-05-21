@@ -15,18 +15,15 @@ final class MangaUpdatesViewModel: ObservableObject {
   @Published var logs: [MangaUpdatesProvider.MangaUpdatesLogDate]
 
   private let provider: MangaUpdatesProvider
-  private let viewMoc: NSManagedObjectContext
 
   private var logsPage: Int
 
   private var observer: AnyCancellable?
 
   init(
-    provider: MangaUpdatesProvider,
-    viewMoc: NSManagedObjectContext
+    provider: MangaUpdatesProvider
   ) {
     self.provider = provider
-    self.viewMoc = viewMoc
 
     logs = []
     logsPage = 0
@@ -54,8 +51,7 @@ extension MangaUpdatesViewModel {
       mangaId: log.manga.id,
       mangaTitle: log.manga.title,
       chapter: log.chapter,
-      readingDirection: log.manga.readingDirection,
-      viewMoc: viewMoc
+      readingDirection: log.manga.readingDirection
     )
   }
 

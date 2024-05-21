@@ -76,9 +76,7 @@ final class RefreshLibraryUseCase {
 
                 self.mangaCrud.updateLastUpdateAt(manga, date: now)
 
-                if !context.saveIfNeeded(rollbackOnError: true).isSuccess {
-                  throw CrudError.saveError
-                }
+                _ = try context.saveIfNeeded()
               }
             }
           }

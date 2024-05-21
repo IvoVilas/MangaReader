@@ -47,7 +47,7 @@ struct MangaSearchView: View {
     mangaCrud: MangaCrud = AppEnv.env.mangaCrud,
     coverCrud: CoverCrud = AppEnv.env.coverCrud,
     httpClient: HttpClient = AppEnv.env.httpClient,
-    viewMoc: NSManagedObjectContext
+    viewMoc: NSManagedObjectContext = PersistenceController.shared.container.viewContext
   ) {
     _viewModel = StateObject(
       wrappedValue: MangaSearchViewModel(

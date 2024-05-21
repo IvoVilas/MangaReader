@@ -15,7 +15,6 @@ struct MangaReaderNavigator: Navigator {
   let mangaTitle: String
   let chapter: ChapterModel
   let readingDirection: ReadingDirection
-  let viewMoc: NSManagedObjectContext
 
   static func navigate(
     to entity: MangaReaderNavigator
@@ -25,8 +24,7 @@ struct MangaReaderNavigator: Navigator {
       mangaId: entity.mangaId,
       mangaTitle: entity.mangaTitle,
       chapter: entity.chapter,
-      readingDirection: entity.readingDirection,
-      viewMoc: entity.viewMoc
+      readingDirection: entity.readingDirection
     )
   }
 

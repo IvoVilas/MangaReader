@@ -107,9 +107,7 @@ extension MangaSearchViewModel {
   func getNavigator(_ result: MangaSearchResult) -> MangaDetailsNavigator {
     return MangaDetailsNavigator(
       source: source,
-      manga: result,
-      viewMoc: viewMoc,
-      moc: PersistenceController.shared.container.newBackgroundContext()
+      manga: result
     )
   }
 

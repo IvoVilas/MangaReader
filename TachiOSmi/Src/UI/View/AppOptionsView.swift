@@ -368,7 +368,9 @@ private struct MyToggleStyle: ToggleStyle {
 // MARK: Preview
 #Preview {
   NavigationStack {
-    AppOptionsView()
-      .padding(.horizontal, 24)
+    AppOptionsView(
+      store: AppOptionsStore(keyValueManager: InMemoryKeyValueManager())
+    )
+    .padding(.horizontal, 24)
   }
 }

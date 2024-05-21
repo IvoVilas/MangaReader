@@ -8,10 +8,9 @@
 import Foundation
 import SwiftUI
 
-@Observable
-final class MangaSourcesViewModel {
+final class MangaSourcesViewModel: ObservableObject {
 
-  private(set) var sources: [Source]
+  @Published var sources: [Source]
 
   init() {
     sources = Source.allSources()

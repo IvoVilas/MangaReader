@@ -294,9 +294,7 @@ extension SearchDatasource {
         )
       }
 
-      if !self.viewMoc.saveIfNeeded(rollbackOnError: true).isSuccess {
-        throw CrudError.saveError
-      }
+      _ = try self.viewMoc.saveIfNeeded()
     }
   }
 

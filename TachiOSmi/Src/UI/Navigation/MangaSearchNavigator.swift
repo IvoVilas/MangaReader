@@ -11,14 +11,12 @@ import CoreData
 struct MangaSearchNavigator: Navigator {
 
   let source: Source
-  let viewMoc: NSManagedObjectContext
 
   static func navigate(
     to entity: MangaSearchNavigator
   ) -> MangaSearchView {
     return MangaSearchView(
-      source: entity.source,
-      viewMoc: entity.viewMoc
+      source: entity.source
     )
   }
 

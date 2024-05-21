@@ -49,10 +49,26 @@ final class AppOptionsStore {
     return isDataSavingOnProperty.value
   }
 
-  init() {
-    appThemeProperty = KVMProperty(key: "app_theme", defaultValue: ThemePalette.system.id)
-    defaultDirectionProperty = KVMProperty(key: "default_reading_direction", defaultValue: ReadingDirection.leftToRight.id)
-    isDataSavingOnProperty = KVMProperty(key: "is_data_saving_on", defaultValue: false)
+  init(
+    keyValueManager: KeyValueManagerType
+  ) {
+    appThemeProperty = KVMProperty(
+      key: "app_theme",
+      defaultValue: ThemePalette.system.id,
+      keyValueManager: keyValueManager
+    )
+
+    defaultDirectionProperty = KVMProperty(
+      key: "default_reading_direction",
+      defaultValue: ReadingDirection.leftToRight.id,
+      keyValueManager: keyValueManager
+    )
+
+    isDataSavingOnProperty = KVMProperty(
+      key: "is_data_saving_on",
+      defaultValue: false,
+      keyValueManager: keyValueManager
+    )
   }
 
   func changeProperty(_ property: Property) {

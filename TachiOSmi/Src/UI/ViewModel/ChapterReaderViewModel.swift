@@ -205,9 +205,7 @@ final class ChapterReaderViewModel: ObservableObject {
 
       self.mangaCrud.updateReadingDirection(manga, direction: direction)
 
-      if !self.viewMoc.saveIfNeeded(rollbackOnError: true).isSuccess {
-        throw CrudError.saveError
-      }
+      _ = try self.viewMoc.saveIfNeeded()
     }
   }
 
@@ -231,7 +229,7 @@ extension ChapterReaderViewModel {
       }
 
       taskGroup.addTask {
-        await self.viewMoc.perform {
+        try? await self.viewMoc.perform {
           guard
             let pageIndex,
             let chapter = try? self.chapterCrud.getChapter(
@@ -246,7 +244,7 @@ extension ChapterReaderViewModel {
           self.chapterCrud.updateIsRead(chapter, isRead: pageIndex >= self.pagesCount - 1)
 
           // TODO: Save when important, not in each page
-          _ = self.viewMoc.saveIfNeeded(rollbackOnError: true)
+          _ = try self.viewMoc.saveIfNeeded()
         }
       }
     }

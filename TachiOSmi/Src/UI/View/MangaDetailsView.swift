@@ -29,8 +29,7 @@ struct MangaDetailsView: View {
     httpClient: HttpClient = AppEnv.env.httpClient,
     systemDateTime: SystemDateTimeType = AppEnv.env.systemDateTime,
     appOptionsStore: AppOptionsStore = AppEnv.env.appOptionsStore,
-    viewMoc: NSManagedObjectContext,
-    moc: NSManagedObjectContext
+    container: NSPersistentContainer = PersistenceController.shared.container
   ) {
     _viewModel = StateObject(
       wrappedValue: MangaDetailsViewModel(
@@ -44,8 +43,7 @@ struct MangaDetailsView: View {
         httpClient: httpClient,
         systemDateTime: systemDateTime,
         appOptionsStore: appOptionsStore,
-        viewMoc: viewMoc,
-        moc: moc
+        container: container
       )
     )
   }
@@ -358,7 +356,7 @@ struct MangaDetailsView: View {
       title: "Jujutsu Kaisen",
       cover: UIImage.jujutsuCover.jpegData(compressionQuality: 1)
     ),
-    viewMoc: PersistenceController.preview.container.viewContext,
-    moc: PersistenceController.preview.container.newBackgroundContext()
+    appOptionsStore: AppOptionsStore(keyValueManager: InMemoryKeyValueManager()),
+    container: PersistenceController.preview.container
   )
 }

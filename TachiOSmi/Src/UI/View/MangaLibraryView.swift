@@ -16,8 +16,6 @@ struct MangaLibraryView: View {
   @StateObject var provider: MangaLibraryProvider
   @State var isLoading = false
 
-  private let getNavigator: (MangaLibraryProvider.MangaWrapper) -> MangaDetailsNavigator
-
   private let columns = Array(
     repeating: GridItem(.flexible(), spacing: 16),
     count: 3
@@ -26,17 +24,8 @@ struct MangaLibraryView: View {
   init(
     coverCrud: CoverCrud = AppEnv.env.coverCrud,
     chapterCrud: ChapterCrud = AppEnv.env.chapterCrud,
-    viewMoc: NSManagedObjectContext
+    viewMoc: NSManagedObjectContext = PersistenceController.shared.container.viewContext
   ) {
-    getNavigator = {
-      MangaDetailsNavigator(
-        source: $0.source,
-        manga: $0.manga,
-        viewMoc: viewMoc,
-        moc: PersistenceController.shared.container.newBackgroundContext()
-      )
-    }
-
     _provider = StateObject(
       wrappedValue: MangaLibraryProvider(
         coverCrud: coverCrud,
@@ -74,7 +63,7 @@ struct MangaLibraryView: View {
         ScrollView {
           LazyVGrid(columns: columns, spacing: 16) {
             ForEach(provider.mangas) { result in
-              NavigationLink(value: getNavigator(result)) {
+              NavigationLink(value: MangaDetailsNavigator.fromMangaWrapper(result)) {
                 makeMangaView(result)
               }
             }

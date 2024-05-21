@@ -31,7 +31,7 @@ struct ChapterReaderView: View {
     chapterCrud: ChapterCrud = AppEnv.env.chapterCrud,
     httpClient: HttpClient = AppEnv.env.httpClient,
     appOptionsStore: AppOptionsStore = AppEnv.env.appOptionsStore,
-    viewMoc: NSManagedObjectContext
+    viewMoc: NSManagedObjectContext = PersistenceController.shared.container.viewContext
   ) {
     _viewModel = StateObject(
       wrappedValue: ChapterReaderViewModel(
@@ -287,6 +287,7 @@ struct ChapterReaderView: View {
       downloadInfo: "5624518b-f062-49e8-84ec-e4f40e0de038"
     ),
     readingDirection: .leftToRight,
+    appOptionsStore: AppOptionsStore(keyValueManager: InMemoryKeyValueManager()),
     viewMoc: PersistenceController.preview.container.viewContext
   )
 }

@@ -12,7 +12,7 @@ struct KVMProperty<ValueType> {
 
   private let key: String
   private let defaultValue: ValueType
-  private let userDefaults: UserDefaults
+  private let keyValueManager: KeyValueManagerType
 
   private let properyValuePublisher: CurrentValueSubject<ValueType, Never>
 
@@ -21,31 +21,31 @@ struct KVMProperty<ValueType> {
   }
 
   var value: ValueType {
-    userDefaults.object(forKey: key) as? ValueType ?? defaultValue
+    keyValueManager.value(forKey: key) as? ValueType ?? defaultValue
   }
 
   init(
     key: String,
     defaultValue: ValueType,
-    userDefaults: UserDefaults = .standard
+    keyValueManager: KeyValueManagerType
   ) {
     self.key = key
     self.defaultValue = defaultValue
-    self.userDefaults = userDefaults
+    self.keyValueManager = keyValueManager
 
     properyValuePublisher = CurrentValueSubject(
-      userDefaults.object(forKey: key) as? ValueType ?? defaultValue
+      keyValueManager.value(forKey: key) as? ValueType ?? defaultValue
     )
   }
 
   func setValue(_ value: ValueType) {
-    userDefaults.setValue(value, forKey: key)
+    keyValueManager.set(value: value, forKey: key)
 
     properyValuePublisher.value = value
   }
 
   func destroy() {
-    userDefaults.removeObject(forKey: key)
+    keyValueManager.removeObject(forKey: key)
   }
 
 }

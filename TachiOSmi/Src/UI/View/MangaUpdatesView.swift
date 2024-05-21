@@ -21,7 +21,7 @@ struct MangaUpdatesView: View {
     chapterCurd: ChapterCrud = AppEnv.env.chapterCrud,
     formatter: Formatter = AppEnv.env.formatter,
     systemDateTime: SystemDateTimeType = AppEnv.env.systemDateTime,
-    viewMoc: NSManagedObjectContext
+    viewMoc: NSManagedObjectContext = PersistenceController.shared.container.viewContext
   ) {
     _viewModel = StateObject(
       wrappedValue: MangaUpdatesViewModel(
@@ -31,8 +31,7 @@ struct MangaUpdatesView: View {
           formatter: formatter,
           systemDateTime: systemDateTime,
           viewMoc: viewMoc
-        ),
-        viewMoc: viewMoc
+        )
       )
     )
   }

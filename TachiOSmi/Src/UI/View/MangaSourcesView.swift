@@ -10,9 +10,8 @@ import SwiftUI
 struct MangaSourcesView: View {
 
   @Environment(\.colorScheme) private var scheme
-  @Environment(\.managedObjectContext) private var viewMoc
 
-  let viewModel: MangaSourcesViewModel
+  @StateObject var viewModel = MangaSourcesViewModel()
 
   var body: some View {
     VStack(alignment: .leading) {
@@ -23,7 +22,7 @@ struct MangaSourcesView: View {
       ScrollView {
         VStack(alignment: .leading, spacing: 24) {
           ForEach(viewModel.sources) { source in
-            NavigationLink(value: MangaSearchNavigator(source: source, viewMoc: viewMoc)) {
+            NavigationLink(value: MangaSearchNavigator(source: source)) {
               makeSourceView(source)
             }
           }
@@ -65,7 +64,5 @@ struct MangaSourcesView: View {
 }
 
 #Preview {
-  MangaSourcesView(
-    viewModel: MangaSourcesViewModel()
-  )
+  MangaSourcesView()
 }

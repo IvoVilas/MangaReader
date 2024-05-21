@@ -155,9 +155,7 @@ extension DetailsDatasource {
         )
       }
 
-      if !context.saveIfNeeded(rollbackOnError: true).isSuccess {
-        throw CrudError.saveError
-      }
+      _ = try context.saveIfNeeded()
     }
   }
 

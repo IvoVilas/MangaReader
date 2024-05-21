@@ -52,7 +52,9 @@ final class AppEnvironment {
     systemDateTime = SystemDateTime()
     formatter = Formatter(systemDateTime: systemDateTime)
 
-    appOptionsStore = AppOptionsStore()
+    appOptionsStore = AppOptionsStore(
+      keyValueManager: UserDefaultsManager()
+    )
     databaseManager = DatabaseManager(
       mangaCrud: mangaCrud,
       chapterCrud: chapterCrud,
