@@ -34,7 +34,6 @@ final class DatabaseManager {
     self.coverCrud = coverCrud
     self.formatter = formatter
     self.persistenceContainer = persistenceContainer
-
   }
 
   func cleanDatabase() -> Result<(Int, Int), DatasourceError> {
@@ -78,7 +77,6 @@ final class DatabaseManager {
   }
 
   // TODO: Dump covers as well
-  // TODO: Dump "lost entites"
   func dumpDatabase() -> Result<URL, DatasourceError> {
     let converter = DataToJsonConverter(formatter: formatter)
     let context = persistenceContainer.viewContext
@@ -132,6 +130,46 @@ final class DatabaseManager {
       return .success(url)
     } catch {
       print("DatabaseManager -> Error during database dump: \(error)")
+
+      let error = DatasourceError.catchError(error) ?? .otherError("Unknown error")
+      return .failure(error)
+    }
+  }
+
+  func importDatabase(_ data: Data) -> EmptyResult<DatasourceError> {
+    print("DatabaseManager -> Started database import...")
+
+    do {
+      let converter = JsonToDataConverter(
+        mangaCrud: mangaCrud,
+        chapterCrud: chapterCrud,
+        authorCrud: authorCrud,
+        tagCrud: tagCrud,
+        formatter: formatter
+      )
+
+      guard 
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+        let mangas = json["mangas"] as? [[String: Any]]
+      else {
+        throw DatasourceError.errorParsingResponse("Selected file is not valid")
+      }
+
+      let context = persistenceContainer.newBackgroundContext()
+
+      try context.performAndWait {
+        _ = mangas.map { converter.toManga($0, moc: context) }
+
+        if context.hasChanges {
+          try context.save()
+        }
+      }
+
+      print("DatabaseManager -> Finished database import")
+
+      return .success
+    } catch {
+      print("DatabaseManager -> Error during database import: \(error)")
 
       let error = DatasourceError.catchError(error) ?? .otherError("Unknown error")
       return .failure(error)

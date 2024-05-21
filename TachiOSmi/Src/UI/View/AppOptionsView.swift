@@ -57,6 +57,8 @@ struct AppOptionsView: View {
               case .share(let viewModel):
                 OptionShareView(viewModel: viewModel)
 
+              case .upload(let viewModel):
+                OptionImportView(viewModel: viewModel)
               }
             }
           }
@@ -272,11 +274,54 @@ private struct OptionShareView: View {
       .clipShape(RoundedRectangle(cornerRadius: 8))
       .sheet(isPresented: $viewModel.showingShare) {
         if let url = viewModel.fileUrl {
-          ShareSheet(activityItems: [url]) {
-            viewModel.deleteFile()
-          }
-          .presentationDetents([.medium, .large])
+          ShareSheet(activityItems: [url], completion: viewModel.deleteFile)
+            .presentationDetents([.medium, .large])
         }
+      }
+    }
+  }
+
+}
+
+// MARK: Import view
+private struct OptionImportView: View {
+
+  @ObservedObject var viewModel: OptionImportViewModel
+
+  var body: some View {
+    Button {
+      viewModel.showingImport.toggle()
+    } label: {
+      VStack(spacing: 0) {
+        viewModel.icon.image()
+          .resizable()
+          .scaledToFit()
+          .foregroundStyle(viewModel.iconColor)
+          .frame(width: 24, height: 24)
+        
+        Spacer().frame(height: 8)
+
+        Text(viewModel.title)
+          .foregroundStyle(.black)
+          .font(.caption)
+          .frame(maxWidth: .infinity)
+
+        Spacer().frame(height: 8)
+
+        Text(viewModel.description)
+          .multilineTextAlignment(.center)
+          .foregroundStyle(.blue)
+          .font(.caption2)
+
+        Spacer().frame(idealHeight: 16, maxHeight: 16)
+      }
+      .padding(.vertical)
+      .padding(.horizontal, 4)
+      .background(Color(uiColor: .systemFill))
+      .clipShape(RoundedRectangle(cornerRadius: 8))
+      .sheet(isPresented: $viewModel.showingImport) {
+        FilePicker(fileURL: $viewModel.fileUrl, completion: viewModel.processFile)
+          .presentationDetents([.medium, .large])
       }
     }
   }

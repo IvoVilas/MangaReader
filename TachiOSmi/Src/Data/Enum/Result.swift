@@ -7,6 +7,13 @@
 
 import Foundation
 
+enum EmptyResult<ErrorType> {
+
+  case success
+  case failure(ErrorType)
+
+}
+
 enum Result<ResultType, ErrorType> {
 
   case success(ResultType)

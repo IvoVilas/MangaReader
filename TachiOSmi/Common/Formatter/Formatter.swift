@@ -45,6 +45,10 @@ final class Formatter {
     return iso8601Formatter.string(from: date)
   }
 
+  func dateFromISO8601(_ value: String) -> Date? {
+    return iso8601Formatter.date(from: value)
+  }
+
 }
 
 extension Formatter {

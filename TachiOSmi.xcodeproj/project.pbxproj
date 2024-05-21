@@ -90,6 +90,8 @@
 		D74B2F142BFA75E7001737DC /* DataToJsonConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D74B2F132BFA75E7001737DC /* DataToJsonConverter.swift */; };
 		D74B2F162BFA8D23001737DC /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D74B2F152BFA8D23001737DC /* ShareSheet.swift */; };
 		D74B2F1A2BFBFC6B001737DC /* SwiftUI+Environment.swift in Sources */ = {isa = PBXBuildFile; fileRef = D74B2F192BFBFC6B001737DC /* SwiftUI+Environment.swift */; };
+		D74B2F1C2BFC03A1001737DC /* FilePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = D74B2F1B2BFC03A1001737DC /* FilePicker.swift */; };
+		D74B2F1E2BFC0777001737DC /* JsonToDataConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D74B2F1D2BFC0777001737DC /* JsonToDataConverter.swift */; };
 		D74C8A862BBF00D7001274C4 /* MissingChaptersUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = D74C8A852BBF00D7001274C4 /* MissingChaptersUseCase.swift */; };
 		D74C8A892BBF0184001274C4 /* SortChaptersUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = D74C8A882BBF0184001274C4 /* SortChaptersUseCase.swift */; };
 		D74C8A8B2BBF1C08001274C4 /* MangaDetailsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D74C8A8A2BBF1C08001274C4 /* MangaDetailsView.swift */; };
@@ -210,6 +212,8 @@
 		D74B2F132BFA75E7001737DC /* DataToJsonConverter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataToJsonConverter.swift; sourceTree = "<group>"; };
 		D74B2F152BFA8D23001737DC /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
 		D74B2F192BFBFC6B001737DC /* SwiftUI+Environment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SwiftUI+Environment.swift"; sourceTree = "<group>"; };
+		D74B2F1B2BFC03A1001737DC /* FilePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilePicker.swift; sourceTree = "<group>"; };
+		D74B2F1D2BFC0777001737DC /* JsonToDataConverter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JsonToDataConverter.swift; sourceTree = "<group>"; };
 		D74C8A852BBF00D7001274C4 /* MissingChaptersUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MissingChaptersUseCase.swift; sourceTree = "<group>"; };
 		D74C8A882BBF0184001274C4 /* SortChaptersUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SortChaptersUseCase.swift; sourceTree = "<group>"; };
 		D74C8A8A2BBF1C08001274C4 /* MangaDetailsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaDetailsView.swift; sourceTree = "<group>"; };
@@ -571,6 +575,7 @@
 			isa = PBXGroup;
 			children = (
 				D74B2F132BFA75E7001737DC /* DataToJsonConverter.swift */,
+				D74B2F1D2BFC0777001737DC /* JsonToDataConverter.swift */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -647,6 +652,7 @@
 				D74FDDC12BFA205E00C99DBE /* PositionObservingView.swift */,
 				D74FDDC32BFA217E00C99DBE /* PositionObservingScrollView.swift */,
 				D74B2F152BFA8D23001737DC /* ShareSheet.swift */,
+				D74B2F1B2BFC03A1001737DC /* FilePicker.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -816,6 +822,7 @@
 				D74B2F142BFA75E7001737DC /* DataToJsonConverter.swift in Sources */,
 				1EE89F6A2B84D87B000CAA20 /* Moc+Extension.swift in Sources */,
 				1E1235402B8534580022652F /* SystemDateTimeType.swift in Sources */,
+				D74B2F1E2BFC0777001737DC /* JsonToDataConverter.swift in Sources */,
 				1EF20A682B91720800D17A65 /* MangaSource.swift in Sources */,
 				1EE89F582B84CBBD000CAA20 /* MangaCrud.swift in Sources */,
 				1EC8BD312B929CDD0017ACF0 /* ManganeloPagesDelegate.swift in Sources */,
@@ -863,6 +870,7 @@
 				D7736CC12BBC8B2B0081AE98 /* TransitionPageView.swift in Sources */,
 				D7221EAD2B9BD4C400B72F9F /* ReadingDirection.swift in Sources */,
 				1EC8BD2A2B92879A0017ACF0 /* MangaSearchType.swift in Sources */,
+				D74B2F1C2BFC03A1001737DC /* FilePicker.swift in Sources */,
 				D7F7F54A2BF9031C004CD67E /* KVMProperty.swift in Sources */,
 				1E1235462B8534580022652F /* SystemDateTimeRounderType.swift in Sources */,
 				D77354342BF6B08E00871FE5 /* MangaUpdatesProvider.swift in Sources */,

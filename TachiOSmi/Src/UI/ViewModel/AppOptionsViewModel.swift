@@ -96,9 +96,9 @@ final class AppOptionsViewModel: ObservableObject {
       .share(
         OptionShareViewModel(
           id: "action_dump_database",
-          title: "Dump database",
-          description: "Dump database data",
-          icon: .system("square.and.arrow.down"),
+          title: "Export database",
+          description: "Export database data into a file",
+          icon: .system("square.and.arrow.up"),
           iconColor: .green,
           buildFile: { [weak self] in
             guard let self else { return nil }
@@ -118,6 +118,36 @@ final class AppOptionsViewModel: ObservableObject {
             }
 
             return nil
+          }
+        )
+      ),
+      .upload(
+        OptionImportViewModel(
+          id: "action_import_database",
+          title: "Import database",
+          description: "Import database data from file",
+          icon: .system("square.and.arrow.down"),
+          iconColor: .red,
+          processFile: { [weak self] data in
+            guard let self else { return }
+
+            self.isLoading = true
+
+            Task(priority: .userInitiated) {
+              let result = self.databaseManager.importDatabase(data)
+
+              await MainActor.run {
+                self.isLoading = false
+
+                switch result {
+                case .success:
+                  self.info = "Database imported with success"
+
+                case .failure(let error):
+                  self.error = error
+                }
+              }
+            }
           }
         )
       )
@@ -150,6 +180,7 @@ extension AppOptionsViewModel {
     case toggle(OptionToggleViewModel)
     case action(OptionActionViewModel)
     case share(OptionShareViewModel)
+    case upload(OptionImportViewModel)
 
     var id: String {
       switch self {
@@ -167,6 +198,9 @@ extension AppOptionsViewModel {
 
       case .share(let viewModel):
         return viewModel.id
+
+      case .upload(let viewModel):
+        return viewModel.id
       }
     }
 
@@ -174,7 +208,7 @@ extension AppOptionsViewModel {
 
 }
 
-// MARK: OptionSelectionViewModel
+// MARK: Select
 final class OptionSelectionViewModel<T: Hashable & CustomStringConvertible>: ObservableObject {
 
   @Published var options: [T]
@@ -203,7 +237,7 @@ final class OptionSelectionViewModel<T: Hashable & CustomStringConvertible>: Obs
 
 }
 
-// MARK: OptionToggleViewModel
+// MARK: Toggle
 final class OptionToggleViewModel: ObservableObject {
 
   @Published var value: Bool
@@ -232,7 +266,7 @@ final class OptionToggleViewModel: ObservableObject {
 
 }
 
-// MARK: OptionActionViewModel
+// MARK: Action
 final class OptionActionViewModel: ObservableObject {
 
   @Published var title: String
@@ -274,7 +308,7 @@ final class OptionActionViewModel: ObservableObject {
 
 }
 
-// TODO: Remove file after sharing
+// MARK: Share
 final class OptionShareViewModel: ObservableObject {
 
   @Published var title: String
@@ -326,6 +360,38 @@ final class OptionShareViewModel: ObservableObject {
     } catch {
       print("Error deleting temporary file: \(error)")
     }
+  }
+
+}
+
+// MARK: Import
+final class OptionImportViewModel: ObservableObject {
+
+  @Published var title: String
+  @Published var description: String
+  @Published var icon: IconSource
+  @Published var iconColor: Color
+  @Published var fileUrl: URL?
+  @Published var showingImport: Bool
+
+  let id: String
+  let processFile: (Data) -> Void
+
+  init(
+    id: String,
+    title: String,
+    description: String,
+    icon: IconSource,
+    iconColor: Color,
+    processFile: @escaping (Data) -> Void
+  ) {
+    self.id = id
+    self.title = title
+    self.description = description
+    self.icon = icon
+    self.iconColor = iconColor
+    self.showingImport = false
+    self.processFile = processFile
   }
 
 }

@@ -121,6 +121,7 @@ extension DetailsDatasource {
         id: manga.id,
         title: manga.title,
         synopsis: manga.description,
+        isSaved: nil,
         status: manga.status,
         source: self.source,
         readingDirection: self.appOptionsStore.defaultDirection,

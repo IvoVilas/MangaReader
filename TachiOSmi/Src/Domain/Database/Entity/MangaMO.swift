@@ -28,6 +28,7 @@ class MangaMO: NSManagedObject {
     id: String,
     title: String,
     synopsis: String?,
+    isSaved: Bool,
     statusId: Int16,
     lastUpdateAt: Date?,
     sourceId: String,
@@ -45,7 +46,7 @@ class MangaMO: NSManagedObject {
     self.synopsis         = synopsis
     self.statusId         = statusId
     self.lastUpdateAt     = lastUpdateAt
-    self.isSaved          = false
+    self.isSaved          = isSaved
     self.readingDirection = readingDirectionId
     self.sourceId         = sourceId
 
