@@ -122,7 +122,7 @@ struct MangaLibraryView: View {
         .lineLimit(1)
         .foregroundStyle(.white)
         .padding(4)
-        .background(.black)
+        .background(.blue)
         .clipShape(RoundedRectangle(cornerRadius: 4))
         .padding(.leading, 8)
         .padding(.top, 8)

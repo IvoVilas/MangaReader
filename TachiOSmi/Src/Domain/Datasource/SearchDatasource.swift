@@ -14,7 +14,7 @@ final class SearchDatasource {
   private let delegate: SearchDelegateType
   private let mangaCrud: MangaCrud
   private let coverCrud: CoverCrud
-  private let viewMoc: NSManagedObjectContext
+  private let moc: NSManagedObjectContext
 
   private let mangas: CurrentValueSubject<[MangaSearchResult], Never>
   private let state: CurrentValueSubject<DatasourceState, Never>
@@ -41,12 +41,12 @@ final class SearchDatasource {
     delegate: SearchDelegateType,
     mangaCrud: MangaCrud,
     coverCrud: CoverCrud,
-    viewMoc: NSManagedObjectContext
+    moc: NSManagedObjectContext
   ) {
     self.delegate = delegate
     self.mangaCrud = mangaCrud
     self.coverCrud = coverCrud
-    self.viewMoc = viewMoc
+    self.moc = moc
 
     mangas = CurrentValueSubject([])
     state  = CurrentValueSubject(.starting)
@@ -221,8 +221,8 @@ final class SearchDatasource {
     downloadInfo: String
   ) async -> Data? {
     do {
-      let localCoverData = try await viewMoc.perform {
-        try self.coverCrud.getCoverData(for: mangaId, moc: self.viewMoc)
+      let localCoverData = try await moc.perform {
+        try self.coverCrud.getCoverData(for: mangaId, moc: self.moc)
       }
 
       if let localCoverData {
@@ -283,18 +283,18 @@ extension SearchDatasource {
   private func storeCovers(
     _ coverInfo: [(String, Data?)]
   ) async throws {
-    try await viewMoc.perform {
+    try await moc.perform {
       for (id, data) in coverInfo {
         guard let data else { continue }
 
         _ = try self.coverCrud.createOrUpdateEntity(
           mangaId: id,
           data: data,
-          moc: self.viewMoc
+          moc: self.moc
         )
       }
 
-      _ = try self.viewMoc.saveIfNeeded()
+      _ = try self.moc.saveIfNeeded()
     }
   }
 

@@ -58,28 +58,21 @@ final class ChaptersDatasource {
   func refresh(
     force: Bool = false
   ) async {
-    if let fetchTask {
-      fetchTask.cancel()
-
-      await fetchTask.value
-    }
-
-    await MainActor.run {
-      state.valueOnMain = .loading
-      error.valueOnMain = nil
+    if fetchTask != nil {
+      return
     }
 
     fetchTask = Task { [weak self] in
       guard let self else { return }
 
-      var results = [ChapterIndexResult]()
-      var erro: DatasourceError?
+      self.state.value = .loading
+      self.error.value = nil
 
       do {
-        if try await needsFetch(isForce: force) {
+        if try await self.needsFetch(isForce: force) {
           print("MangaDetailsDatasource -> Starting manga chapters refresh...")
 
-          results = try await self.delegate.fetchChapters(mangaId: mangaId)
+          let results = try await self.delegate.fetchChapters(mangaId: self.mangaId)
 
           try await self.updateDatabase(
             chapters: results,
@@ -89,15 +82,14 @@ final class ChaptersDatasource {
           print("MangaDetailsDatasource -> Ended manga chapters refresh")
         }
       } catch {
-        erro = .catchError(error)
+        self.error.value = .catchError(error)
       }
 
-      await MainActor.run { [erro] in
-        self.state.valueOnMain = .normal
-        self.error.valueOnMain = erro
-        self.fetchTask = nil
-      }
+      self.state.value = .normal
+      self.fetchTask = nil
     }
+
+    _ = await fetchTask?.result
   }
 
   private func needsFetch(isForce: Bool) async throws -> Bool {

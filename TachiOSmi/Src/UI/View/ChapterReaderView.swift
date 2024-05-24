@@ -31,7 +31,7 @@ struct ChapterReaderView: View {
     chapterCrud: ChapterCrud = AppEnv.env.chapterCrud,
     httpClient: HttpClient = AppEnv.env.httpClient,
     appOptionsStore: AppOptionsStore = AppEnv.env.appOptionsStore,
-    viewMoc: NSManagedObjectContext = PersistenceController.shared.container.viewContext
+    container: NSPersistentContainer = PersistenceController.shared.container
   ) {
     _viewModel = StateObject(
       wrappedValue: ChapterReaderViewModel(
@@ -44,7 +44,7 @@ struct ChapterReaderView: View {
         chapterCrud: chapterCrud,
         httpClient: httpClient,
         appOptionsStore: appOptionsStore,
-        viewMoc: viewMoc
+        container: container
       )
     )
   }
@@ -288,6 +288,6 @@ struct ChapterReaderView: View {
     ),
     readingDirection: .leftToRight,
     appOptionsStore: AppOptionsStore(keyValueManager: InMemoryKeyValueManager()),
-    viewMoc: PersistenceController.preview.container.viewContext
+    container: PersistenceController.preview.container
   )
 }

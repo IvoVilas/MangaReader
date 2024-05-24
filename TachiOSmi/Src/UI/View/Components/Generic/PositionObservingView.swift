@@ -31,7 +31,10 @@ struct PositionObservingView<Content: View>: View {
         }
       )
       .onPreferenceChange(PreferenceKey.self) { position in
-        self.position = position
+        // Limit usage but greatly increase performance
+        if position.y >= 0 && abs(position.y - self.position.y) >= 1 {
+          self.position = position
+        }
       }
   }
 

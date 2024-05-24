@@ -6,8 +6,9 @@
 //
 
 import CoreData
+import UIKit
 
-struct PersistenceController {
+final class PersistenceController {
 
   static let shared = PersistenceController()
 
@@ -16,7 +17,9 @@ struct PersistenceController {
   static var preview: PersistenceController = {
     let controller = PersistenceController(inMemory: true)
 
-    // Mock data if wanted
+    initPreviewMocData(
+      context: controller.container.newBackgroundContext()
+    )
 
     return controller
   }()
@@ -37,4 +40,54 @@ struct PersistenceController {
 
     container.viewContext.automaticallyMergesChangesFromParent = true
   }
+
+}
+
+extension PersistenceController {
+
+  private static func initPreviewMocData(
+    context: NSManagedObjectContext
+  ) {
+    context.performAndWait {
+      let manga = MangaMO(
+        id: "1",
+        title: "Jujutsu Kaisen",
+        synopsis: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged",
+        isSaved: true,
+        statusId: MangaStatus.ongoing.id,
+        lastUpdateAt: Date(),
+        sourceId: Source.mangadex.id,
+        readingDirectionId: ReadingDirection.leftToRight.id,
+        moc: context
+      )
+
+      guard let manga else { return }
+
+      for i in 0..<30 {
+        guard let chapter = ChapterMO(
+          id: "\(i)",
+          chapter: Double(i),
+          title: nil,
+          numberOfPages: 20,
+          publishAt: Date().addingTimeInterval(Double(i) * 1_000),
+          urlInfo: "\(i)",
+          manga: manga,
+          moc: context
+        ) else {
+          continue
+        }
+
+        manga.chapters.insert(chapter)
+      }
+
+      _ = CoverMO(
+        mangaId: "1",
+        data: UIImage.jujutsuCover.pngData() ?? Data(),
+        moc: context
+      )
+
+      _ = try? context.saveIfNeeded()
+    }
+  }
+
 }

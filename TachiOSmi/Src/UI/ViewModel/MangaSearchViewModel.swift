@@ -22,7 +22,6 @@ final class MangaSearchViewModel: ObservableObject {
   private let source: Source
   private let provider: MangaSearchProvider
   private let datasource: SearchDatasource
-  private let viewMoc: NSManagedObjectContext
 
   private var searchValue: MangaSearchType {
     if input.isEmpty {
@@ -39,19 +38,18 @@ final class MangaSearchViewModel: ObservableObject {
     mangaCrud: MangaCrud,
     coverCrud: CoverCrud,
     httpClient: HttpClient,
-    viewMoc: NSManagedObjectContext
+    container: NSPersistentContainer
   ) {
     self.source = source
-    self.viewMoc = viewMoc
 
     self.provider = MangaSearchProvider(
-      viewMoc: viewMoc
+      viewMoc: container.viewContext
     )
     self.datasource = SearchDatasource(
       delegate: source.searchDelegateType.init(httpClient: httpClient),
       mangaCrud: mangaCrud,
       coverCrud: coverCrud,
-      viewMoc: viewMoc
+      moc: container.newBackgroundContext()
     )
 
     sourceName = source.name

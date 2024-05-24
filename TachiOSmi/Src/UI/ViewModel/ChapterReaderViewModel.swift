@@ -36,6 +36,7 @@ final class ChapterReaderViewModel: ObservableObject {
   private let httpClient: HttpClient
   private let appOptionsStore: AppOptionsStore
   private let viewMoc: NSManagedObjectContext
+  private let moc: NSManagedObjectContext
 
   let closeReaderEvent = PassthroughSubject<Void, Never>()
   private let receivedPagesEvent = CurrentValueSubject<Bool, Never>(false)
@@ -51,7 +52,7 @@ final class ChapterReaderViewModel: ObservableObject {
     chapterCrud: ChapterCrud,
     httpClient: HttpClient,
     appOptionsStore: AppOptionsStore,
-    viewMoc: NSManagedObjectContext
+    container: NSPersistentContainer
   ) {
     self.source = source
     self.mangaId = mangaId
@@ -60,7 +61,8 @@ final class ChapterReaderViewModel: ObservableObject {
     self.chapterCrud = chapterCrud
     self.httpClient = httpClient
     self.appOptionsStore = appOptionsStore
-    self.viewMoc = viewMoc
+    self.viewMoc = container.viewContext
+    self.moc = container.newBackgroundContext()
 
     delegate = source.pagesDelegateType.init(httpClient: httpClient)
     datasource = PagesDatasource(
@@ -155,17 +157,19 @@ final class ChapterReaderViewModel: ObservableObject {
   }
 
   private func fetchAdjacentChapters() async {
-    let (next, previous) = await viewMoc.perform {
+    let context = viewMoc
+
+    let (next, previous) = await context.perform {
       let next = try? self.chapterCrud.findNextChapter(
         self.chapter.id,
         mangaId: self.mangaId,
-        moc: self.viewMoc
+        moc: context
       )
 
       let previous = try? self.chapterCrud.findPreviousChapter(
         self.chapter.id,
         mangaId: self.mangaId,
-        moc: self.viewMoc
+        moc: context
       )
 
       let nextChapter: ChapterModel?
@@ -198,14 +202,16 @@ final class ChapterReaderViewModel: ObservableObject {
   }
 
   private func updateReadingDirection(to direction: ReadingDirection) async throws {
-    try await viewMoc.perform {
-      guard let manga = try self.mangaCrud.getManga(self.mangaId, moc: self.viewMoc) else {
+    let context = moc
+
+    try await context.perform {
+      guard let manga = try self.mangaCrud.getManga(self.mangaId, moc: context) else {
         throw CrudError.mangaNotFound(id: self.mangaId)
       }
 
       self.mangaCrud.updateReadingDirection(manga, direction: direction)
 
-      _ = try self.viewMoc.saveIfNeeded()
+      _ = try context.saveIfNeeded()
     }
   }
 
@@ -219,6 +225,7 @@ extension ChapterReaderViewModel {
   }
 
   func onPageTask(_ pageId: String) async {
+    let context = moc
     let pageIndex = pages
       .filter { !$0.isTransition }
       .firstIndex { $0.id == pageId }
@@ -229,12 +236,12 @@ extension ChapterReaderViewModel {
       }
 
       taskGroup.addTask {
-        try? await self.viewMoc.perform {
+        try? await context.perform {
           guard
             let pageIndex,
             let chapter = try? self.chapterCrud.getChapter(
               self.chapter.id,
-              moc: self.viewMoc
+              moc: context
             )
           else {
             return
@@ -244,7 +251,7 @@ extension ChapterReaderViewModel {
           self.chapterCrud.updateIsRead(chapter, isRead: pageIndex >= self.pagesCount - 1)
 
           // TODO: Save when important, not in each page
-          _ = try self.viewMoc.saveIfNeeded()
+          _ = try context.saveIfNeeded()
         }
       }
     }

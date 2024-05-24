@@ -34,6 +34,8 @@ final class DetailsDatasource {
     error.eraseToAnyPublisher()
   }
 
+  private var fetchTask: Task<Void, Never>?
+
   init(
     source: Source,
     mangaId: String,
@@ -62,32 +64,36 @@ final class DetailsDatasource {
   func refresh(
     force: Bool = false
   ) async {
-    var erro: DatasourceError?
-
-    do {
-      await MainActor.run {
-        state.valueOnMain = .loading
-        error.valueOnMain = nil
-      }
-
-      if try await needsFetch(isForce: force) {
-        print("MangaDetailsDatasource -> Starting manga details refresh...")
-
-        let data = try await delegate.fetchDetails(mangaId)
-        let cover = try? await delegate.fetchCover(mangaId: mangaId, coverInfo: data.coverInfo)
-
-        try await updateDatabase(data, cover: cover)
-
-        print("MangaDetailsDatasource -> Ended manga details refresh")
-      }
-    } catch {
-      erro = .catchError(error)
+    if fetchTask != nil {
+      return
     }
 
-    await MainActor.run { [erro] in
-      state.valueOnMain = .normal
-      error.valueOnMain = erro
+    fetchTask = Task { [weak self] in
+      guard let self else { return }
+
+      self.state.value = .loading
+      self.error.value = nil
+
+      do {
+        if try await self.needsFetch(isForce: force) {
+          print("MangaDetailsDatasource -> Starting manga details refresh...")
+
+          let data = try await self.delegate.fetchDetails(self.mangaId)
+          let cover = try? await delegate.fetchCover(mangaId: self.mangaId, coverInfo: data.coverInfo)
+
+          try await self.updateDatabase(data, cover: cover)
+
+          print("MangaDetailsDatasource -> Ended manga details refresh")
+        }
+      } catch {
+        self.error.value = .catchError(error)
+      }
+
+      self.state.value = .normal
+      self.fetchTask = nil
     }
+
+    _ = await fetchTask?.result
   }
 
   private func needsFetch(isForce: Bool) async throws -> Bool {

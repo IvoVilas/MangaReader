@@ -47,7 +47,7 @@ struct MangaSearchView: View {
     mangaCrud: MangaCrud = AppEnv.env.mangaCrud,
     coverCrud: CoverCrud = AppEnv.env.coverCrud,
     httpClient: HttpClient = AppEnv.env.httpClient,
-    viewMoc: NSManagedObjectContext = PersistenceController.shared.container.viewContext
+    container: NSPersistentContainer = PersistenceController.shared.container
   ) {
     _viewModel = StateObject(
       wrappedValue: MangaSearchViewModel(
@@ -55,7 +55,7 @@ struct MangaSearchView: View {
         mangaCrud: mangaCrud,
         coverCrud: coverCrud,
         httpClient: httpClient,
-        viewMoc: viewMoc
+        container: container
       )
     )
   }
@@ -255,7 +255,7 @@ private struct MangaResultView: View, Equatable {
         .resizable()
         .scaledToFit()
         .frame(width: 15)
-        .foregroundStyle(.black)
+        .foregroundStyle(.blue)
         .aspectRatio(1, contentMode: .fill)
         .padding(.leading, 8)
         .opacity(isSaved ? 1 : 0)
@@ -314,7 +314,7 @@ private struct MangaResultView: View, Equatable {
 #Preview {
   MangaSearchView(
     source: .mangadex,
-    viewMoc: PersistenceController.preview.container.viewContext
+    container: PersistenceController.preview.container
   )
 }
 

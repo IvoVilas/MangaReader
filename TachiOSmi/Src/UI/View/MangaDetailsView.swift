@@ -17,6 +17,7 @@ struct MangaDetailsView: View {
   @State private var toast: Toast?
   @State private var isDescriptionExpanded = false
   @State private var offset = CGPoint.zero
+  @State private var selectedItem: ChapterModel?
 
   init(
     source: Source,
@@ -49,70 +50,84 @@ struct MangaDetailsView: View {
   }
 
   var body: some View {
-    ZStack(alignment: .top) {
+    ZStack(alignment: .bottom) {
       PositionObservingScrollView(
         offset: $offset
       ) {
-        VStack(alignment: .leading, spacing: 0) {
-          ZStack(alignment: .topLeading) {
-            ZStack(alignment: .bottom) {
-              backgroundView()
-                .offset(y: -max(offset.y, 0))
+        ZStack(alignment: .top) {
+          VStack(alignment: .leading, spacing: 0) {
+            ZStack(alignment: .topLeading) {
+              ZStack(alignment: .bottom) {
+                backgroundView()
+                  .offset(y: -max(offset.y, 0))
 
-              infoView()
+                infoView()
+                  .padding(.horizontal, 24)
+              }
+
+              navbarView()
                 .padding(.horizontal, 24)
+                .offset(y: 64)
             }
 
-            navbarView()
+            Spacer().frame(height: 16)
+
+            ExpandableTextView(
+              text: viewModel.manga.description ?? "",
+              lineLimit: 3,
+              font: .footnote,
+              foregroundColor: scheme.foregroundColor,
+              backgroundColor: scheme.backgroundColor,
+              isExpanded: $isDescriptionExpanded
+            )
+            .id(viewModel.manga.description ?? "")
+            .padding(.horizontal, 24)
+
+            Spacer().frame(height: 24)
+
+            tagsView()
+
+            Spacer().frame(height: 16)
+
+            chaptersCountView()
               .padding(.horizontal, 24)
-              .offset(y: 64)
+
+            chaptersView()
           }
 
-          Spacer().frame(height: 16)
+          ProgressView()
+            .controlSize(.regular)
+            .progressViewStyle(.circular)
+            .tint(scheme.foregroundColor)
+            .opacity(viewModel.isLoading ? 1 : 0)
+            .offset(y: viewModel.isLoading ? 75 : -100)
+            .animation(.easeInOut, value: viewModel.isLoading)
 
-          ExpandableTextView(
-            text: viewModel.manga.description ?? "",
-            lineLimit: 3,
-            font: .footnote,
-            foregroundColor: scheme.foregroundColor,
-            backgroundColor: scheme.backgroundColor,
-            isExpanded: $isDescriptionExpanded
-          )
-          .id(viewModel.manga.description ?? "")
-          .padding(.horizontal, 24)
-
-          Spacer().frame(height: 24)
-
-          tagsView()
-
-          Spacer().frame(height: 16)
-
-          chaptersCountView()
-            .padding(.horizontal, 24)
-
-          Spacer().frame(height: 24)
-
-          chaptersView()
-            .padding(.horizontal, 24)
         }
       }
+      .refreshable { await viewModel.forceRefresh() }
+      .ignoresSafeArea(.all, edges: .top)
 
-      ProgressView()
-        .controlSize(.regular)
-        .progressViewStyle(.circular)
-        .tint(scheme.foregroundColor)
-        .opacity(viewModel.isLoading ? 1 : 0)
-        .offset(y: 75)
+      toolBar()
+        .padding(.horizontal, 48)
+        .padding(.top, 12)
+        .padding(.bottom, 24)
+        .background(
+          scheme == .light ? Color(
+            red: 205, green: 230, blue: 254
+          ) : Color(
+            red: 81, green: 149, blue: 213
+          )
+        )
+        .offset(y: viewModel.isSelectionOn ? 0 : 100)
+        .opacity(viewModel.isSelectionOn ? 1 : 0)
+        .animation(.easeInOut, value: viewModel.isSelectionOn)
+        .shadow(color: .black.opacity(0.1), radius: 10)
+
     }
     .navigationBarBackButtonHidden(true)
-    .ignoresSafeArea(.all, edges: .top)
     .background(scheme.backgroundColor)
-    .onAppear {
-      Task(priority: .medium) { await viewModel.setupData() }
-    }
-    .refreshable {
-      Task(priority: .medium) { await viewModel.forceRefresh() }
-    }
+    .task { await viewModel.setupData() }
     .toastView(toast: $toast)
     .onReceive(viewModel.$error) { error in
       if let error {
@@ -170,19 +185,19 @@ struct MangaDetailsView: View {
           .foregroundStyle(scheme.foregroundColor)
           .font(.headline)
 
-        if let author = viewModel.manga.authors.first {
-          HStack(spacing: 4) {
-            Image("person")
-              .resizable()
-              .scaledToFit()
-              .frame(width: 18)
-              .foregroundStyle(scheme.foregroundColor)
+        HStack(spacing: 4) {
+          Image("person")
+            .resizable()
+            .scaledToFit()
+            .frame(width: 18)
+            .foregroundStyle(scheme.foregroundColor)
 
-            Text(author.name)
-              .foregroundStyle(scheme.foregroundColor)
-              .font(.footnote)
-          }
+          Text(viewModel.manga.authors.first?.name ?? "")
+            .foregroundStyle(scheme.foregroundColor)
+            .font(.footnote)
         }
+        .frame(height: viewModel.manga.authors.first == nil ? 0 : nil)
+        .opacity(viewModel.manga.authors.first == nil ? 0 : 1)
 
         HStack(spacing: 4) {
           Image(getStatusIcon(viewModel.manga.status))
@@ -261,69 +276,94 @@ struct MangaDetailsView: View {
   }
 
   @ViewBuilder
-  private func chaptersView() -> some View {
-    LazyVStack(alignment: .leading, spacing: 24) {
-      ForEach(viewModel.chapters) { chapter in
-        switch chapter {
-        case .chapter(let chapter):
-          NavigationLink(value: viewModel.getNavigator(chapter)) {
-            chapterView(chapter)
-          }
+  private func toolBar() -> some View {
+    HStack(spacing: 0) {
+      Button { viewModel.turnOffSelection() } label : {
+        Image(.xmark)
+          .resizable()
+          .scaledToFit()
+          .frame(width: 24)
+          .foregroundStyle(scheme.foregroundColor)
+      }
 
-        case .missing(let missing):
-          missingChapterView(missing)
+      Spacer()
+
+      Button { viewModel.markChaptersAsRead() } label : {
+        Image(.doneAll)
+          .resizable()
+          .scaledToFit()
+          .frame(width: 24)
+          .foregroundStyle(scheme.foregroundColor)
+      }
+
+      Spacer()
+
+      Button { viewModel.markChaptersAsRead(false) } label : {
+        Image(.removeDone)
+          .resizable()
+          .scaledToFit()
+          .frame(width: 24)
+          .foregroundStyle(scheme.foregroundColor)
+      }
+
+      if viewModel.selectedChapters.count == 1 {
+        Spacer()
+
+        Button { viewModel.markChapterAsReadBellow() } label : {
+          Image(.checklist)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 24)
+            .foregroundStyle(scheme.foregroundColor)
         }
       }
     }
   }
 
   @ViewBuilder
-  func chapterView(
-    _ chapter: ChapterModel
-  ) -> some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text(chapter.description)
-        .font(.subheadline)
-        .lineLimit(1)
-        .foregroundStyle(chapter.isRead ? .gray : scheme.foregroundColor)
+  private func chaptersView() -> some View {
+    LazyVStack(alignment: .leading, spacing: 0) {
+      ForEach(viewModel.chapters) { chapter in
+        switch chapter {
+        case .chapter(let chapter):
+          NavigationLink(
+            destination: MangaReaderNavigator.navigate(
+              to: viewModel.getNavigator(chapter)
+            ),
+            tag: chapter,
+            selection: $selectedItem
+          ){
+            ChapterEntryView(
+              chapter: chapter,
+              scheme: scheme
+            )
+            .padding(.horizontal, 24)
+            .padding(.vertical, 12)
+            .background(
+              viewModel.selectedChapters.contains(chapter.id) ? .teal.opacity(0.2) : scheme.backgroundColor
+            )
+            .animation(.easeInOut, value: viewModel.selectedChapters.contains(chapter.id))
+            .onTapGesture {
+              if viewModel.isSelectionOn {
+                viewModel.selectItem(chapter.id)
+              } else {
+                selectedItem = chapter
+              }
+            }
+            .onLongPressGesture {
+              if viewModel.isSelectionOn {
+                viewModel.selectItem(chapter.id)
+              } else {
+                viewModel.selectedChapters = [chapter.id]
+                viewModel.isSelectionOn = true
+              }
+            }
+          }
 
-      HStack(spacing: 2) {
-        Text(chapter.createdAtDescription)
-          .font(.caption2)
-          .foregroundStyle(chapter.isRead ? .gray : scheme.foregroundColor)
-
-        Text("\u{2022}")
-          .font(.caption)
-          .foregroundStyle(.black)
-          .opacity((chapter.lastPageRead ?? 0) > 0 && !chapter.isRead ? 1 : 0)
-
-        Text(chapter.lastPageReadDescription ?? "")
-          .font(.caption2)
-          .foregroundStyle(.gray)
-          .opacity((chapter.lastPageRead ?? 0) > 0 && !chapter.isRead ? 1 : 0)
+        case .missing(let missing):
+          MissingChapterEntryView(missing: missing)
+        }
       }
-    }
-    .frame(maxWidth: .infinity, alignment: .leading)
-  }
-
-  @ViewBuilder
-  func missingChapterView(
-    _ missing: MissingChaptersModel
-  ) -> some View {
-    HStack(spacing: 16) {
-      Spacer()
-        .frame(height: 1)
-        .background(.gray)
-
-      Text("Missing \(missing.count) \(missing.count == 1 ? "chapter" : "chapters")")
-        .font(.caption2)
-        .lineLimit(1)
-        .foregroundStyle(.gray)
-        .layoutPriority(1)
-
-      Spacer()
-        .frame(height: 1)
-        .background(.gray)
     }
   }
 
@@ -349,14 +389,16 @@ struct MangaDetailsView: View {
 }
 
 #Preview {
-  MangaDetailsView(
-    source: .mangadex,
-    manga: MangaSearchResult(
-      id: "c52b2ce3-7f95-469c-96b0-479524fb7a1a",
-      title: "Jujutsu Kaisen",
-      cover: UIImage.jujutsuCover.jpegData(compressionQuality: 1)
-    ),
-    appOptionsStore: AppOptionsStore(keyValueManager: InMemoryKeyValueManager()),
-    container: PersistenceController.preview.container
-  )
+  NavigationStack {
+    MangaDetailsView(
+      source: .mangadex,
+      manga: MangaSearchResult(
+        id: "1",
+        title: "Jujutsu Kaisen",
+        cover: UIImage.jujutsuCover.jpegData(compressionQuality: 1)
+      ),
+      appOptionsStore: AppOptionsStore(keyValueManager: InMemoryKeyValueManager()),
+      container: PersistenceController.preview.container
+    )
+  }
 }

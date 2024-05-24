@@ -16,6 +16,8 @@ final class RefreshLibraryUseCase {
   private let systemDateTime: SystemDateTimeType
   private let container: NSPersistentContainer
 
+  @MainActor private var refreshing = false
+
   init(
     mangaCrud: MangaCrud,
     chapterCrud: ChapterCrud,
@@ -31,7 +33,15 @@ final class RefreshLibraryUseCase {
   }
 
   func refresh() async {
+    if await refreshing {
+      print("RefreshLibraryUseCase -> Already refresing")
+
+      return
+    }
+
     print("RefreshLibraryUseCase -> Started library refresh...")
+
+    await MainActor.run { refreshing = true }
 
     do {
       let context = container.viewContext
@@ -87,6 +97,8 @@ final class RefreshLibraryUseCase {
     } catch {
       print("RefreshLibraryUseCase -> Error during library refresh: \(error)")
     }
+
+    await MainActor.run { refreshing = false }
   }
 
 }

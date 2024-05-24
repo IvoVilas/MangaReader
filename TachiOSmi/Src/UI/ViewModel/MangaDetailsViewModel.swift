@@ -21,6 +21,9 @@ final class MangaDetailsViewModel: ObservableObject {
   @Published var error: DatasourceError?
   @Published var info: String?
 
+  @Published var isSelectionOn: Bool
+  @Published var selectedChapters: Set<String>
+
   private let chaptersProvider: MangaChaptersProvider
   private let chaptersDatasource: ChaptersDatasource
 
@@ -29,7 +32,7 @@ final class MangaDetailsViewModel: ObservableObject {
 
   private let source: Source
   private let mangaCrud: MangaCrud
-  private let viewMoc: NSManagedObjectContext
+  private let chapterCrud: ChapterCrud
   private let moc: NSManagedObjectContext
 
   private let sortChaptersUseCase: SortChaptersUseCase
@@ -52,8 +55,10 @@ final class MangaDetailsViewModel: ObservableObject {
   ) {
     self.source = source
     self.mangaCrud = mangaCrud
-    self.viewMoc = container.viewContext
+    self.chapterCrud = chapterCrud
     self.moc = container.newBackgroundContext()
+
+    let viewMoc = container.viewContext
 
     sortChaptersUseCase = SortChaptersUseCase()
     missingChaptersUseCase = MissingChaptersUseCase()
@@ -107,6 +112,9 @@ final class MangaDetailsViewModel: ObservableObject {
     chaptersCount = 0
     missingChaptersCount = 0
 
+    isSelectionOn = false
+    selectedChapters = Set()
+
     detailsProvider.$details
       .removeDuplicates()
       .compactMap { $0 }
@@ -148,18 +156,6 @@ final class MangaDetailsViewModel: ObservableObject {
     .store(in: &observers)
   }
 
-  private func saveManga(isSaved: Bool) async throws {
-    try await viewMoc.perform {
-      guard let manga = try self.mangaCrud.getManga(self.manga.id, moc: self.viewMoc) else {
-        throw CrudError.mangaNotFound(id: self.manga.id)
-      }
-
-      self.mangaCrud.updateIsSaved(manga, isSaved: isSaved)
-
-      _ = try self.viewMoc.saveIfNeeded()
-    }
-  }
-
   // TODO: Maybe remove from main thread
   private func setChapters(_ chapters: [ChapterModel]) {
     let sortedChapters = sortChaptersUseCase.sortByNumber(chapters)
@@ -172,38 +168,9 @@ final class MangaDetailsViewModel: ObservableObject {
 
 }
 
+
+// MARK: Actions
 extension MangaDetailsViewModel {
-
-  func saveManga(_ save: Bool) async {
-    await MainActor.run {
-      let manga = self.manga
-
-      self.manga = MangaModel(
-        id: manga.id,
-        title: manga.title,
-        description: manga.description,
-        isSaved: save,
-        source: manga.source,
-        status: manga.status,
-        readingDirection: manga.readingDirection,
-        cover: manga.cover,
-        tags: manga.tags,
-        authors: manga.authors
-      )
-    }
-
-    do {
-      try await self.saveManga(isSaved: save)
-
-      await MainActor.run {
-        info = save ? "Manga added to library" : "Manga removed from library"
-      }
-    } catch {
-      await MainActor.run {
-        self.error = DatasourceError.catchError(error)
-      }
-    }
-  }
 
   func setupData() async {
     await detailsDatasource.refresh()
@@ -215,10 +182,107 @@ extension MangaDetailsViewModel {
     await chaptersDatasource.refresh(force: true)
   }
 
+  func saveManga(_ save: Bool) async {
+    do {
+      let context = moc
+
+      try await context.perform {
+        guard let manga = try self.mangaCrud.getManga(self.manga.id, moc: context) else {
+          throw CrudError.mangaNotFound(id: self.manga.id)
+        }
+
+        self.mangaCrud.updateIsSaved(manga, isSaved: save)
+
+        _ = try context.saveIfNeeded()
+      }
+
+      await MainActor.run {
+        info = save ? "Manga added to library" : "Manga removed from library"
+      }
+    } catch {
+      await MainActor.run {
+        self.error = DatasourceError.catchError(error)
+      }
+    }
+  }
+
+  func selectItem(_ chapterId: String) {
+    if selectedChapters.contains(chapterId) {
+      selectedChapters.remove(chapterId)
+      isSelectionOn = !selectedChapters.isEmpty
+    } else {
+      selectedChapters.insert(chapterId)
+    }
+  }
+
+  func turnOffSelection() {
+    isSelectionOn = false
+    selectedChapters = []
+  }
+
+  func markChaptersAsRead(_ isRead: Bool = true) {
+    isLoading = true
+
+    markChaptersAsRead(selectedChapters, isRead: isRead)
+
+    turnOffSelection()
+
+    isLoading = false
+  }
+
+  func markChapterAsReadBellow() {
+    isLoading = true
+
+    let id = selectedChapters.first
+    let index = chapters.firstIndex {
+      switch $0 {
+      case .missing:
+        return false
+
+      case .chapter(let chapter):
+        return chapter.id == id
+      }
+    }
+
+    guard let index else { return }
+
+    let ids = chapters.reversed()[0..<chapters.count - index].compactMap { entry -> String? in
+      switch entry {
+      case .missing:
+        return nil
+
+      case .chapter(let chapter):
+        return chapter.id
+      }
+    }
+
+    markChaptersAsRead(ids, isRead: true)
+
+    turnOffSelection()
+
+    isLoading = false
+  }
+
 }
 
 // MARK: Helpers
 extension MangaDetailsViewModel {
+
+  private func markChaptersAsRead(_ ids: any Collection<String>, isRead: Bool) {
+    let context = moc
+
+    context.performAndWait {
+      for id in ids {
+        guard let chapter = try? chapterCrud.getChapter(id, moc: context) else {
+          continue
+        }
+
+        chapterCrud.updateIsRead(chapter, isRead: isRead)
+      }
+
+      _ = try? context.saveIfNeeded()
+    }
+  }
 
   private func addMissingChapters(
     _ missing: [MissingChaptersModel],

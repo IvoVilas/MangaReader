@@ -237,9 +237,7 @@ final class ChapterCrud {
     _ chapter: ChapterMO,
     isRead: Bool
   ) {
-    if isRead {
-      chapter.isRead = isRead
-    }
+    chapter.isRead = isRead
   }
 
   func updateLastPageRead(
