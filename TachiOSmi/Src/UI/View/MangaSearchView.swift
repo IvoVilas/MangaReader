@@ -316,7 +316,7 @@ private struct MangaResultView: View, Equatable {
 
 #Preview {
   MangaSearchView(
-    source: .mangadex,
+    source: .unknown,
     container: PersistenceController.preview.container
   )
 }

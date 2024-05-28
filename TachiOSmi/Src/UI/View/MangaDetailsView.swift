@@ -388,7 +388,7 @@ struct MangaDetailsView: View {
 #Preview {
   NavigationStack {
     MangaDetailsView(
-      source: .mangadex,
+      source: .unknown,
       manga: MangaSearchResult(
         id: "1",
         title: "Jujutsu Kaisen",

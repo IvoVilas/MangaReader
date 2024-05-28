@@ -67,41 +67,53 @@ enum Source: Identifiable {
 
   var searchDelegateType: SearchDelegateType.Type {
     switch self {
-    case .mangadex, .unknown:
+    case .mangadex:
       return MangadexSearchDelegate.self
 
     case .manganelo:
       return ManganeloSearchDelegate.self
+
+    case .unknown:
+      return MockSearchDelegate.self
     }
   }
 
   var detailsDelegateType: DetailsDelegateType.Type {
     switch self {
-    case .mangadex, .unknown:
+    case .mangadex:
       return MangadexDetailsDelegate.self
 
     case .manganelo:
       return ManganeloDetailsDelegate.self
+
+    case .unknown:
+      return MockDetailsDelegate.self
     }
   }
 
   var chaptersDelegateType: ChaptersDelegateType.Type {
     switch self {
-    case .mangadex, .unknown:
+    case .mangadex:
       return MangadexChaptersDelegate.self
 
     case .manganelo:
       return ManganeloChaptersDelegate.self
+
+    case .unknown:
+      return MockChaptersDelegate.self
     }
   }
 
   var pagesDelegateType: PagesDelegateType.Type {
     switch self {
-    case .mangadex, .unknown:
+    case .mangadex:
       return MangadexPagesDelegate.self
 
     case .manganelo:
       return ManganeloPagesDelegate.self
+
+    case .unknown:
+      return MangadexPagesDelegate.self // TODO: Make mock pages
     }
   }
 
