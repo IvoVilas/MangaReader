@@ -23,6 +23,7 @@ final class MangaDetailsViewModel: ObservableObject {
 
   @Published var isSelectionOn: Bool
   @Published var selectedChapters: Set<String>
+  @Published var toolbarActions: [ToolbarAction]
 
   private let chaptersProvider: MangaChaptersProvider
   private let chaptersDatasource: ChaptersDatasource
@@ -114,6 +115,7 @@ final class MangaDetailsViewModel: ObservableObject {
 
     isSelectionOn = false
     selectedChapters = Set()
+    toolbarActions = []
 
     detailsProvider.$details
       .removeDuplicates()
@@ -166,8 +168,55 @@ final class MangaDetailsViewModel: ObservableObject {
     self.missingChaptersCount = missing.reduce(into: 0) { $0 += $1.count }
   }
 
-}
+  private func turnOffSelection() {
+    isSelectionOn = false
+    selectedChapters = []
+  }
 
+  private func markChaptersAsRead(_ isRead: Bool = true) {
+    isLoading = true
+
+    markChaptersAsRead(selectedChapters, isRead: isRead)
+
+    turnOffSelection()
+
+    isLoading = false
+  }
+
+  private func markChaptersBellowAsRead() {
+    isLoading = true
+
+    let id = selectedChapters.first
+    let index = chapters.firstIndex {
+      switch $0 {
+      case .missing:
+        return false
+
+      case .chapter(let chapter):
+        return chapter.id == id
+      }
+    }
+
+    guard let index else { return }
+
+    let ids = chapters.reversed()[0..<chapters.count - index].compactMap { entry -> String? in
+      switch entry {
+      case .missing:
+        return nil
+
+      case .chapter(let chapter):
+        return chapter.id
+      }
+    }
+
+    markChaptersAsRead(ids, isRead: true)
+
+    turnOffSelection()
+
+    isLoading = false
+  }
+
+}
 
 // MARK: Actions
 extension MangaDetailsViewModel {
@@ -213,54 +262,26 @@ extension MangaDetailsViewModel {
     } else {
       selectedChapters.insert(chapterId)
     }
+    
+    toolbarActions = calculateToolbarActions(
+      selected: selectedChapters
+    )
   }
 
-  func turnOffSelection() {
-    isSelectionOn = false
-    selectedChapters = []
-  }
+  func onToolbarAction(_ action: ToolbarAction) {
+    switch action {
+    case .close:
+      turnOffSelection()
 
-  func markChaptersAsRead(_ isRead: Bool = true) {
-    isLoading = true
+    case .markAsRead:
+      markChaptersAsRead()
 
-    markChaptersAsRead(selectedChapters, isRead: isRead)
-
-    turnOffSelection()
-
-    isLoading = false
-  }
-
-  func markChapterAsReadBellow() {
-    isLoading = true
-
-    let id = selectedChapters.first
-    let index = chapters.firstIndex {
-      switch $0 {
-      case .missing:
-        return false
-
-      case .chapter(let chapter):
-        return chapter.id == id
-      }
+    case .markAsUnread:
+      markChaptersAsRead(false)
+      
+    case .markBellowAsRead:
+      markChaptersBellowAsRead()
     }
-
-    guard let index else { return }
-
-    let ids = chapters.reversed()[0..<chapters.count - index].compactMap { entry -> String? in
-      switch entry {
-      case .missing:
-        return nil
-
-      case .chapter(let chapter):
-        return chapter.id
-      }
-    }
-
-    markChaptersAsRead(ids, isRead: true)
-
-    turnOffSelection()
-
-    isLoading = false
   }
 
 }
@@ -315,8 +336,56 @@ extension MangaDetailsViewModel {
     return mappedChapters
   }
 
+  private func calculateToolbarActions(
+    selected: Set<String>
+  ) -> [ToolbarAction] {
+    if selected.isEmpty {
+      return []
+    }
+
+    var actions: [ToolbarAction] = [.close]
+
+    var allRead = true
+    var allUnread = true
+
+    for id in selected {
+      guard allRead || allUnread else { break }
+
+      guard let entry = chapters.first(where: { $0.id == id }) else {
+        continue
+      }
+
+      switch entry {
+      case .chapter(let chapter):
+        if chapter.isRead {
+          allUnread = false
+        } else {
+          allRead = false
+        }
+
+      case .missing:
+        continue
+      }
+    }
+
+    if !allRead {
+      actions.append(.markAsRead)
+    }
+
+    if !allUnread {
+      actions.append(.markAsUnread)
+    }
+
+    if selected.count == 1 {
+      actions.append(.markBellowAsRead)
+    }
+
+    return actions
+  }
+
 }
 
+// MARK: Enum
 extension MangaDetailsViewModel {
 
   enum ChapterCell: Identifiable {
@@ -344,8 +413,42 @@ extension MangaDetailsViewModel {
     }
   }
 
+  enum ToolbarAction: Identifiable {
+    case close
+    case markAsRead
+    case markAsUnread
+    case markBellowAsRead
+
+    var id: String {
+      switch self {
+      case .close:
+        "close"
+      case .markAsRead:
+        "mark-as-read"
+      case .markAsUnread:
+        "mark-as-unread"
+      case .markBellowAsRead:
+        "mark-bellow-as-read"
+      }
+    }
+
+    var icon: IconSource {
+      switch self {
+      case .close:
+        return .asset(.xmark)
+      case .markAsRead:
+        return .asset(.doneAll)
+      case .markAsUnread:
+        return .asset(.removeDone)
+      case .markBellowAsRead:
+        return .asset(.checklist)
+      }
+    }
+  }
+
 }
 
+// MARK: Navigation
 extension MangaDetailsViewModel {
 
   func getNavigator(_ chapter: ChapterModel) -> MangaReaderNavigator {

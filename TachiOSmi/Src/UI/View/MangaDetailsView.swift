@@ -110,7 +110,6 @@ struct MangaDetailsView: View {
       .ignoresSafeArea(.all, edges: .top)
 
       toolBar()
-        .padding(.horizontal, 48)
         .padding(.top, 12)
         .padding(.bottom, 24)
         .background(
@@ -122,8 +121,12 @@ struct MangaDetailsView: View {
         )
         .offset(y: viewModel.isSelectionOn ? 0 : 100)
         .opacity(viewModel.isSelectionOn ? 1 : 0)
-        .animation(.easeInOut, value: viewModel.isSelectionOn)
-        .shadow(color: .black.opacity(0.1), radius: 10)
+        .shadow(
+          color: .black.opacity(viewModel.isSelectionOn ? 0.2 : 0),
+          radius: 10
+        )
+        .animation(.snappy, value: viewModel.isSelectionOn)
+        .animation(.bouncy(duration: 0.3), value: viewModel.toolbarActions)
 
     }
     .navigationBarBackButtonHidden(true)
@@ -279,44 +282,18 @@ struct MangaDetailsView: View {
   @ViewBuilder
   private func toolBar() -> some View {
     HStack(spacing: 0) {
-      Button { viewModel.turnOffSelection() } label : {
-        Image(.xmark)
-          .resizable()
-          .scaledToFit()
-          .frame(width: 24)
-          .foregroundStyle(scheme.foregroundColor)
-      }
-
       Spacer()
 
-      Button { viewModel.markChaptersAsRead() } label : {
-        Image(.doneAll)
-          .resizable()
-          .scaledToFit()
-          .frame(width: 24)
-          .foregroundStyle(scheme.foregroundColor)
-      }
-
-      Spacer()
-
-      Button { viewModel.markChaptersAsRead(false) } label : {
-        Image(.removeDone)
-          .resizable()
-          .scaledToFit()
-          .frame(width: 24)
-          .foregroundStyle(scheme.foregroundColor)
-      }
-
-      if viewModel.selectedChapters.count == 1 {
-        Spacer()
-
-        Button { viewModel.markChapterAsReadBellow() } label : {
-          Image(.checklist)
+      ForEach(viewModel.toolbarActions) { action in
+        Button { viewModel.onToolbarAction(action) } label : {
+          action.icon.image()
             .resizable()
             .scaledToFit()
             .frame(width: 24)
             .foregroundStyle(scheme.foregroundColor)
         }
+
+        Spacer()
       }
     }
   }
@@ -351,8 +328,8 @@ struct MangaDetailsView: View {
               if viewModel.isSelectionOn {
                 viewModel.selectItem(chapter.id)
               } else {
-                viewModel.selectedChapters = [chapter.id]
                 viewModel.isSelectionOn = true
+                viewModel.selectItem(chapter.id)
               }
             }
           }
