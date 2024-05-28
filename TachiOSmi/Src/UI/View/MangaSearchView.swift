@@ -36,6 +36,7 @@ private enum ResultLayout {
 // MARK: Search
 struct MangaSearchView: View {
 
+  @Environment(\.router) private var router
   @Environment(\.colorScheme) private var scheme
 
   @StateObject var viewModel: MangaSearchViewModel
@@ -86,7 +87,9 @@ struct MangaSearchView: View {
         ScrollView {
           LazyVGrid(columns: columns, spacing: 16) {
             ForEach(viewModel.results) { result in
-              NavigationLink(value: viewModel.getNavigator(result)) {
+              Button {
+                router.navigate(using: viewModel.getNavigator(result))
+              } label: {
                 MangaResultView(
                   id: result.id,
                   cover: result.cover,

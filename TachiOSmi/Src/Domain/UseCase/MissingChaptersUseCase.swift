@@ -17,7 +17,11 @@ struct MissingChaptersUseCase {
     }
 
     let numbers = chapters
-      .compactMap { $0.number }
+      .compactMap { (chapter) -> Double? in
+        guard let number = chapter.number else { return nil }
+
+        return number.truncatingRemainder(dividingBy: 1.0) == .zero ? number : nil
+      }
       .map { Int($0) }
 
     // Last = numbers.first becase sort order is inversed

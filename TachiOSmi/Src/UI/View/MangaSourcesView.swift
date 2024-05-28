@@ -9,6 +9,7 @@ import SwiftUI
 
 struct MangaSourcesView: View {
 
+  @Environment(\.router) private var router
   @Environment(\.colorScheme) private var scheme
 
   @StateObject var viewModel = MangaSourcesViewModel()
@@ -22,7 +23,9 @@ struct MangaSourcesView: View {
       ScrollView {
         VStack(alignment: .leading, spacing: 24) {
           ForEach(viewModel.sources) { source in
-            NavigationLink(value: MangaSearchNavigator(source: source)) {
+            Button {
+              router.navigate(using: MangaSearchNavigator(source: source))
+            } label: {
               makeSourceView(source)
             }
           }

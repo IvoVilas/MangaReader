@@ -26,6 +26,11 @@ extension EnvironmentValues {
     set { self[AppOptionsStoreKey.self] = newValue }
   }
 
+  var router: Router {
+    get { self[RouterKey.self] }
+    set { self[RouterKey.self] = newValue }
+  }
+
 }
 
 private struct RefreshLibraryUseCaseKey: EnvironmentKey {
@@ -49,5 +54,11 @@ private struct PersistenceContainerKey: EnvironmentKey {
 private struct AppOptionsStoreKey: EnvironmentKey {
 
   static let defaultValue = AppOptionsStore(keyValueManager: InMemoryKeyValueManager())
+
+}
+
+private struct RouterKey: EnvironmentKey {
+
+  static let defaultValue = Router()
 
 }

@@ -301,7 +301,9 @@ extension MangaDetailsViewModel {
           return false
 
         case .chapter(let chapter):
-          return chapter.number == m.number - 1
+          guard let number = chapter.number else { return false }
+
+          return Int(number) == Int(m.number) - 1
         }
       }
 

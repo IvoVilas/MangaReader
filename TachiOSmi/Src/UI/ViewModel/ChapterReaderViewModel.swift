@@ -248,7 +248,10 @@ extension ChapterReaderViewModel {
           }
 
           self.chapterCrud.updateLastPageRead(chapter, lastPageRead: pageIndex)
-          self.chapterCrud.updateIsRead(chapter, isRead: pageIndex >= self.pagesCount - 1)
+
+          if pageIndex >= self.pagesCount - 1 {
+            self.chapterCrud.updateIsRead(chapter, isRead: true)
+          }
 
           // TODO: Save when important, not in each page
           _ = try context.saveIfNeeded()

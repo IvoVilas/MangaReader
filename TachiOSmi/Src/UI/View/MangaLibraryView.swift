@@ -10,6 +10,7 @@ import CoreData
 
 struct MangaLibraryView: View {
   
+  @Environment(\.router) private var router
   @Environment(\.colorScheme) private var scheme
   @Environment(\.refreshLibraryUseCase) private var refreshUseCase
 
@@ -63,7 +64,9 @@ struct MangaLibraryView: View {
         ScrollView {
           LazyVGrid(columns: columns, spacing: 16) {
             ForEach(provider.mangas) { result in
-              NavigationLink(value: MangaDetailsNavigator.fromMangaWrapper(result)) {
+              Button {
+                router.navigate(using: MangaDetailsNavigator.fromMangaWrapper(result))
+              } label: {
                 makeMangaView(result)
               }
             }
@@ -131,10 +134,9 @@ struct MangaLibraryView: View {
   }
 
   private func refreshLibrary() {
-    Task(priority: .userInitiated) {
+    Task(priority: .background) {
       await MainActor.run { isLoading = true }
 
-      try await Task.sleep(nanoseconds: 5_000_000_000)
       await refreshUseCase.refresh()
 
       await MainActor.run { isLoading = false }

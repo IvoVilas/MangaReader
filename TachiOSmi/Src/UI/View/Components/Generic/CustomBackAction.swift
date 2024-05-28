@@ -9,7 +9,7 @@ import SwiftUI
 
 struct CustomBackAction: View {
 
-  @Environment(\.dismiss) private var dismiss
+  @Environment(\.router) private var router
 
   let tintColor: Color
 
@@ -21,7 +21,7 @@ struct CustomBackAction: View {
 
   var body: some View {
     Button {
-      dismiss()
+      router.navigateBack()
     } label: {
       Image(systemName: "arrow.left")
         .font(.headline)

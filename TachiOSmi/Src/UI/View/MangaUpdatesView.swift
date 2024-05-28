@@ -95,6 +95,8 @@ struct MangaUpdatesView: View {
 
 private struct MangaUpdateLogDateView: View {
 
+  @Environment(\.router) private var router
+
   @Binding var logs: MangaUpdatesProvider.MangaUpdatesLogDate
 
   let foregroundColor: Color
@@ -109,7 +111,9 @@ private struct MangaUpdateLogDateView: View {
 
       VStack(spacing: 8) {
         ForEach(logs.logs) { log in
-          NavigationLink(value: getNavigator(log)) {
+          Button {
+            router.navigate(using: getNavigator(log))
+          } label: {
             logView(log)
           }
         }

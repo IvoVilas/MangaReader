@@ -19,11 +19,13 @@ struct ContentView: View {
   @Environment(\.appOptionsStore) private var optionsStore
   @Environment(\.colorScheme) private var scheme
 
+  @ObservedObject private var router = Router()
+
   @State private var colorScheme: ColorScheme = .light
   @State private var selectedTab: Tabs = .library
 
   var body: some View {
-    NavigationStack {
+    NavigationStack(path: $router.navPath) {
       TabView(selection: $selectedTab) {
         MangaLibraryView()
           .padding(top: 24, leading: 24, trailing: 24)
@@ -75,6 +77,7 @@ struct ContentView: View {
       .registerNavigator(MangaReaderNavigator.self)
       .registerNavigator(MangaSearchNavigator.self)
     }
+    .environment(\.router, router)
     .environment(\.colorScheme, colorScheme)
     .onReceive(optionsStore.appThemePublisher) {
       colorScheme = $0.toColorScheme(system: scheme)

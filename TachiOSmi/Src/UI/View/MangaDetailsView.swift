@@ -10,6 +10,7 @@ import CoreData
 
 struct MangaDetailsView: View {
 
+  @Environment(\.router) private var router
   @Environment(\.colorScheme) private var scheme
 
   @StateObject var viewModel: MangaDetailsViewModel
@@ -326,13 +327,7 @@ struct MangaDetailsView: View {
       ForEach(viewModel.chapters) { chapter in
         switch chapter {
         case .chapter(let chapter):
-          NavigationLink(
-            destination: MangaReaderNavigator.navigate(
-              to: viewModel.getNavigator(chapter)
-            ),
-            tag: chapter,
-            selection: $selectedItem
-          ){
+          Button { } label: {
             ChapterEntryView(
               chapter: chapter,
               scheme: scheme
@@ -347,7 +342,9 @@ struct MangaDetailsView: View {
               if viewModel.isSelectionOn {
                 viewModel.selectItem(chapter.id)
               } else {
-                selectedItem = chapter
+                router.navigate(
+                  using: viewModel.getNavigator(chapter)
+                )
               }
             }
             .onLongPressGesture {
