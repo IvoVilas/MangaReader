@@ -22,6 +22,7 @@ final class MangaSearchViewModel: ObservableObject {
   private let source: Source
   private let provider: MangaSearchProvider
   private let datasource: SearchDatasource
+  private let store: AppOptionsStore
 
   private var searchValue: MangaSearchType {
     if input.isEmpty {
@@ -38,6 +39,7 @@ final class MangaSearchViewModel: ObservableObject {
     mangaCrud: MangaCrud,
     coverCrud: CoverCrud,
     httpClient: HttpClient,
+    optionsStore: AppOptionsStore,
     container: NSPersistentContainer
   ) {
     self.source = source
@@ -51,6 +53,7 @@ final class MangaSearchViewModel: ObservableObject {
       coverCrud: coverCrud,
       moc: container.newBackgroundContext()
     )
+    self.store = optionsStore
 
     sourceName = source.name
     results = []
@@ -84,6 +87,7 @@ final class MangaSearchViewModel: ObservableObject {
 
 }
 
+// MARK: Actions
 extension MangaSearchViewModel {
 
   func doSearch() async {
@@ -98,8 +102,20 @@ extension MangaSearchViewModel {
     }
   }
 
+  // TODO: Use
+  func toggleLayout() {
+    /*
+    let newLayout = layout.toggle()
+
+    layout = newLayout
+
+    store.changeProperty(.searchLayout(newLayout))
+    */
+  }
+
 }
 
+// MARK: Navigation
 extension MangaSearchViewModel {
 
   func getNavigator(_ result: MangaSearchResult) -> MangaDetailsNavigator {

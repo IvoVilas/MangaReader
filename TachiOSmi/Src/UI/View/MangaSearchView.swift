@@ -8,31 +8,6 @@
 import SwiftUI
 import CoreData
 
-// MARK: Layout
-private enum ResultLayout {
-  case normal
-  case compact
-
-  var iconName: String {
-    switch self {
-    case .normal:
-      "rectangle.grid.3x2.fill"
-    case .compact:
-      "square.grid.3x3.fill"
-    }
-  }
-
-  func toggle() -> ResultLayout {
-    switch self {
-    case .normal:
-      return .compact
-
-    case .compact:
-      return .normal
-    }
-  }
-}
-
 // MARK: Search
 struct MangaSearchView: View {
 
@@ -41,13 +16,14 @@ struct MangaSearchView: View {
 
   @StateObject var viewModel: MangaSearchViewModel
   @State private var toast: Toast?
-  @State private var listLayout = ResultLayout.compact
+  @State private var collectionLayout = CollectionLayout.compact
 
   init(
     source: Source,
     mangaCrud: MangaCrud = AppEnv.env.mangaCrud,
     coverCrud: CoverCrud = AppEnv.env.coverCrud,
     httpClient: HttpClient = AppEnv.env.httpClient,
+    appOptionsStore: AppOptionsStore = AppEnv.env.appOptionsStore,
     container: NSPersistentContainer = PersistenceController.shared.container
   ) {
     _viewModel = StateObject(
@@ -56,6 +32,7 @@ struct MangaSearchView: View {
         mangaCrud: mangaCrud,
         coverCrud: coverCrud,
         httpClient: httpClient,
+        optionsStore: appOptionsStore,
         container: container
       )
     )
@@ -74,7 +51,7 @@ struct MangaSearchView: View {
         textColor: scheme.foregroundColor,
         doSearch: viewModel.doSearch,
         input: $viewModel.input,
-        layout: $listLayout
+        layout: $collectionLayout
       )
       .padding(.horizontal, 16)
 
@@ -85,37 +62,11 @@ struct MangaSearchView: View {
           .opacity(viewModel.isLoading ? 1 : 0)
 
         ScrollView {
-          LazyVGrid(columns: columns, spacing: 16) {
-            ForEach(viewModel.results) { result in
-              Button {
-                router.navigate(using: viewModel.getNavigator(result))
-              } label: {
-                MangaResultView(
-                  id: result.id,
-                  cover: result.cover,
-                  title: result.title,
-                  textColor: scheme.foregroundColor,
-                  isSaved: viewModel.savedMangas.contains(result.id),
-                  layout: $listLayout
-                )
-                .equatable()
-                .onAppear {
-                  Task(priority: .medium) {
-                    await viewModel.loadNextIfNeeded(result.id)
-                  }
-                }
-              }
-            }
-          }
-          .padding(16)
+          resultCollectionView()
+            .padding(16)
         }
         .opacity(viewModel.isLoading ? 0 : 1)
         .scrollIndicators(.hidden)
-        .refreshable {
-          Task(priority: .medium) {
-            await viewModel.doSearch()
-          }
-        }
         .task(priority: .medium) {
           if viewModel.results.isEmpty {
             await viewModel.doSearch()
@@ -136,6 +87,57 @@ struct MangaSearchView: View {
     .navigationBarBackButtonHidden(true)
   }
 
+  @ViewBuilder
+  private func resultCollectionView() -> some View {
+    if collectionLayout == .list {
+      LazyVStack(spacing: 16) {
+        ForEach(viewModel.results) { result in
+          Button {
+            router.navigate(using: viewModel.getNavigator(result))
+          } label: {
+            MangaResultItemView(
+              id: result.id,
+              cover: result.cover,
+              title: result.title,
+              textColor: scheme.foregroundColor,
+              isSaved: viewModel.savedMangas.contains(result.id),
+              layout: $collectionLayout
+            )
+            .equatable()
+            .onAppear {
+              Task(priority: .medium) {
+                await viewModel.loadNextIfNeeded(result.id)
+              }
+            }
+          }
+        }
+      }
+    } else {
+      LazyVGrid(columns: columns, spacing: 16) {
+        ForEach(viewModel.results) { result in
+          Button {
+            router.navigate(using: viewModel.getNavigator(result))
+          } label: {
+            MangaResultItemView(
+              id: result.id,
+              cover: result.cover,
+              title: result.title,
+              textColor: scheme.foregroundColor,
+              isSaved: viewModel.savedMangas.contains(result.id),
+              layout: $collectionLayout
+            )
+            .equatable()
+            .onAppear {
+              Task(priority: .medium) {
+                await viewModel.loadNextIfNeeded(result.id)
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
 }
 
 // MARK: Header
@@ -149,7 +151,7 @@ private struct HeaderView: View {
   @State var didSearch = false
   @State var isSearching: Bool = false
   @Binding var input: String
-  @Binding var layout: ResultLayout
+  @Binding var layout: CollectionLayout
   @FocusState private var inputFieldIsFocused: Bool
 
   var body: some View {
@@ -197,7 +199,7 @@ private struct HeaderView: View {
       Button {
         layout = layout.toggle()
       } label: {
-        Image(systemName: layout.iconName)
+        layout.icon.image()
           .tint(tintColor)
       }
     }
@@ -220,7 +222,7 @@ private struct HeaderView: View {
 }
 
 // MARK: Result
-private struct MangaResultView: View, Equatable {
+private struct MangaResultItemView: View, Equatable {
 
   let id: String
   let cover: Data?
@@ -228,12 +230,12 @@ private struct MangaResultView: View, Equatable {
   let textColor: Color
   let isSaved: Bool
 
-  @Binding var layout: ResultLayout
+  @Binding var layout: CollectionLayout
 
-  static func == (lhs: MangaResultView, rhs: MangaResultView) -> Bool {
+  static func == (lhs: MangaResultItemView, rhs: MangaResultItemView) -> Bool {
     if lhs.id != rhs.id { return false }
-
     if lhs.isSaved != rhs.isSaved { return false }
+    if lhs.textColor != rhs.textColor { return false }
 
     switch (lhs.cover, rhs.cover) {
     case (.none, .some):
@@ -248,67 +250,60 @@ private struct MangaResultView: View, Equatable {
   }
 
   var body: some View {
-    ZStack(alignment: .topLeading) {
-      makeResultView()
-        .overlay(
-          .white.opacity(isSaved ? 0.5 : 0)
-        )
-
-      Image(systemName: "bookmark.fill")
-        .resizable()
-        .scaledToFit()
-        .frame(width: 15)
-        .foregroundStyle(.blue)
-        .aspectRatio(1, contentMode: .fill)
-        .padding(.leading, 8)
-        .opacity(isSaved ? 1 : 0)
-    }
-  }
-
-  // We should avoid using conditional views
-  // Specially on a view that is drawn so many times like this one
-  @ViewBuilder
-  private func makeResultView() -> some View {
     switch layout {
     case .normal:
-      VStack(alignment: .leading, spacing: 4) {
-        Image(uiImage: cover.toUIImage() ?? UIImage())
+      MangaResultView(
+        title: title,
+        cover: cover,
+        foregroundColor: textColor,
+        coverOpacity: isSaved ? 0.4 : 1
+      )
+      .overlay(
+        Image(systemName: "bookmark.fill")
           .resizable()
-          .aspectRatio(0.625, contentMode: .fill)
-          .background(.gray)
-          .clipShape(RoundedRectangle(cornerRadius: 8))
-
-        Text(title)
-          .font(.caption2)
-          .lineLimit(2)
-          .multilineTextAlignment(.leading)
-          .foregroundStyle(textColor)
-          .frame(maxHeight: .infinity, alignment: .topLeading)
-      }
+          .scaledToFit()
+          .frame(width: 15)
+          .foregroundStyle(.blue)
+          .aspectRatio(1, contentMode: .fill)
+          .padding(.leading, 8)
+          .opacity(isSaved ? 1 : 0),
+        alignment: .topLeading
+      )
 
     case .compact:
-      Image(uiImage: cover.toUIImage() ?? UIImage())
-        .resizable()
-        .aspectRatio(0.625, contentMode: .fill)
-        .background(.gray)
-        .overlay {
-          ZStack(alignment: .bottomLeading) {
-            LinearGradient(
-              gradient: Gradient(colors: [.clear, .black.opacity(0.8)]),
-              startPoint: .center,
-              endPoint: .bottom
-            )
+      MangaCompactResultView(
+        title: title,
+        cover: cover,
+        foregroundColor: textColor,
+        coverOpacity: isSaved ? 0.4 : 1
+      )
+      .overlay(
+        Image(systemName: "bookmark.fill")
+          .resizable()
+          .scaledToFit()
+          .frame(width: 15)
+          .foregroundStyle(.blue)
+          .aspectRatio(1, contentMode: .fill)
+          .padding(.leading, 8)
+          .opacity(isSaved ? 1 : 0),
+        alignment: .topLeading
+      )
 
-            Text(title)
-              .font(.bold(.footnote)())
-              .lineLimit(2)
-              .multilineTextAlignment(.leading)
-              .foregroundStyle(.white)
-              .padding(.horizontal, 4)
-              .padding(.bottom, 8)
-          }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+    case .list:
+      MangaListResultView(
+        title: title,
+        cover: cover,
+        foregroundColor: textColor,
+        opacity: isSaved ? 0.4 : 1
+      ) {
+        Image(systemName: "bookmark.fill")
+          .resizable()
+          .scaledToFit()
+          .frame(height: 16)
+          .foregroundStyle(.blue)
+          .padding(.leading, 8)
+          .opacity(isSaved ? 1 : 0)
+      }
     }
   }
 
@@ -317,18 +312,7 @@ private struct MangaResultView: View, Equatable {
 #Preview {
   MangaSearchView(
     source: .unknown,
+    appOptionsStore: AppOptionsStore(keyValueManager: InMemoryKeyValueManager()),
     container: PersistenceController.preview.container
   )
-}
-
-#Preview {
-  MangaResultView(
-    id: "1",
-    cover: UIImage.jujutsuCover.pngData(),
-    title: "Jujutsu Kaisen",
-    textColor: .black,
-    isSaved: true,
-    layout: .constant(.compact)
-  )
-  .frame(width: 120, height: 0)
 }

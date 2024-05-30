@@ -96,30 +96,11 @@ struct MangaLibraryView: View {
   private func makeMangaView(
     _ manga: MangaLibraryProvider.MangaWrapper
   ) -> some View {
-    ZStack(alignment: .topLeading) {
-      Image(uiImage: manga.manga.cover.toUIImage() ?? UIImage())
-        .resizable()
-        .aspectRatio(0.625, contentMode: .fill)
-        .background(.gray)
-        .overlay {
-          ZStack(alignment: .bottomLeading) {
-            LinearGradient(
-              gradient: Gradient(colors: [.clear, .black.opacity(0.8)]),
-              startPoint: .center,
-              endPoint: .bottom
-            )
-            
-            Text(manga.manga.title)
-              .font(.footnote)
-              .lineLimit(2)
-              .multilineTextAlignment(.leading)
-              .foregroundStyle(.white)
-              .padding(.horizontal, 4)
-              .padding(.bottom, 8)
-          }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-      
+    MangaCompactResultView(
+      title: manga.manga.title,
+      cover: manga.manga.cover,
+      foregroundColor: scheme.foregroundColor
+    ).overlay(alignment: .topLeading) {
       Text("\(manga.unreadChapters)")
         .font(.footnote)
         .lineLimit(1)

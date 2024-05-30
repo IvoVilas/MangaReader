@@ -125,7 +125,7 @@ struct MangaDetailsView: View {
           color: .black.opacity(viewModel.isSelectionOn ? 0.2 : 0),
           radius: 10
         )
-        .animation(.snappy, value: viewModel.isSelectionOn)
+        .animation(.bouncy(duration: 0.3), value: viewModel.isSelectionOn)
         .animation(.bouncy(duration: 0.3), value: viewModel.toolbarActions)
 
     }

@@ -15,11 +15,17 @@ final class AppOptionsStore {
     case appTheme(ThemePalette)
     case defaultDirection(ReadingDirection)
     case isDataSavingOn(Bool)
+
+    case libraryLayout(CollectionLayout)
+    case searchLayout(CollectionLayout)
   }
 
   private let appThemeProperty: KVMProperty<Int16>
   private let defaultDirectionProperty: KVMProperty<Int16>
   private let isDataSavingOnProperty: KVMProperty<Bool>
+
+  private let libraryLayoutProperty: KVMProperty<Int16>
+  private let searchLayoutProperty: KVMProperty<Int16>
 
   var appThemePublisher: AnyPublisher<ThemePalette, Never> {
     appThemeProperty.publisher
@@ -37,6 +43,18 @@ final class AppOptionsStore {
     isDataSavingOnProperty.publisher
   }
 
+  var libraryLayoutPublisher: AnyPublisher<CollectionLayout, Never> {
+    libraryLayoutProperty.publisher
+      .map { .safeInit(from: $0) }
+      .eraseToAnyPublisher()
+  }
+
+  var searchLayoutPublisher: AnyPublisher<CollectionLayout, Never> {
+    searchLayoutProperty.publisher
+      .map { .safeInit(from: $0) }
+      .eraseToAnyPublisher()
+  }
+
   var appTheme: ThemePalette {
     return .safeInit(from: appThemeProperty.value)
   }
@@ -47,6 +65,14 @@ final class AppOptionsStore {
 
   var isDataSavingOn: Bool {
     return isDataSavingOnProperty.value
+  }
+
+  var libraryLayout: CollectionLayout {
+    return .safeInit(from: libraryLayoutProperty.value)
+  }
+
+  var searchLayout: CollectionLayout {
+    return .safeInit(from: searchLayoutProperty.value)
   }
 
   init(
@@ -69,6 +95,18 @@ final class AppOptionsStore {
       defaultValue: false,
       keyValueManager: keyValueManager
     )
+
+    libraryLayoutProperty = KVMProperty(
+      key: "library_layout",
+      defaultValue: CollectionLayout.normal.id,
+      keyValueManager: keyValueManager
+    )
+
+    searchLayoutProperty = KVMProperty(
+      key: "library_layout",
+      defaultValue: CollectionLayout.normal.id,
+      keyValueManager: keyValueManager
+    )
   }
 
   func changeProperty(_ property: Property) {
@@ -81,6 +119,12 @@ final class AppOptionsStore {
 
     case .isDataSavingOn(let value):
       isDataSavingOnProperty.setValue(value)
+
+    case .libraryLayout(let layout):
+      libraryLayoutProperty.setValue(layout.id)
+
+    case .searchLayout(let layout):
+      searchLayoutProperty.setValue(layout.id)
     }
   }
 
