@@ -16,6 +16,7 @@ struct MangaLibraryView: View {
 
   @StateObject var provider: MangaLibraryProvider
   @State var isLoading = false
+  @State var layout: CollectionLayout = .compact
 
   private let columns = Array(
     repeating: GridItem(.flexible(), spacing: 16),
@@ -39,7 +40,7 @@ struct MangaLibraryView: View {
   var body: some View {
     VStack(alignment: .leading) {
       ZStack {
-        HStack {
+        HStack(spacing: 0) {
           Text("Library")
             .foregroundStyle(scheme.foregroundColor)
             .font(.title)
@@ -48,7 +49,22 @@ struct MangaLibraryView: View {
 
           Button { refreshLibrary() } label: {
             Image(systemName: "arrow.clockwise")
+              .resizable()
+              .scaledToFit()
               .foregroundStyle(scheme.foregroundColor)
+              .frame(width: 16, height: 16)
+          }
+
+          Spacer().frame(width: 24)
+
+          Button {
+            layout = layout.toggle()
+          } label: {
+            Image(systemName: "line.3.horizontal.decrease")
+              .resizable()
+              .scaledToFit()
+              .foregroundStyle(scheme.foregroundColor)
+              .frame(width: 20, height: 20)
           }
         }
 
@@ -62,15 +78,7 @@ struct MangaLibraryView: View {
 
       ZStack {
         ScrollView {
-          LazyVGrid(columns: columns, spacing: 16) {
-            ForEach(provider.mangas) { result in
-              Button {
-                router.navigate(using: MangaDetailsNavigator.fromMangaWrapper(result))
-              } label: {
-                makeMangaView(result)
-              }
-            }
-          }
+          resultCollectionView()
         }
         .scrollIndicators(.hidden)
         .opacity(provider.mangas.count > 0 ? 1 : 0)
@@ -91,26 +99,45 @@ struct MangaLibraryView: View {
     }
     .background(scheme.backgroundColor)
   }
-  
+
   @ViewBuilder
-  private func makeMangaView(
-    _ manga: MangaLibraryProvider.MangaWrapper
-  ) -> some View {
-    MangaCompactResultView(
-      title: manga.manga.title,
-      cover: manga.manga.cover,
-      foregroundColor: scheme.foregroundColor
-    ).overlay(alignment: .topLeading) {
-      Text("\(manga.unreadChapters)")
-        .font(.footnote)
-        .lineLimit(1)
-        .foregroundStyle(.white)
-        .padding(4)
-        .background(.blue)
-        .clipShape(RoundedRectangle(cornerRadius: 4))
-        .padding(.leading, 8)
-        .padding(.top, 8)
-        .opacity(manga.unreadChapters > 0 ? 1 : 0)
+  private func resultCollectionView() -> some View {
+    if layout == .list {
+      LazyVStack(spacing: 16) {
+        ForEach(provider.mangas) { result in
+          Button {
+            router.navigate(using: MangaDetailsNavigator.fromMangaWrapper(result))
+          } label: {
+            MangaResultItemView(
+              id: result.manga.id,
+              cover: result.manga.cover,
+              title: result.manga.title,
+              unreadChapters: result.unreadChapters,
+              textColor: scheme.foregroundColor,
+              layout: $layout
+            )
+            .equatable()
+          }
+        }
+      }
+    } else {
+      LazyVGrid(columns: columns, spacing: 16) {
+        ForEach(provider.mangas) { result in
+          Button {
+            router.navigate(using: MangaDetailsNavigator.fromMangaWrapper(result))
+          } label: {
+            MangaResultItemView(
+              id: result.manga.id,
+              cover: result.manga.cover,
+              title: result.manga.title,
+              unreadChapters: result.unreadChapters,
+              textColor: scheme.foregroundColor,
+              layout: $layout
+            )
+            .equatable()
+          }
+        }
+      }
     }
   }
 
@@ -121,6 +148,91 @@ struct MangaLibraryView: View {
       await refreshUseCase.refresh()
 
       await MainActor.run { isLoading = false }
+    }
+  }
+
+}
+
+private struct MangaResultItemView: View, Equatable {
+
+  let id: String
+  let cover: Data?
+  let title: String
+  let unreadChapters: Int
+  let textColor: Color
+
+  @Binding var layout: CollectionLayout
+
+  static func == (lhs: MangaResultItemView, rhs: MangaResultItemView) -> Bool {
+    guard
+      lhs.id == rhs.id,
+      lhs.textColor == rhs.textColor,
+      lhs.layout == rhs.layout,
+      lhs.cover == rhs.cover
+    else {
+      return false
+    }
+
+    return true
+  }
+
+  var body: some View {
+    switch layout {
+    case .normal:
+      MangaResultView(
+        title: title,
+        cover: cover,
+        foregroundColor: textColor
+      )
+      .overlay(alignment: .topLeading) {
+        Text("\(unreadChapters)")
+          .font(.footnote)
+          .lineLimit(1)
+          .foregroundStyle(.white)
+          .padding(4)
+          .background(.blue)
+          .clipShape(RoundedRectangle(cornerRadius: 4))
+          .padding(.leading, 8)
+          .padding(.top, 8)
+          .opacity(unreadChapters > 0 ? 1 : 0)
+      }
+
+    case .compact:
+      MangaCompactResultView(
+        title: title,
+        cover: cover,
+        foregroundColor: textColor
+      )
+      .overlay(alignment: .topLeading) {
+        Text("\(unreadChapters)")
+          .font(.footnote)
+          .lineLimit(1)
+          .foregroundStyle(.white)
+          .padding(4)
+          .background(.blue)
+          .clipShape(RoundedRectangle(cornerRadius: 4))
+          .padding(.leading, 8)
+          .padding(.top, 8)
+          .opacity(unreadChapters > 0 ? 1 : 0)
+      }
+
+    case .list:
+      MangaListResultView(
+        title: title,
+        cover: cover,
+        foregroundColor: textColor
+      ) {
+        Text("\(unreadChapters)")
+          .font(.footnote)
+          .lineLimit(1)
+          .foregroundStyle(.white)
+          .padding(4)
+          .background(.blue)
+          .clipShape(RoundedRectangle(cornerRadius: 4))
+          .padding(.leading, 8)
+          .padding(.top, 8)
+          .opacity(unreadChapters > 0 ? 1 : 0)
+      }
     }
   }
 

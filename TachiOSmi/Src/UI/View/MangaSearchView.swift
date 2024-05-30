@@ -234,21 +234,17 @@ private struct MangaResultItemView: View, Equatable {
   @Binding var layout: CollectionLayout
 
   static func == (lhs: MangaResultItemView, rhs: MangaResultItemView) -> Bool {
-    if lhs.id != rhs.id { return false }
-    if lhs.isSaved != rhs.isSaved { return false }
-    if lhs.textColor != rhs.textColor { return false }
-    if lhs.layout != rhs.layout { return false }
-
-    switch (lhs.cover, rhs.cover) {
-    case (.none, .some):
+    guard
+      lhs.id == rhs.id,
+      lhs.isSaved == rhs.isSaved,
+      lhs.textColor == rhs.textColor,
+      lhs.layout == rhs.layout,
+      lhs.cover == rhs.cover
+    else {
       return false
-
-    case (.some, .none):
-      return false
-
-    default:
-      return true
     }
+    
+    return true
   }
 
   var body: some View {
