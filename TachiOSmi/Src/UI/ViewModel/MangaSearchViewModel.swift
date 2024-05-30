@@ -16,6 +16,7 @@ final class MangaSearchViewModel: ObservableObject {
   @Published var results: [MangaSearchResult]
   @Published var savedMangas: [String]
   @Published var input: String
+  @Published var layout: CollectionLayout
   @Published var isLoading: Bool
   @Published var error: DatasourceError?
 
@@ -59,6 +60,7 @@ final class MangaSearchViewModel: ObservableObject {
     results = []
     savedMangas = []
     input = ""
+    layout = optionsStore.libraryLayout
     isLoading = false
     error = nil
 
@@ -104,13 +106,11 @@ extension MangaSearchViewModel {
 
   // TODO: Use
   func toggleLayout() {
-    /*
     let newLayout = layout.toggle()
 
     layout = newLayout
 
     store.changeProperty(.searchLayout(newLayout))
-    */
   }
 
 }

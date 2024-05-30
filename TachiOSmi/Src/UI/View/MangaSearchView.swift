@@ -16,7 +16,6 @@ struct MangaSearchView: View {
 
   @StateObject var viewModel: MangaSearchViewModel
   @State private var toast: Toast?
-  @State private var collectionLayout = CollectionLayout.compact
 
   init(
     source: Source,
@@ -50,8 +49,9 @@ struct MangaSearchView: View {
         tintColor: scheme.secondaryColor,
         textColor: scheme.foregroundColor,
         doSearch: viewModel.doSearch,
+        changeLayout: viewModel.toggleLayout,
         input: $viewModel.input,
-        layout: $collectionLayout
+        layout: $viewModel.layout
       )
       .padding(.horizontal, 16)
 
@@ -89,7 +89,7 @@ struct MangaSearchView: View {
 
   @ViewBuilder
   private func resultCollectionView() -> some View {
-    if collectionLayout == .list {
+    if viewModel.layout == .list {
       LazyVStack(spacing: 16) {
         ForEach(viewModel.results) { result in
           Button {
@@ -101,7 +101,7 @@ struct MangaSearchView: View {
               title: result.title,
               textColor: scheme.foregroundColor,
               isSaved: viewModel.savedMangas.contains(result.id),
-              layout: $collectionLayout
+              layout: $viewModel.layout
             )
             .equatable()
             .onAppear {
@@ -124,7 +124,7 @@ struct MangaSearchView: View {
               title: result.title,
               textColor: scheme.foregroundColor,
               isSaved: viewModel.savedMangas.contains(result.id),
-              layout: $collectionLayout
+              layout: $viewModel.layout
             )
             .equatable()
             .onAppear {
@@ -147,6 +147,7 @@ private struct HeaderView: View {
   let tintColor: Color
   let textColor: Color
   let doSearch: (() async -> Void)?
+  let changeLayout: (() -> Void)?
 
   @State var didSearch = false
   @State var isSearching: Bool = false
@@ -197,7 +198,7 @@ private struct HeaderView: View {
       }
 
       Button {
-        layout = layout.toggle()
+        changeLayout?()
       } label: {
         layout.icon.image()
           .tint(tintColor)
@@ -236,6 +237,7 @@ private struct MangaResultItemView: View, Equatable {
     if lhs.id != rhs.id { return false }
     if lhs.isSaved != rhs.isSaved { return false }
     if lhs.textColor != rhs.textColor { return false }
+    if lhs.layout != rhs.layout { return false }
 
     switch (lhs.cover, rhs.cover) {
     case (.none, .some):
