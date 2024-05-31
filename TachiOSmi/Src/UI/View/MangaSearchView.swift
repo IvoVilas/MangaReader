@@ -93,7 +93,7 @@ struct MangaSearchView: View {
       LazyVStack(spacing: 16) {
         ForEach(viewModel.results) { result in
           Button {
-            router.navigate(using: viewModel.getNavigator(result))
+            router.navigate(using: MangaDetailsNavigator(manga: result))
           } label: {
             MangaResultItemView(
               id: result.id,
@@ -116,7 +116,7 @@ struct MangaSearchView: View {
       LazyVGrid(columns: columns, spacing: 16) {
         ForEach(viewModel.results) { result in
           Button {
-            router.navigate(using: viewModel.getNavigator(result))
+            router.navigate(using: MangaDetailsNavigator(manga: result))
           } label: {
             MangaResultItemView(
               id: result.id,

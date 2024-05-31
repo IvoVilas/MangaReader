@@ -49,6 +49,7 @@ final class MangaSearchViewModel: ObservableObject {
       viewMoc: container.viewContext
     )
     self.datasource = SearchDatasource(
+      source: source,
       delegate: source.searchDelegateType.init(httpClient: httpClient),
       mangaCrud: mangaCrud,
       coverCrud: coverCrud,
@@ -125,18 +126,6 @@ extension MangaSearchViewModel {
     layout = newLayout
 
     store.changeProperty(.searchLayout(newLayout))
-  }
-
-}
-
-// MARK: Navigation
-extension MangaSearchViewModel {
-
-  func getNavigator(_ result: MangaSearchResult) -> MangaDetailsNavigator {
-    return MangaDetailsNavigator(
-      source: source,
-      manga: result
-    )
   }
 
 }

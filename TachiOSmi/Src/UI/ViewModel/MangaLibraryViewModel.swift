@@ -11,21 +11,24 @@ import Combine
 
 final class MangaLibraryViewModel: ObservableObject {
 
-  @Published var mangas: [MangaLibraryProvider.MangaWrapper]
+  @Published var mangas: [MangaWrapper]
   @Published var layout: CollectionLayout
   @Published var gridSize: CGFloat
   @Published var sortOrder: SortOrder
 
-  private let provider: MangaLibraryProvider
+  private let mangasProvider: MangaLibraryProvider
+  private let chaptersInfoProvider: ChaptersInfoProvider
   private let store: AppOptionsStore
 
   private var observers = Set<AnyCancellable>()
 
   init(
-    provider: MangaLibraryProvider,
+    mangasProvider: MangaLibraryProvider,
+    chaptersInfoProvider: ChaptersInfoProvider,
     optionsStore: AppOptionsStore
   ) {
-    self.provider = provider
+    self.mangasProvider = mangasProvider
+    self.chaptersInfoProvider = chaptersInfoProvider
     self.store = optionsStore
 
     mangas = []
@@ -38,14 +41,29 @@ final class MangaLibraryViewModel: ObservableObject {
 
     $gridSize
       .receive(on: DispatchQueue.main)
-      .sink { [weak self] in self?.changeGridSize(to: Int($0)) }
+      .map { Int($0) }
+      .removeDuplicates()
+      .sink { [weak self] in self?.changedGridSize(to: $0) }
       .store(in: &observers)
 
     Publishers.CombineLatest(
-      provider.$mangas,
-      $sortOrder
+      mangasProvider.mangas,
+      chaptersInfoProvider.info
     )
-    .map { (mangas, sortOrder) -> [MangaLibraryProvider.MangaWrapper] in
+    .map { (mangas, chapters) -> [MangaWrapper] in
+      mangas.map { manga in
+        let info = chapters.first { $0.mangaId == manga.id }
+
+        return MangaWrapper(
+          manga: manga,
+          totalChapters: info?.chapterCount ?? 0,
+          unreadChapters: info?.unreadChapters ?? 0,
+          latestChapterDate: info?.latestChapter
+        )
+      }
+    }
+    .combineLatest($sortOrder)
+    .map { (mangas, sortOrder) -> [MangaWrapper] in
       mangas.sorted { MangaLibraryViewModel.sortMangas(lhs: $0, rhs: $1, sortOrder: sortOrder) }
     }
     .receive(on: DispatchQueue.main)
@@ -57,12 +75,6 @@ final class MangaLibraryViewModel: ObservableObject {
     self.layout = layout
 
     store.changeProperty(.libraryLayout(layout))
-  }
-
-  func changeGridSize(to size: Int) {
-    gridSize = CGFloat(size)
-
-    store.changeProperty(.libraryGridSize(size))
   }
 
   func changeSortBy(to sort: MangasSortBy) {
@@ -85,6 +97,10 @@ final class MangaLibraryViewModel: ObservableObject {
     }
   }
 
+  private func changedGridSize(to size: Int) {
+    store.changeProperty(.libraryGridSize(size))
+  }
+
 }
 
 extension MangaLibraryViewModel {
@@ -95,8 +111,8 @@ extension MangaLibraryViewModel {
   }
 
   private static func sortMangas(
-    lhs: MangaLibraryProvider.MangaWrapper,
-    rhs: MangaLibraryProvider.MangaWrapper,
+    lhs: MangaWrapper,
+    rhs: MangaWrapper,
     sortOrder: SortOrder
   ) -> Bool {
     let ascending = sortOrder.ascending
@@ -125,6 +141,21 @@ extension MangaLibraryViewModel {
     }
 
     return ascending == result
+  }
+
+}
+
+extension MangaLibraryViewModel {
+
+  struct MangaWrapper: Hashable, Identifiable {
+
+    let manga: MangaSearchResult
+    let totalChapters: Int
+    let unreadChapters: Int
+    let latestChapterDate: Date?
+
+    var id: String { manga.id }
+
   }
 
 }

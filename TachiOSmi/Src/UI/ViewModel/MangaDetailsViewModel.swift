@@ -42,7 +42,6 @@ final class MangaDetailsViewModel: ObservableObject {
   private var observers = Set<AnyCancellable>()
 
   init(
-    source: Source,
     manga: MangaSearchResult,
     mangaCrud: MangaCrud,
     chapterCrud: ChapterCrud,
@@ -54,7 +53,7 @@ final class MangaDetailsViewModel: ObservableObject {
     appOptionsStore: AppOptionsStore,
     container: NSPersistentContainer
   ) {
-    self.source = source
+    self.source = manga.source
     self.mangaCrud = mangaCrud
     self.chapterCrud = chapterCrud
     self.moc = container.newBackgroundContext()

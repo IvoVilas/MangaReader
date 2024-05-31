@@ -11,6 +11,7 @@ import CoreData
 
 final class SearchDatasource {
 
+  private let source: Source
   private let delegate: SearchDelegateType
   private let mangaCrud: MangaCrud
   private let coverCrud: CoverCrud
@@ -38,11 +39,13 @@ final class SearchDatasource {
   private var fetchTask: Task<Void, Never>?
 
   init(
+    source: Source,
     delegate: SearchDelegateType,
     mangaCrud: MangaCrud,
     coverCrud: CoverCrud,
     moc: NSManagedObjectContext
   ) {
+    self.source = source
     self.delegate = delegate
     self.mangaCrud = mangaCrud
     self.coverCrud = coverCrud
@@ -87,7 +90,8 @@ final class SearchDatasource {
             MangaSearchResult(
               id: result.id,
               title: result.title,
-              cover: nil
+              cover: nil,
+              source: source
             )
           )
         }
@@ -147,7 +151,8 @@ final class SearchDatasource {
             MangaSearchResult(
               id: result.id,
               title: result.title,
-              cover: nil
+              cover: nil,
+              source: source
             )
           )
         }
@@ -264,7 +269,8 @@ final class SearchDatasource {
       mangas.valueOnMain[i] = MangaSearchResult(
         id: manga.id,
         title: manga.title,
-        cover: cover
+        cover: cover,
+        source: source
       )
     }
   }

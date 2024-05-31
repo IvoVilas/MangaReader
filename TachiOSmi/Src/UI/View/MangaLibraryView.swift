@@ -29,16 +29,16 @@ struct MangaLibraryView: View {
 
   init(
     coverCrud: CoverCrud = AppEnv.env.coverCrud,
-    chapterCrud: ChapterCrud = AppEnv.env.chapterCrud,
     viewMoc: NSManagedObjectContext = PersistenceController.shared.container.viewContext,
     appOptionsStore: AppOptionsStore = AppEnv.env.appOptionsStore
   ) {
     _viewModel = StateObject(
       wrappedValue: MangaLibraryViewModel(
-        provider: MangaLibraryProvider(
+        mangasProvider: MangaLibraryProvider(
           coverCrud: coverCrud,
-          chapterCrud: chapterCrud,
-          viewMoc: viewMoc),
+          viewMoc: viewMoc
+        ),
+        chaptersInfoProvider: ChaptersInfoProvider(viewMoc: viewMoc),
         optionsStore: appOptionsStore
       )
     )
@@ -179,7 +179,7 @@ private extension MangaLibraryView {
       LazyVStack(spacing: 16) {
         ForEach(viewModel.mangas) { result in
           Button {
-            router.navigate(using: MangaDetailsNavigator.fromMangaWrapper(result))
+            router.navigate(using: MangaDetailsNavigator(manga: result.manga))
           } label: {
             MangaResultItemView(
               id: result.manga.id,
@@ -203,7 +203,7 @@ private extension MangaLibraryView {
       ) {
         ForEach(viewModel.mangas) { result in
           Button {
-            router.navigate(using: MangaDetailsNavigator.fromMangaWrapper(result))
+            router.navigate(using: MangaDetailsNavigator(manga: result.manga))
           } label: {
             MangaResultItemView(
               id: result.manga.id,

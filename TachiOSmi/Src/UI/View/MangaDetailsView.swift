@@ -21,7 +21,6 @@ struct MangaDetailsView: View {
   @State private var selectedItem: ChapterModel?
 
   init(
-    source: Source,
     manga: MangaSearchResult,
     mangaCrud: MangaCrud = AppEnv.env.mangaCrud,
     chapterCrud: ChapterCrud = AppEnv.env.chapterCrud,
@@ -35,7 +34,6 @@ struct MangaDetailsView: View {
   ) {
     _viewModel = StateObject(
       wrappedValue: MangaDetailsViewModel(
-        source: source,
         manga: manga,
         mangaCrud: mangaCrud,
         chapterCrud: chapterCrud,
@@ -181,6 +179,7 @@ struct MangaDetailsView: View {
       VStack(alignment: .leading, spacing: 8) {
         Text(viewModel.manga.title)
           .foregroundStyle(scheme.foregroundColor)
+          .lineLimit(3)
           .font(.headline)
 
         HStack(spacing: 4) {
@@ -359,11 +358,11 @@ struct MangaDetailsView: View {
 #Preview {
   NavigationStack {
     MangaDetailsView(
-      source: .unknown,
       manga: MangaSearchResult(
         id: "1",
         title: "Jujutsu Kaisen",
-        cover: UIImage.jujutsuCover.jpegData(compressionQuality: 1)
+        cover: UIImage.jujutsuCover.jpegData(compressionQuality: 1),
+        source: .unknown
       ),
       appOptionsStore: AppOptionsStore(keyValueManager: InMemoryKeyValueManager()),
       container: PersistenceController.preview.container

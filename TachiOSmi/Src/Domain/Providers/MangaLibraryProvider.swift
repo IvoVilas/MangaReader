@@ -7,19 +7,21 @@
 
 import Foundation
 import CoreData
-import SwiftUI
+import Combine
 
-final class MangaLibraryProvider: NSObject, ObservableObject {
-
-  @Published var mangas = [MangaWrapper]()
+final class MangaLibraryProvider: NSObject {
 
   private let fetchedResultsController: NSFetchedResultsController<MangaMO>
+  private let mangasPublisher: CurrentValueSubject<[MangaSearchResult], Never>
+
+  var mangas: AnyPublisher<[MangaSearchResult], Never> {
+    mangasPublisher.eraseToAnyPublisher()
+  }
+
   private let coverCrud: CoverCrud
-  private let chapterCrud: ChapterCrud
 
   init(
     coverCrud: CoverCrud,
-    chapterCrud: ChapterCrud,
     viewMoc: NSManagedObjectContext
   ) {
     let fetchRequest = NSFetchRequest<MangaMO>(entityName: "Manga")
@@ -28,7 +30,7 @@ final class MangaLibraryProvider: NSObject, ObservableObject {
     fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \MangaMO.title, ascending: true)]
 
     self.coverCrud = coverCrud
-    self.chapterCrud = chapterCrud
+    self.mangasPublisher = CurrentValueSubject([])
     self.fetchedResultsController = NSFetchedResultsController<MangaMO>(
       fetchRequest: fetchRequest,
       managedObjectContext: viewMoc,
@@ -52,30 +54,18 @@ final class MangaLibraryProvider: NSObject, ObservableObject {
   private func updatePublishedValue() {
     let context = self.fetchedResultsController.managedObjectContext
 
-    mangas = (fetchedResultsController.fetchedObjects ?? [])
-      .compactMap { manga in
-        var res: MangaWrapper?
-
+    mangasPublisher.value = (fetchedResultsController.fetchedObjects ?? [])
+      .map { manga in
         context.performAndWait {
-          let readChapters = (try? self.chapterCrud.getChaptersCount(for: manga.id, read: true, moc: context)) ?? 0
-          let unreadChapters = (try? self.chapterCrud.getChaptersCount(for: manga.id, read: false, moc: context)) ?? 0
-          let latestChapterDate = try? self.chapterCrud.getLatestChapterDate(mangaId: manga.id, moc: context)
           let coverData = try? self.coverCrud.getCoverData(for: manga.id, moc: context)
 
-          res = MangaWrapper(
-            source: .safeInit(from: manga.sourceId),
-            manga: MangaSearchResult(
-              id: manga.id,
-              title: manga.title,
-              cover: coverData
-            ),
-            totalChapters: readChapters + unreadChapters,
-            unreadChapters: unreadChapters,
-            latestChapterDate: latestChapterDate
+          return MangaSearchResult(
+            id: manga.id,
+            title: manga.title,
+            cover: coverData,
+            source: .safeInit(from: manga.sourceId)
           )
         }
-
-        return res
       }
   }
 
@@ -85,22 +75,6 @@ extension MangaLibraryProvider: NSFetchedResultsControllerDelegate {
 
   func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
     updatePublishedValue()
-  }
-
-}
-
-extension MangaLibraryProvider {
-
-  struct MangaWrapper: Hashable, Identifiable {
-
-    let source: Source
-    let manga: MangaSearchResult
-    let totalChapters: Int
-    let unreadChapters: Int
-    let latestChapterDate: Date?
-
-    var id: String { manga.id }
-
   }
 
 }

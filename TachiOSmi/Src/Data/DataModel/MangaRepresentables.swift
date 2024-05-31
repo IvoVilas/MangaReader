@@ -55,6 +55,7 @@ struct MangaSearchResult: Identifiable, Hashable {
   let id: String
   let title: String
   let cover: Data?
+  let source: Source
 
 }
 
