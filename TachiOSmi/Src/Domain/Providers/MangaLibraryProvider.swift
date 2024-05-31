@@ -57,23 +57,26 @@ final class MangaLibraryProvider: NSObject, ObservableObject {
         var res: MangaWrapper?
 
         context.performAndWait {
-          let unreadChapters = try? self.chapterCrud.getUnreadChaptersCount(mangaId: manga.id, moc: context)
+          let readChapters = (try? self.chapterCrud.getChaptersCount(for: manga.id, read: true, moc: context)) ?? 0
+          let unreadChapters = (try? self.chapterCrud.getChaptersCount(for: manga.id, read: false, moc: context)) ?? 0
+          let latestChapterDate = try? self.chapterCrud.getLatestChapterDate(mangaId: manga.id, moc: context)
           let coverData = try? self.coverCrud.getCoverData(for: manga.id, moc: context)
 
           res = MangaWrapper(
-            unreadChapters: unreadChapters ?? 0,
             source: .safeInit(from: manga.sourceId),
             manga: MangaSearchResult(
               id: manga.id,
               title: manga.title,
               cover: coverData
-            )
+            ),
+            totalChapters: readChapters + unreadChapters,
+            unreadChapters: unreadChapters,
+            latestChapterDate: latestChapterDate
           )
         }
 
         return res
       }
-      .sorted { $0.unreadChapters > $1.unreadChapters }
   }
 
 }
@@ -90,9 +93,11 @@ extension MangaLibraryProvider {
 
   struct MangaWrapper: Hashable, Identifiable {
 
-    let unreadChapters: Int
     let source: Source
     let manga: MangaSearchResult
+    let totalChapters: Int
+    let unreadChapters: Int
+    let latestChapterDate: Date?
 
     var id: String { manga.id }
 

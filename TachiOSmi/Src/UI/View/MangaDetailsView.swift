@@ -112,13 +112,7 @@ struct MangaDetailsView: View {
       toolBar()
         .padding(.top, 12)
         .padding(.bottom, 24)
-        .background(
-          scheme == .light ? Color(
-            red: 205, green: 230, blue: 254
-          ) : Color(
-            red: 81, green: 149, blue: 213
-          )
-        )
+        .background(scheme.terciaryColor)
         .offset(y: viewModel.isSelectionOn ? 0 : 100)
         .opacity(viewModel.isSelectionOn ? 1 : 0)
         .shadow(

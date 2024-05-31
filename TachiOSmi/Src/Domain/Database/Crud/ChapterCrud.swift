@@ -91,19 +91,46 @@ final class ChapterCrud {
     }
   }
 
-  func getUnreadChaptersCount(
-    mangaId: String,
+  func getChaptersCount(
+    for mangaId: String,
+    read: Bool? = nil,
     moc: NSManagedObjectContext
   ) throws -> Int {
     let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Chapter")
 
     let mangaPredicate = NSPredicate(format: "manga.id == %@", mangaId)
-    let readPredicate = NSPredicate(format: "isRead == %@", NSNumber(value: false))
 
-    fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [mangaPredicate, readPredicate])
+    if let read {
+      let readPredicate = NSPredicate(format: "isRead == %@", NSNumber(value: read))
+
+      fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [mangaPredicate, readPredicate])
+    } else {
+      fetchRequest.predicate = mangaPredicate
+    }
 
     do {
       return try moc.count(for: fetchRequest)
+    } catch {
+      throw CrudError.requestError(error)
+    }
+  }
+
+  func getLatestChapterDate(
+    mangaId: String,
+    moc: NSManagedObjectContext
+  ) throws -> Date? {
+    let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Chapter")
+
+    fetchRequest.predicate = NSPredicate(format: "manga.id == %@", mangaId)
+    fetchRequest.sortDescriptors = [NSSortDescriptor(key: "publishAt", ascending: false)]
+    fetchRequest.fetchLimit = 1
+
+    do {
+      guard let results = try moc.fetch(fetchRequest) as? [ChapterMO] else {
+        throw CrudError.wrongRequestType
+      }
+
+      return results.first?.publishAt
     } catch {
       throw CrudError.requestError(error)
     }

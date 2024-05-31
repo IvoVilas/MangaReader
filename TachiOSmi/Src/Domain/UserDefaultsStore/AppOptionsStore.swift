@@ -18,6 +18,8 @@ final class AppOptionsStore {
 
     case libraryLayout(CollectionLayout)
     case libraryGridSize(Int)
+    case librarySortBy(MangasSortBy)
+    case librarySortAscending(Bool)
 
     case searchLayout(CollectionLayout)
   }
@@ -28,37 +30,13 @@ final class AppOptionsStore {
 
   private let libraryLayoutProperty: KVMProperty<Int16>
   private let libraryGridSizeProperty: KVMProperty<Int>
+  private let librarySortByProperty: KVMProperty<Int16>
+  private let librarySortAscendingProperty: KVMProperty<Bool>
 
   private let searchLayoutProperty: KVMProperty<Int16>
 
   var appThemePublisher: AnyPublisher<ThemePalette, Never> {
     appThemeProperty.publisher
-      .map { .safeInit(from: $0) }
-      .eraseToAnyPublisher()
-  }
-
-  var defaultDirectionPublisher: AnyPublisher<ReadingDirection, Never> {
-    defaultDirectionProperty.publisher
-      .map { .safeInit(from: $0) }
-      .eraseToAnyPublisher()
-  }
-
-  var isDataSavingOnPublisher: AnyPublisher<Bool, Never> {
-    isDataSavingOnProperty.publisher
-  }
-
-  var libraryLayoutPublisher: AnyPublisher<CollectionLayout, Never> {
-    libraryLayoutProperty.publisher
-      .map { .safeInit(from: $0) }
-      .eraseToAnyPublisher()
-  }
-
-  var libraryGridSizePublisher: AnyPublisher<Int, Never> {
-    libraryGridSizeProperty.publisher
-  }
-
-  var searchLayoutPublisher: AnyPublisher<CollectionLayout, Never> {
-    searchLayoutProperty.publisher
       .map { .safeInit(from: $0) }
       .eraseToAnyPublisher()
   }
@@ -83,6 +61,13 @@ final class AppOptionsStore {
     return libraryGridSizeProperty.value
   }
 
+  var librarySortBy: MangasSortBy {
+    return .safeInit(from: librarySortByProperty.value)
+  }
+
+  var librarySortAscending: Bool {
+    return librarySortAscendingProperty.value
+  }
 
   var searchLayout: CollectionLayout {
     return .safeInit(from: searchLayoutProperty.value)
@@ -121,6 +106,18 @@ final class AppOptionsStore {
       keyValueManager: keyValueManager
     )
 
+    librarySortByProperty = KVMProperty(
+      key: "library_sort_by",
+      defaultValue: MangasSortBy.title.id,
+      keyValueManager: keyValueManager
+    )
+
+    librarySortAscendingProperty = KVMProperty(
+      key: "library_sort_ascending",
+      defaultValue: true,
+      keyValueManager: keyValueManager
+    )
+
     searchLayoutProperty = KVMProperty(
       key: "library_layout",
       defaultValue: CollectionLayout.normal.id,
@@ -145,8 +142,20 @@ final class AppOptionsStore {
     case .libraryGridSize(let size):
       libraryGridSizeProperty.setValue(size)
 
+    case .librarySortBy(let sort):
+      librarySortByProperty.setValue(sort.id)
+
+    case .librarySortAscending(let ascending):
+      librarySortAscendingProperty.setValue(ascending)
+
     case .searchLayout(let layout):
       searchLayoutProperty.setValue(layout.id)
+    }
+  }
+
+  func changeProperties(_ properties: [Property]) {
+    for property in properties {
+      changeProperty(property)
     }
   }
 

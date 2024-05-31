@@ -8,7 +8,13 @@
 import SwiftUI
 import CoreData
 
+
 struct MangaLibraryView: View {
+
+  enum FilterOptions {
+    case display
+    case sort
+  }
 
   @Environment(\.router) private var router
   @Environment(\.colorScheme) private var scheme
@@ -18,6 +24,7 @@ struct MangaLibraryView: View {
 
   @State var isLoading = false
   @State var showingFilter = false
+  @State var filterOptions = FilterOptions .display
   @State var sheetHeight: CGFloat = .zero
 
   init(
@@ -99,17 +106,55 @@ struct MangaLibraryView: View {
     }
     .background(scheme.backgroundColor)
     .sheet(isPresented: $showingFilter) {
-      displayOptionsView()
-        .overlay {
-          GeometryReader { geometry in
-            Color.clear.preference(key: InnerHeightPreferenceKey.self, value: geometry.size.height)
+      VStack(spacing: 0) {
+        Spacer().frame(height: 16)
+
+        HStack(spacing: 0) {
+          Spacer()
+
+          Button { filterOptions = .display } label: {
+            Text("Display")
+              .foregroundStyle(
+                filterOptions == .display ?
+                  .blue : scheme.foregroundColor
+              )
           }
+
+          Spacer().frame(maxWidth: 36)
+
+          Button { filterOptions = .sort } label: {
+            Text("Sort   ")
+              .foregroundStyle(
+                filterOptions == .sort ?
+                  .blue : scheme.foregroundColor
+              )
+          }
+
+          Spacer()
         }
-        .onPreferenceChange(InnerHeightPreferenceKey.self) { newHeight in
-          sheetHeight = newHeight
+
+        Spacer().frame(height: 16)
+
+        Divider()
+
+        switch filterOptions {
+        case .display:
+          displayOptionsView()
+        case .sort:
+          sortOptionsView()
         }
-        .presentationCornerRadius(16)
-        .presentationDetents([.height(sheetHeight)])
+      }
+      .overlay {
+        GeometryReader { geometry in
+          Color.clear.preference(key: InnerHeightPreferenceKey.self, value: geometry.size.height)
+        }
+      }
+      .onPreferenceChange(InnerHeightPreferenceKey.self) { newHeight in
+        sheetHeight = newHeight
+      }
+      .presentationCornerRadius(16)
+      .presentationDetents([.height(sheetHeight)])
+      .animation(.spring(duration: 0.3), value: filterOptions)
     }
   }
 
@@ -182,56 +227,62 @@ private extension MangaLibraryView {
 
   @ViewBuilder
   private func displayOptionsView() -> some View {
-    VStack(spacing: 0) {
-      Spacer().frame(height: 16)
+    VStack(alignment: .leading, spacing: 24) {
+      VStack(alignment: .leading, spacing: 16) {
+        Text("Display mode")
 
-      Text("Display")
+        HStack(spacing: 0) {
+          layoutTagView(.list)
 
-      Spacer().frame(height: 16)
+          Spacer()
+            .frame(maxWidth: 16)
 
-      Divider()
+          layoutTagView(.normal)
 
-      VStack(alignment: .leading, spacing: 24) {
-        VStack(alignment: .leading, spacing: 16) {
-          Text("Display mode")
+          Spacer()
+            .frame(maxWidth: 16)
 
-          HStack(spacing: 0) {
-            layoutTagView(.list)
-
-            Spacer()
-              .frame(maxWidth: 16)
-
-            layoutTagView(.normal)
-
-            Spacer()
-              .frame(maxWidth: 16)
-
-            layoutTagView(.compact)
-          }
+          layoutTagView(.compact)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-
-        HStack(spacing: 24) {
-          VStack(alignment: .leading, spacing: 4) {
-            Text("Grid size")
-
-            Text("\(Int(viewModel.gridSize))")
-              .font(.footnote)
-          }
-
-          Slider(
-            value: $viewModel.gridSize,
-            in: 1...10,
-            step: 1
-          )
-        }
-        .opacity(viewModel.layout.isGrid ? 1 : 0)
-        .animation(.snappy(duration: 0.1), value: viewModel.layout)
       }
-      .padding(.horizontal, 24)
-      .padding(.top, 24)
-      .padding(.bottom, 48)
+      .frame(maxWidth: .infinity, alignment: .leading)
+
+      HStack(spacing: 24) {
+        VStack(alignment: .leading, spacing: 4) {
+          Text("Grid size")
+
+          Text("\(Int(viewModel.gridSize))")
+            .font(.footnote)
+        }
+
+        Slider(
+          value: $viewModel.gridSize,
+          in: 1...10,
+          step: 1
+        )
+      }
+      .opacity(viewModel.layout.isGrid ? 1 : 0)
+      .animation(.snappy(duration: 0.1), value: viewModel.layout)
     }
+    .padding(.horizontal, 24)
+    .padding(.top, 24)
+    .padding(.bottom, 48)
+  }
+
+  @ViewBuilder
+  private func sortOptionsView() -> some View {
+    VStack(spacing: 24) {
+      sortByOptionView(.title)
+
+      sortByOptionView(.totalChapters)
+
+      sortByOptionView(.unreadCount)
+
+      sortByOptionView(.latestChapter)
+    }
+    .padding(.horizontal, 24)
+    .padding(.top, 24)
+    .padding(.bottom, 48)
   }
 
   @ViewBuilder
@@ -249,17 +300,31 @@ private extension MangaLibraryView {
           RoundedRectangle(cornerRadius: 4)
             .fill(
               viewModel.layout == layout ?
-              scheme == .light ? Color(
-                red: 205, green: 230, blue: 254
-              ) : Color(
-                red: 81, green: 149, blue: 213
-              ) : .clear
+              scheme.terciaryColor : .clear
             )
             .stroke(
               .gray,
               lineWidth: viewModel.layout == layout ? 0 : 1
             )
         )
+    }
+  }
+
+  @ViewBuilder
+  private func sortByOptionView(
+    _ sortBy: MangasSortBy
+  ) -> some View {
+    Button { viewModel.changeSortBy(to: sortBy) } label: {
+      HStack(spacing: 24) {
+        Image(systemName: "arrow.up")
+          .opacity(viewModel.sortOrder.sortBy == sortBy ? 1 : 0)
+          .rotationEffect(.degrees(viewModel.sortOrder.ascending ? 0 : 180))
+
+        Text(sortBy.description)
+          .foregroundStyle(scheme.foregroundColor)
+
+        Spacer()
+      }
     }
   }
 
@@ -289,6 +354,7 @@ private struct MangaResultItemView: View, Equatable {
   static func == (lhs: MangaResultItemView, rhs: MangaResultItemView) -> Bool {
     guard
       lhs.id == rhs.id,
+      lhs.unreadChapters == rhs.unreadChapters,
       lhs.textColor == rhs.textColor,
       lhs.layout == rhs.layout,
       lhs.cover == rhs.cover
