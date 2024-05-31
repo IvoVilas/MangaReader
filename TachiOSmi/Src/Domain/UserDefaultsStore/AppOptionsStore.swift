@@ -17,6 +17,8 @@ final class AppOptionsStore {
     case isDataSavingOn(Bool)
 
     case libraryLayout(CollectionLayout)
+    case libraryGridSize(Int)
+
     case searchLayout(CollectionLayout)
   }
 
@@ -25,6 +27,8 @@ final class AppOptionsStore {
   private let isDataSavingOnProperty: KVMProperty<Bool>
 
   private let libraryLayoutProperty: KVMProperty<Int16>
+  private let libraryGridSizeProperty: KVMProperty<Int>
+
   private let searchLayoutProperty: KVMProperty<Int16>
 
   var appThemePublisher: AnyPublisher<ThemePalette, Never> {
@@ -49,6 +53,10 @@ final class AppOptionsStore {
       .eraseToAnyPublisher()
   }
 
+  var libraryGridSizePublisher: AnyPublisher<Int, Never> {
+    libraryGridSizeProperty.publisher
+  }
+
   var searchLayoutPublisher: AnyPublisher<CollectionLayout, Never> {
     searchLayoutProperty.publisher
       .map { .safeInit(from: $0) }
@@ -70,6 +78,11 @@ final class AppOptionsStore {
   var libraryLayout: CollectionLayout {
     return .safeInit(from: libraryLayoutProperty.value)
   }
+
+  var libraryGridSize: Int {
+    return libraryGridSizeProperty.value
+  }
+
 
   var searchLayout: CollectionLayout {
     return .safeInit(from: searchLayoutProperty.value)
@@ -102,6 +115,12 @@ final class AppOptionsStore {
       keyValueManager: keyValueManager
     )
 
+    libraryGridSizeProperty = KVMProperty(
+      key: "library_grid_size",
+      defaultValue: 3,
+      keyValueManager: keyValueManager
+    )
+
     searchLayoutProperty = KVMProperty(
       key: "library_layout",
       defaultValue: CollectionLayout.normal.id,
@@ -122,6 +141,9 @@ final class AppOptionsStore {
 
     case .libraryLayout(let layout):
       libraryLayoutProperty.setValue(layout.id)
+
+    case .libraryGridSize(let size):
+      libraryGridSizeProperty.setValue(size)
 
     case .searchLayout(let layout):
       searchLayoutProperty.setValue(layout.id)

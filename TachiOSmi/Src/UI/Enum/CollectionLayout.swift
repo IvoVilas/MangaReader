@@ -36,16 +36,32 @@ enum CollectionLayout {
     }
   }
 
-  func toggle() -> CollectionLayout {
+  var name: String {
     switch self {
     case .normal:
-        .compact
-
+      return "Normal Grid"
     case .compact:
-        .list
-
+      return "Compact Grid"
     case .list:
-        .normal
+      return "List"
+    }
+  }
+
+  var isGrid: Bool {
+    switch self {
+    case .normal, .compact:
+      return true
+    case .list:
+      return false
+    }
+  }
+
+  var isList: Bool {
+    switch self {
+    case .normal, .compact:
+      return false
+    case .list:
+      return true
     }
   }
 

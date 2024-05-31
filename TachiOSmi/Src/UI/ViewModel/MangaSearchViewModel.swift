@@ -87,6 +87,21 @@ final class MangaSearchViewModel: ObservableObject {
       .store(in: &observers)
   }
 
+  private static func toggleLayout(
+    _ layout: CollectionLayout
+  ) -> CollectionLayout {
+    switch layout {
+    case .normal:
+      return .compact
+
+    case .compact:
+      return .list
+
+    case .list:
+      return .normal
+    }
+  }
+
 }
 
 // MARK: Actions
@@ -104,9 +119,8 @@ extension MangaSearchViewModel {
     }
   }
 
-  // TODO: Use
   func toggleLayout() {
-    let newLayout = layout.toggle()
+    let newLayout = MangaSearchViewModel.toggleLayout(layout)
 
     layout = newLayout
 

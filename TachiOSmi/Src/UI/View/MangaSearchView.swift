@@ -89,7 +89,7 @@ struct MangaSearchView: View {
 
   @ViewBuilder
   private func resultCollectionView() -> some View {
-    if viewModel.layout == .list {
+    if viewModel.layout.isList {
       LazyVStack(spacing: 16) {
         ForEach(viewModel.results) { result in
           Button {

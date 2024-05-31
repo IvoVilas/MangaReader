@@ -9,34 +9,34 @@ import SwiftUI
 import CoreData
 
 struct MangaLibraryView: View {
-  
+
   @Environment(\.router) private var router
   @Environment(\.colorScheme) private var scheme
   @Environment(\.refreshLibraryUseCase) private var refreshUseCase
 
-  @StateObject var provider: MangaLibraryProvider
-  @State var isLoading = false
-  @State var layout: CollectionLayout = .compact
+  @StateObject var viewModel: MangaLibraryViewModel
 
-  private let columns = Array(
-    repeating: GridItem(.flexible(), spacing: 16),
-    count: 3
-  )
+  @State var isLoading = false
+  @State var showingFilter = false
+  @State var sheetHeight: CGFloat = .zero
 
   init(
     coverCrud: CoverCrud = AppEnv.env.coverCrud,
     chapterCrud: ChapterCrud = AppEnv.env.chapterCrud,
-    viewMoc: NSManagedObjectContext = PersistenceController.shared.container.viewContext
+    viewMoc: NSManagedObjectContext = PersistenceController.shared.container.viewContext,
+    appOptionsStore: AppOptionsStore = AppEnv.env.appOptionsStore
   ) {
-    _provider = StateObject(
-      wrappedValue: MangaLibraryProvider(
-        coverCrud: coverCrud,
-        chapterCrud: chapterCrud,
-        viewMoc: viewMoc
+    _viewModel = StateObject(
+      wrappedValue: MangaLibraryViewModel(
+        provider: MangaLibraryProvider(
+          coverCrud: coverCrud,
+          chapterCrud: chapterCrud,
+          viewMoc: viewMoc),
+        optionsStore: appOptionsStore
       )
     )
   }
-  
+
   var body: some View {
     VStack(alignment: .leading) {
       ZStack {
@@ -58,7 +58,7 @@ struct MangaLibraryView: View {
           Spacer().frame(width: 24)
 
           Button {
-            layout = layout.toggle()
+            showingFilter.toggle()
           } label: {
             Image(systemName: "line.3.horizontal.decrease")
               .resizable()
@@ -81,7 +81,7 @@ struct MangaLibraryView: View {
           resultCollectionView()
         }
         .scrollIndicators(.hidden)
-        .opacity(provider.mangas.count > 0 ? 1 : 0)
+        .opacity(viewModel.mangas.count > 0 ? 1 : 0)
 
         VStack(spacing: 8) {
           Image(systemName: "books.vertical")
@@ -89,55 +89,27 @@ struct MangaLibraryView: View {
             .scaledToFit()
             .foregroundStyle(scheme.secondaryColor)
             .frame(width: 150)
-          
+
           Text("Your library is emtpy")
             .foregroundStyle(scheme.secondaryColor)
             .font(.title3)
         }
-        .opacity(provider.mangas.count > 0 ? 0 : 1)
+        .opacity(viewModel.mangas.count > 0 ? 0 : 1)
       }
     }
     .background(scheme.backgroundColor)
-  }
-
-  @ViewBuilder
-  private func resultCollectionView() -> some View {
-    if layout == .list {
-      LazyVStack(spacing: 16) {
-        ForEach(provider.mangas) { result in
-          Button {
-            router.navigate(using: MangaDetailsNavigator.fromMangaWrapper(result))
-          } label: {
-            MangaResultItemView(
-              id: result.manga.id,
-              cover: result.manga.cover,
-              title: result.manga.title,
-              unreadChapters: result.unreadChapters,
-              textColor: scheme.foregroundColor,
-              layout: $layout
-            )
-            .equatable()
+    .sheet(isPresented: $showingFilter) {
+      displayOptionsView()
+        .overlay {
+          GeometryReader { geometry in
+            Color.clear.preference(key: InnerHeightPreferenceKey.self, value: geometry.size.height)
           }
         }
-      }
-    } else {
-      LazyVGrid(columns: columns, spacing: 16) {
-        ForEach(provider.mangas) { result in
-          Button {
-            router.navigate(using: MangaDetailsNavigator.fromMangaWrapper(result))
-          } label: {
-            MangaResultItemView(
-              id: result.manga.id,
-              cover: result.manga.cover,
-              title: result.manga.title,
-              unreadChapters: result.unreadChapters,
-              textColor: scheme.foregroundColor,
-              layout: $layout
-            )
-            .equatable()
-          }
+        .onPreferenceChange(InnerHeightPreferenceKey.self) { newHeight in
+          sheetHeight = newHeight
         }
-      }
+        .presentationCornerRadius(16)
+        .presentationDetents([.height(sheetHeight)])
     }
   }
 
@@ -153,6 +125,157 @@ struct MangaLibraryView: View {
 
 }
 
+// MARK: Collection
+private extension MangaLibraryView {
+
+  @ViewBuilder
+  private func resultCollectionView() -> some View {
+    if viewModel.layout.isList {
+      LazyVStack(spacing: 16) {
+        ForEach(viewModel.mangas) { result in
+          Button {
+            router.navigate(using: MangaDetailsNavigator.fromMangaWrapper(result))
+          } label: {
+            MangaResultItemView(
+              id: result.manga.id,
+              cover: result.manga.cover,
+              title: result.manga.title,
+              unreadChapters: result.unreadChapters,
+              textColor: scheme.foregroundColor,
+              layout: $viewModel.layout
+            )
+            .equatable()
+          }
+        }
+      }
+    } else {
+      LazyVGrid(
+        columns:  Array(
+          repeating: GridItem(.flexible(), spacing: 16),
+          count: Int(viewModel.gridSize)
+        ),
+        spacing: 16
+      ) {
+        ForEach(viewModel.mangas) { result in
+          Button {
+            router.navigate(using: MangaDetailsNavigator.fromMangaWrapper(result))
+          } label: {
+            MangaResultItemView(
+              id: result.manga.id,
+              cover: result.manga.cover,
+              title: result.manga.title,
+              unreadChapters: result.unreadChapters,
+              textColor: scheme.foregroundColor,
+              layout: $viewModel.layout
+            )
+            .equatable()
+          }
+        }
+      }
+    }
+  }
+
+}
+
+// MARK: Display Options
+private extension MangaLibraryView {
+
+  @ViewBuilder
+  private func displayOptionsView() -> some View {
+    VStack(spacing: 0) {
+      Spacer().frame(height: 16)
+
+      Text("Display")
+
+      Spacer().frame(height: 16)
+
+      Divider()
+
+      VStack(alignment: .leading, spacing: 24) {
+        VStack(alignment: .leading, spacing: 16) {
+          Text("Display mode")
+
+          HStack(spacing: 0) {
+            layoutTagView(.list)
+
+            Spacer()
+              .frame(maxWidth: 16)
+
+            layoutTagView(.normal)
+
+            Spacer()
+              .frame(maxWidth: 16)
+
+            layoutTagView(.compact)
+          }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+
+        HStack(spacing: 24) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Grid size")
+
+            Text("\(Int(viewModel.gridSize))")
+              .font(.footnote)
+          }
+
+          Slider(
+            value: $viewModel.gridSize,
+            in: 1...10,
+            step: 1
+          )
+        }
+        .opacity(viewModel.layout.isGrid ? 1 : 0)
+        .animation(.snappy(duration: 0.1), value: viewModel.layout)
+      }
+      .padding(.horizontal, 24)
+      .padding(.top, 24)
+      .padding(.bottom, 48)
+    }
+  }
+
+  @ViewBuilder
+  private func layoutTagView(
+    _ layout: CollectionLayout
+  ) -> some View {
+    Button { viewModel.changeLayout(to: layout) } label: {
+      Text(layout.name)
+        .font(.footnote)
+        .lineLimit(1)
+        .foregroundStyle(scheme.foregroundColor)
+        .padding(.vertical, 4)
+        .padding(.horizontal, 8)
+        .background(
+          RoundedRectangle(cornerRadius: 4)
+            .fill(
+              viewModel.layout == layout ?
+              scheme == .light ? Color(
+                red: 205, green: 230, blue: 254
+              ) : Color(
+                red: 81, green: 149, blue: 213
+              ) : .clear
+            )
+            .stroke(
+              .gray,
+              lineWidth: viewModel.layout == layout ? 0 : 1
+            )
+        )
+    }
+  }
+
+}
+
+private struct InnerHeightPreferenceKey: PreferenceKey {
+
+  static let defaultValue: CGFloat = .zero
+
+  static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+    value = nextValue()
+  }
+
+}
+
+// MARK: Item
 private struct MangaResultItemView: View, Equatable {
 
   let id: String
@@ -238,6 +361,7 @@ private struct MangaResultItemView: View, Equatable {
 
 }
 
+// MARK: Preview
 #Preview {
   MangaLibraryView(
     viewMoc: PersistenceController.preview.container.viewContext
