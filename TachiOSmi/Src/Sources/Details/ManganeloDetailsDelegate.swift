@@ -12,10 +12,10 @@ final class ManganeloDetailsDelegate: DetailsDelegateType {
 
   static private let defaultCoverUrl = "https://chapmanganelo.com/themes/hm/images/404_not_found.png"
 
-  private let httpClient: HttpClient
+  private let httpClient: HttpClientType
 
   init(
-    httpClient: HttpClient
+    httpClient: HttpClientType
   ) {
     self.httpClient = httpClient
   }

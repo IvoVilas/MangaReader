@@ -29,7 +29,7 @@ struct ChapterReaderView: View {
     readingDirection: ReadingDirection,
     mangaCrud: MangaCrud = AppEnv.env.mangaCrud,
     chapterCrud: ChapterCrud = AppEnv.env.chapterCrud,
-    httpClient: HttpClient = AppEnv.env.httpClient,
+    httpClient: HttpClientType = AppEnv.env.httpClient,
     appOptionsStore: AppOptionsStore = AppEnv.env.appOptionsStore,
     container: NSPersistentContainer = PersistenceController.shared.container
   ) {

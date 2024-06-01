@@ -10,7 +10,7 @@ import UIKit
 
 final class MockSearchDelegate: SearchDelegateType {
 
-  init(httpClient: HttpClient) { }
+  init(httpClient: HttpClientType) { }
 
   func fetchTrending(page: Int) async throws -> [MangaSearchResultParsedData] {
     try await Task.sleep(nanoseconds: 3_000_000_000)

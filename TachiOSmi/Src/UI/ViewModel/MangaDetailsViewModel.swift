@@ -48,7 +48,7 @@ final class MangaDetailsViewModel: ObservableObject {
     coverCrud: CoverCrud,
     authorCrud: AuthorCrud,
     tagCrud: TagCrud,
-    httpClient: HttpClient,
+    httpClient: HttpClientType,
     systemDateTime: SystemDateTimeType,
     appOptionsStore: AppOptionsStore,
     container: NSPersistentContainer

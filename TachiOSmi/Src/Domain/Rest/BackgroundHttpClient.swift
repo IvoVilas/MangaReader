@@ -1,14 +1,26 @@
 //
-//  HttpClient.swift
+//  BackgroundHttpClient.swift
 //  TachiOSmi
 //
-//  Created by Ivo Vilas on 23/02/2024.
+//  Created by Ivo Vilas Boas  on 01/06/2024.
 //
 
 import Foundation
 import Alamofire
 
-final class HttpClient: HttpClientType {
+// TODO: Try to use background session
+final class BackgroundHttpClient: HttpClientType {
+
+  private let session: URLSession
+
+  init(
+    for task: AppTask
+  ) {
+    let config = URLSessionConfiguration.default
+    config.sessionSendsLaunchEvents = true
+
+    session = URLSession(configuration: config)
+  }
 
   func makeJsonGetRequest(
     url: String,
@@ -25,7 +37,17 @@ final class HttpClient: HttpClientType {
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
     do {
-      let (data, response) = try await URLSession.shared.data(for: request)
+      let result = await withTaskCancellationHandler {
+        try? await session.data(for: request)
+      } onCancel: { [request] in
+        print("BackgroundHttpClient - Request \(String(describing: request.url)) cancelled")
+      }
+
+      guard let result else {
+        throw HttpError.failed
+      }
+
+      let (data, response) = result
 
       guard
         let response = response as? HTTPURLResponse,
@@ -64,7 +86,17 @@ final class HttpClient: HttpClientType {
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
     do {
-      let (data, response) = try await URLSession.shared.data(for: request)
+      let result = await withTaskCancellationHandler {
+        try? await session.data(for: request)
+      } onCancel: { [request] in
+        print("BackgroundHttpClient - Request \(String(describing: request.url)) cancelled")
+      }
+
+      guard let result else {
+        throw HttpError.failed
+      }
+
+      let (data, response) = result
 
       guard
         let response = response as? HTTPURLResponse,
@@ -99,7 +131,17 @@ final class HttpClient: HttpClientType {
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
     do {
-      let (data, response) = try await URLSession.shared.data(for: request)
+      let result = await withTaskCancellationHandler {
+        try? await session.data(for: request)
+      } onCancel: { [request] in
+        print("BackgroundHttpClient - Request \(String(describing: request.url)) cancelled")
+      }
+
+      guard let result else {
+        throw HttpError.failed
+      }
+
+      let (data, response) = result
 
       guard
         let response = response as? HTTPURLResponse,
@@ -130,7 +172,7 @@ final class HttpClient: HttpClientType {
 
 }
 
-extension HttpClient {
+extension BackgroundHttpClient {
 
   func makeDataSafeGetRequest(
     _ url: String,
@@ -146,7 +188,17 @@ extension HttpClient {
     request.setValue("en-US,en;q=0.5", forHTTPHeaderField: "Accept-Language")
 
     do {
-      let (data, response) = try await URLSession.shared.data(for: request)
+      let result = await withTaskCancellationHandler {
+        try? await session.data(for: request)
+      } onCancel: { [request] in
+        print("BackgroundHttpClient - Request \(String(describing: request.url)) cancelled")
+      }
+
+      guard let result else {
+        throw HttpError.failed
+      }
+
+      let (data, response) = result
 
       guard
         let response = response as? HTTPURLResponse,
@@ -168,6 +220,25 @@ extension HttpClient {
       throw error
     } catch {
       throw HttpError.requestError(error)
+    }
+  }
+
+}
+
+// MARK: Delegate
+class BackgroundSessionDelegate: NSObject, URLSessionDelegate, URLSessionDownloadDelegate {
+
+  var downloadCompletionHandler: ((URL) -> Void)?
+
+  func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
+    downloadCompletionHandler?(location)
+  }
+
+  func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+    if let error = error {
+      print("BackgroundHttpClient - Download task completed with error: \(error.localizedDescription)")
+    } else {
+      print("BackgroundHttpClient - Download task completed successfully.")
     }
   }
 

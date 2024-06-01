@@ -33,7 +33,7 @@ final class ChapterReaderViewModel: ObservableObject {
   private let source: Source
   private let mangaCrud: MangaCrud
   private let chapterCrud: ChapterCrud
-  private let httpClient: HttpClient
+  private let httpClient: HttpClientType
   private let appOptionsStore: AppOptionsStore
   private let viewMoc: NSManagedObjectContext
   private let moc: NSManagedObjectContext
@@ -50,7 +50,7 @@ final class ChapterReaderViewModel: ObservableObject {
     readingDirection: ReadingDirection,
     mangaCrud: MangaCrud,
     chapterCrud: ChapterCrud,
-    httpClient: HttpClient,
+    httpClient: HttpClientType,
     appOptionsStore: AppOptionsStore,
     container: NSPersistentContainer
   ) {

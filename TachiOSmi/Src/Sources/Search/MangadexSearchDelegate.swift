@@ -9,11 +9,11 @@ import Foundation
 
 final class MangadexSearchDelegate: SearchDelegateType {
 
-  private let httpClient: HttpClient
+  private let httpClient: HttpClientType
   private let mangaParser: MangaParser
 
   init(
-    httpClient: HttpClient
+    httpClient: HttpClientType
   ) {
     self.httpClient = httpClient
     self.mangaParser = MangaParser()

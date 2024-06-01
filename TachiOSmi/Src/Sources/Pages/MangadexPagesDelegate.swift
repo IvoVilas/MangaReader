@@ -9,10 +9,10 @@ import Foundation
 
 final class MangadexPagesDelegate: PagesDelegateType {
 
-  private let httpClient: HttpClient
+  private let httpClient: HttpClientType
 
   init(
-    httpClient: HttpClient
+    httpClient: HttpClientType
   ) {
     self.httpClient = httpClient
   }
@@ -69,7 +69,8 @@ extension MangadexPagesDelegate {
     saveData: Bool
   ) async throws -> ChapterDownloadInfo {
     let json = try await httpClient.makeJsonGetRequest(
-      url: "https://api.mangadex.org/at-home/server/\(chapterId)"
+      url: "https://api.mangadex.org/at-home/server/\(chapterId)",
+      parameters: []
     )
 
     guard

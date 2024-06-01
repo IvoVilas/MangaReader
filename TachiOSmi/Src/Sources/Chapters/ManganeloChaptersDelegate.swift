@@ -10,11 +10,11 @@ import SwiftSoup
 
 final class ManganeloChaptersDelegate: ChaptersDelegateType {
 
-  private let httpClient: HttpClient
+  private let httpClient: HttpClientType
   private let dateFormatter: DateFormatter
 
   init(
-    httpClient: HttpClient
+    httpClient: HttpClientType
   ) {
     self.httpClient = httpClient
     self.dateFormatter = DateFormatter()

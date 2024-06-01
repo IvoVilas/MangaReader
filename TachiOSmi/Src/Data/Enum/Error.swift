@@ -9,6 +9,7 @@ import Foundation
 
 // MARK: HTTP
 enum HttpError: Error {
+  case failed
   case invalidUrl
   case invalidResponse
   case responseNotOk(Int)
@@ -16,6 +17,9 @@ enum HttpError: Error {
 
   var localizedDescription: String {
     switch self {
+    case .failed:
+      return "Request failed"
+
     case .invalidUrl:
       return "Invalid url"
 

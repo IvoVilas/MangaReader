@@ -136,6 +136,10 @@
 		D7B95C472C0A6C0700B78E0C /* MangasSortBy.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7B95C462C0A6C0700B78E0C /* MangasSortBy.swift */; };
 		D7B95C4A2C0A8C8500B78E0C /* ChaptersInfoProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7B95C492C0A8C8500B78E0C /* ChaptersInfoProvider.swift */; };
 		D7CA25572BBBFBDE00237F1D /* ZoomableImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7CA25562BBBFBDE00237F1D /* ZoomableImageView.swift */; };
+		D7F5D9D32C0B2496003D2DC4 /* BackgroundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F5D9D22C0B2496003D2DC4 /* BackgroundManager.swift */; };
+		D7F5D9D72C0B264A003D2DC4 /* AppTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F5D9D62C0B264A003D2DC4 /* AppTask.swift */; };
+		D7F5D9D92C0B27A2003D2DC4 /* BackgroundHttpClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F5D9D82C0B27A2003D2DC4 /* BackgroundHttpClient.swift */; };
+		D7F5D9DB2C0B2A3B003D2DC4 /* HttpClientType.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F5D9DA2C0B2A3B003D2DC4 /* HttpClientType.swift */; };
 		D7F7F53E2BF8BEE2004CD67E /* ValuePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F7F53D2BF8BEE2004CD67E /* ValuePicker.swift */; };
 		D7F7F5402BF8EE34004CD67E /* ThemePalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F7F53F2BF8EE34004CD67E /* ThemePalette.swift */; };
 		D7F7F5422BF8EE5F004CD67E /* AppOptionsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F7F5412BF8EE5F004CD67E /* AppOptionsViewModel.swift */; };
@@ -272,6 +276,11 @@
 		D7B95C462C0A6C0700B78E0C /* MangasSortBy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangasSortBy.swift; sourceTree = "<group>"; };
 		D7B95C492C0A8C8500B78E0C /* ChaptersInfoProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChaptersInfoProvider.swift; sourceTree = "<group>"; };
 		D7CA25562BBBFBDE00237F1D /* ZoomableImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomableImageView.swift; sourceTree = "<group>"; };
+		D7F5D9D22C0B2496003D2DC4 /* BackgroundManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundManager.swift; sourceTree = "<group>"; };
+		D7F5D9D42C0B254B003D2DC4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		D7F5D9D62C0B264A003D2DC4 /* AppTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTask.swift; sourceTree = "<group>"; };
+		D7F5D9D82C0B27A2003D2DC4 /* BackgroundHttpClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundHttpClient.swift; sourceTree = "<group>"; };
+		D7F5D9DA2C0B2A3B003D2DC4 /* HttpClientType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HttpClientType.swift; sourceTree = "<group>"; };
 		D7F7F53D2BF8BEE2004CD67E /* ValuePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValuePicker.swift; sourceTree = "<group>"; };
 		D7F7F53F2BF8EE34004CD67E /* ThemePalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemePalette.swift; sourceTree = "<group>"; };
 		D7F7F5412BF8EE5F004CD67E /* AppOptionsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppOptionsViewModel.swift; sourceTree = "<group>"; };
@@ -343,7 +352,9 @@
 		1E79A4D72B892ADD0075C234 /* Rest */ = {
 			isa = PBXGroup;
 			children = (
+				D7F5D9DA2C0B2A3B003D2DC4 /* HttpClientType.swift */,
 				1E79A4D32B8929D80075C234 /* HttpClient.swift */,
+				D7F5D9D82C0B27A2003D2DC4 /* BackgroundHttpClient.swift */,
 			);
 			path = Rest;
 			sourceTree = "<group>";
@@ -431,6 +442,7 @@
 		1EF815F42B82163F00D9759F /* TachiOSmi */ = {
 			isa = PBXGroup;
 			children = (
+				D7F5D9D42C0B254B003D2DC4 /* Info.plist */,
 				1EF816082B82167400D9759F /* Resources */,
 				1EDACD462B83A9E7006FE956 /* App */,
 				1E12352F2B85341A0022652F /* Common */,
@@ -577,8 +589,10 @@
 		D74FDDBE2BFA15CB00C99DBE /* Manager */ = {
 			isa = PBXGroup;
 			children = (
+				D7F5D9D52C0B2638003D2DC4 /* Enum */,
 				D74B2F122BFA75D6001737DC /* Helpers */,
 				D74FDDBF2BFA15E900C99DBE /* DatabaseManager.swift */,
+				D7F5D9D22C0B2496003D2DC4 /* BackgroundManager.swift */,
 			);
 			path = Manager;
 			sourceTree = "<group>";
@@ -748,6 +762,14 @@
 			path = Crud;
 			sourceTree = "<group>";
 		};
+		D7F5D9D52C0B2638003D2DC4 /* Enum */ = {
+			isa = PBXGroup;
+			children = (
+				D7F5D9D62C0B264A003D2DC4 /* AppTask.swift */,
+			);
+			path = Enum;
+			sourceTree = "<group>";
+		};
 		D7F7F5432BF8EFF6004CD67E /* Enum */ = {
 			isa = PBXGroup;
 			children = (
@@ -859,6 +881,7 @@
 				1EF20A4C2B91212700D17A65 /* MangadexSearchDelegate.swift in Sources */,
 				D7221EAF2B9BE22A00B72F9F /* Data+Extensions.swift in Sources */,
 				1EE89F652B84D237000CAA20 /* MangaParser.swift in Sources */,
+				D7F5D9D72C0B264A003D2DC4 /* AppTask.swift in Sources */,
 				D74B2F112BFA6DA9001737DC /* Result.swift in Sources */,
 				D7A6F9DD2C05E9DA00AB2281 /* MockChaptersDelegate.swift in Sources */,
 				D77354432BF6ECB500871FE5 /* MangaReaderNavigator.swift in Sources */,
@@ -907,10 +930,12 @@
 				1EF815F82B82163F00D9759F /* MangaSearchView.swift in Sources */,
 				D74B2F142BFA75E7001737DC /* DataToJsonConverter.swift in Sources */,
 				1EE89F6A2B84D87B000CAA20 /* Moc+Extension.swift in Sources */,
+				D7F5D9D92C0B27A2003D2DC4 /* BackgroundHttpClient.swift in Sources */,
 				1E1235402B8534580022652F /* SystemDateTimeType.swift in Sources */,
 				D7B95C452C0A557100B78E0C /* MangaLibraryViewModel.swift in Sources */,
 				D74B2F1E2BFC0777001737DC /* JsonToDataConverter.swift in Sources */,
 				1EF20A682B91720800D17A65 /* MangaSource.swift in Sources */,
+				D7F5D9DB2C0B2A3B003D2DC4 /* HttpClientType.swift in Sources */,
 				1EE89F582B84CBBD000CAA20 /* MangaCrud.swift in Sources */,
 				1EC8BD312B929CDD0017ACF0 /* ManganeloPagesDelegate.swift in Sources */,
 				1EF20A4A2B9120F100D17A65 /* SearchDatasource.swift in Sources */,
@@ -949,6 +974,7 @@
 				D7F7F53E2BF8BEE2004CD67E /* ValuePicker.swift in Sources */,
 				D7B95C4A2C0A8C8500B78E0C /* ChaptersInfoProvider.swift in Sources */,
 				1EF20A4E2B91213600D17A65 /* SearchDelegateType.swift in Sources */,
+				D7F5D9D32C0B2496003D2DC4 /* BackgroundManager.swift in Sources */,
 				D7A4742B2BFCE7B1004C2970 /* InMemoryKeyValueManager.swift in Sources */,
 				D74B2F1A2BFBFC6B001737DC /* SwiftUI+Environment.swift in Sources */,
 				1E1235532B853C940022652F /* Date+Helpers.swift in Sources */,
@@ -1115,6 +1141,7 @@
 				DEVELOPMENT_TEAM = H955TB7NVX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TachiOSmi/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -1151,6 +1178,7 @@
 				DEVELOPMENT_TEAM = H955TB7NVX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TachiOSmi/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

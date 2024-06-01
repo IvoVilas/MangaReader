@@ -9,7 +9,7 @@ import Foundation
 
 final class MockChaptersDelegate: ChaptersDelegateType {
 
-  init(httpClient: HttpClient) { }
+  init(httpClient: HttpClientType) { }
 
   func fetchChapters(mangaId: String) async throws -> [ChapterIndexResult] {
     try await Task.sleep(nanoseconds: 500_000_000)

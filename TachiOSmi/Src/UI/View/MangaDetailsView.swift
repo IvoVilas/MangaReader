@@ -27,7 +27,7 @@ struct MangaDetailsView: View {
     coverCrud: CoverCrud = AppEnv.env.coverCrud,
     authorCrud: AuthorCrud = AppEnv.env.authorCrud,
     tagCrud: TagCrud = AppEnv.env.tagCrud,
-    httpClient: HttpClient = AppEnv.env.httpClient,
+    httpClient: HttpClientType = AppEnv.env.httpClient,
     systemDateTime: SystemDateTimeType = AppEnv.env.systemDateTime,
     appOptionsStore: AppOptionsStore = AppEnv.env.appOptionsStore,
     container: NSPersistentContainer = PersistenceController.shared.container

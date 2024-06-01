@@ -19,7 +19,7 @@ struct AppEnv {
 final class AppEnvironment {
 
   // Rest
-  let httpClient: HttpClient
+  let httpClient: HttpClientType
 
   // Crud
   let mangaCrud: MangaCrud

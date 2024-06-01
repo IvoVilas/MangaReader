@@ -12,7 +12,7 @@ final class RefreshLibraryUseCase {
 
   private let mangaCrud: MangaCrud
   private let chapterCrud: ChapterCrud
-  private let httpClient: HttpClient
+  private let httpClient: HttpClientType
   private let systemDateTime: SystemDateTimeType
   private let container: NSPersistentContainer
 
@@ -21,7 +21,7 @@ final class RefreshLibraryUseCase {
   init(
     mangaCrud: MangaCrud,
     chapterCrud: ChapterCrud,
-    httpClient: HttpClient,
+    httpClient: HttpClientType,
     systemDateTime: SystemDateTimeType,
     container: NSPersistentContainer
   ) {

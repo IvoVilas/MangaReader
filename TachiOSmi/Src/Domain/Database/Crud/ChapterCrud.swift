@@ -51,7 +51,7 @@ final class ChapterCrud {
   }
 
   func getAllChapters(
-    excludingIds ids: [String],
+    excludingIds ids: [String] = [],
     moc: NSManagedObjectContext
   ) throws -> [ChapterMO] {
     let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Chapter")

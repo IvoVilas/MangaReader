@@ -10,7 +10,7 @@ import CoreData
 
 protocol DetailsDelegateType {
 
-  init(httpClient: HttpClient)
+  init(httpClient: HttpClientType)
 
   func fetchDetails(
     _ mangaId: String

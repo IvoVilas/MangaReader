@@ -10,7 +10,7 @@ import CoreData
 
 protocol SearchDelegateType {
 
-  init(httpClient: HttpClient)
+  init(httpClient: HttpClientType)
 
   func fetchTrending(
     page: Int

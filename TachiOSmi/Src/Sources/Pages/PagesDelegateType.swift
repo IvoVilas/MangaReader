@@ -9,7 +9,7 @@ import Foundation
 
 protocol PagesDelegateType {
 
-  init(httpClient: HttpClient)
+  init(httpClient: HttpClientType)
 
   func fetchDownloadInfo(
     using: String,

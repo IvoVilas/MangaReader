@@ -21,7 +21,7 @@ struct MangaSearchView: View {
     source: Source,
     mangaCrud: MangaCrud = AppEnv.env.mangaCrud,
     coverCrud: CoverCrud = AppEnv.env.coverCrud,
-    httpClient: HttpClient = AppEnv.env.httpClient,
+    httpClient: HttpClientType = AppEnv.env.httpClient,
     appOptionsStore: AppOptionsStore = AppEnv.env.appOptionsStore,
     container: NSPersistentContainer = PersistenceController.shared.container
   ) {

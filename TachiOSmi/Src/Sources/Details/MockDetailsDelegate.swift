@@ -10,7 +10,7 @@ import UIKit
 
 final class MockDetailsDelegate: DetailsDelegateType {
 
-  init(httpClient: HttpClient) { }
+  init(httpClient: HttpClientType) { }
 
   func fetchDetails(_ mangaId: String) async throws -> MangaDetailsParsedData {
     return MangaDetailsParsedData(

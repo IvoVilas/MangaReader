@@ -10,11 +10,11 @@ import CoreData
 
 final class MangadexChaptersDelegate: ChaptersDelegateType {
 
-  private let httpClient: HttpClient
+  private let httpClient: HttpClientType
   private let chapterParser: ChapterParser
 
   init(
-    httpClient: HttpClient
+    httpClient: HttpClientType
   ) {
     self.httpClient = httpClient
     self.chapterParser = ChapterParser()

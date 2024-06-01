@@ -10,10 +10,10 @@ import SwiftSoup
 
 final class ManganeloSearchDelegate: SearchDelegateType {
 
-  private let httpClient: HttpClient
+  private let httpClient: HttpClientType
 
   init(
-    httpClient: HttpClient
+    httpClient: HttpClientType
   ) {
     self.httpClient = httpClient
   }

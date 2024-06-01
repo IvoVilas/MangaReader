@@ -39,7 +39,7 @@ final class MangaSearchViewModel: ObservableObject {
     source: Source,
     mangaCrud: MangaCrud,
     coverCrud: CoverCrud,
-    httpClient: HttpClient,
+    httpClient: HttpClientType,
     optionsStore: AppOptionsStore,
     container: NSPersistentContainer
   ) {

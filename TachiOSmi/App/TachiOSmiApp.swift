@@ -10,7 +10,10 @@ import SwiftUI
 @main
 struct TachiOSmiApp: App {
 
+  @Environment(\.scenePhase) private var phase
+
   let persistenceController: PersistenceController
+  let backgroundManager: BackgroundManager
 
   init() {
     persistenceController = PersistenceController.shared
@@ -20,6 +23,17 @@ struct TachiOSmiApp: App {
     )
 
     AppEnv.env = env
+
+    backgroundManager = BackgroundManager(
+      refreshLibraryUseCase: RefreshLibraryUseCase(
+        mangaCrud: AppEnv.env.mangaCrud,
+        chapterCrud: AppEnv.env.chapterCrud,
+        httpClient: BackgroundHttpClient(for: .libraryRefresh),
+        systemDateTime: AppEnv.env.systemDateTime,
+        container: persistenceController.container
+      ),
+      systemDateTime: env.systemDateTime
+    )
   }
 
   var body: some Scene {
@@ -34,6 +48,17 @@ struct TachiOSmiApp: App {
           systemDateTime: AppEnv.env.systemDateTime,
           container: persistenceController.container
         ))
+    }
+    .backgroundTask(.appRefresh(AppTask.libraryRefresh.identifier)) {
+      await backgroundManager.handleLibraryRefresh()
+    }
+    .onChange(of: phase) { _, newPhase in
+      switch newPhase {
+      case .background: 
+        backgroundManager.scheduleLibraryRefresh()
+      default: 
+        break
+      }
     }
   }
 
