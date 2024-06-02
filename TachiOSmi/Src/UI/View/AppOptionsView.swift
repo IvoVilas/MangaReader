@@ -43,22 +43,40 @@ struct AppOptionsView: View {
             ForEach(viewModel.options) { option in
               switch option {
               case .themeSelection(let viewModel):
-                OptionSelectionView(viewModel: viewModel)
+                OptionSelectionView(
+                  viewModel: viewModel,
+                  foregroundColor: scheme.foregroundColor
+                )
 
               case .readerDirectionSelection(let viewModel):
-                OptionSelectionView(viewModel: viewModel)
+                OptionSelectionView(
+                  viewModel: viewModel,
+                  foregroundColor: scheme.foregroundColor
+                )
 
               case .toggle(let viewModel):
-                OptionToggleView(viewModel: viewModel)
+                OptionToggleView(
+                  viewModel: viewModel,
+                  foregroundColor: scheme.foregroundColor
+                )
 
               case .action(let viewModel):
-                OptionActionView(viewModel: viewModel)
+                OptionActionView(
+                  viewModel: viewModel,
+                  foregroundColor: scheme.foregroundColor
+                )
 
               case .share(let viewModel):
-                OptionShareView(viewModel: viewModel)
+                OptionShareView(
+                  viewModel: viewModel,
+                  foregroundColor: scheme.foregroundColor
+                )
 
               case .upload(let viewModel):
-                OptionImportView(viewModel: viewModel)
+                OptionImportView(
+                  viewModel: viewModel,
+                  foregroundColor: scheme.foregroundColor
+                )
               }
             }
           }
@@ -102,6 +120,8 @@ private struct OptionSelectionView<T: Hashable & CustomStringConvertible>: View 
 
   @ObservedObject var viewModel: OptionSelectionViewModel<T>
 
+  let foregroundColor: Color
+
   var body: some View {
     ValuePicker(viewModel.title, selection: $viewModel.selectedOption) {
       ForEach(viewModel.options, id: \.self.description) { option in
@@ -119,7 +139,7 @@ private struct OptionSelectionView<T: Hashable & CustomStringConvertible>: View 
         Spacer().frame(height: 8)
 
         Text(viewModel.title)
-          .foregroundStyle(.black)
+          .foregroundStyle(foregroundColor)
           .font(.caption)
           .frame(maxWidth: .infinity)
 
@@ -132,7 +152,7 @@ private struct OptionSelectionView<T: Hashable & CustomStringConvertible>: View 
         Spacer().frame(idealHeight: 16, maxHeight: 16)
 
         Image(.expandMore)
-          .foregroundStyle(.black)
+          .foregroundStyle(foregroundColor)
       }
       .padding(.vertical)
       .padding(.horizontal, 4)
@@ -146,6 +166,8 @@ private struct OptionSelectionView<T: Hashable & CustomStringConvertible>: View 
 private struct OptionToggleView: View {
 
   @ObservedObject var viewModel: OptionToggleViewModel
+
+  let foregroundColor: Color
 
   var body: some View {
     Button {
@@ -162,7 +184,7 @@ private struct OptionToggleView: View {
         Spacer().frame(height: 8)
 
         Text(viewModel.title)
-          .foregroundStyle(.black)
+          .foregroundStyle(foregroundColor)
           .font(.caption)
           .frame(maxWidth: .infinity)
 
@@ -193,6 +215,8 @@ private struct OptionActionView: View {
 
   @ObservedObject var viewModel: OptionActionViewModel
 
+  let foregroundColor: Color
+
   var body: some View {
     Button {
       viewModel.showingDialog.toggle()
@@ -207,7 +231,7 @@ private struct OptionActionView: View {
         Spacer().frame(height: 8)
 
         Text(viewModel.title)
-          .foregroundStyle(.black)
+          .foregroundStyle(foregroundColor)
           .font(.caption)
           .frame(maxWidth: .infinity)
 
@@ -241,6 +265,8 @@ private struct OptionShareView: View {
 
   @ObservedObject var viewModel: OptionShareViewModel
 
+  let foregroundColor: Color
+
   var body: some View {
     Button {
       viewModel.share()
@@ -255,7 +281,7 @@ private struct OptionShareView: View {
         Spacer().frame(height: 8)
 
         Text(viewModel.title)
-          .foregroundStyle(.black)
+          .foregroundStyle(foregroundColor)
           .font(.caption)
           .frame(maxWidth: .infinity)
 
@@ -288,6 +314,8 @@ private struct OptionImportView: View {
 
   @ObservedObject var viewModel: OptionImportViewModel
 
+  let foregroundColor: Color
+
   var body: some View {
     Button {
       viewModel.showingImport.toggle()
@@ -302,7 +330,7 @@ private struct OptionImportView: View {
         Spacer().frame(height: 8)
 
         Text(viewModel.title)
-          .foregroundStyle(.black)
+          .foregroundStyle(foregroundColor)
           .font(.caption)
           .frame(maxWidth: .infinity)
 

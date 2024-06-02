@@ -271,9 +271,11 @@ final class ChapterCrud {
     _ chapter: ChapterMO,
     lastPageRead: Int?
   ) {
-    guard let lastPageRead else { return }
-
-    chapter.lastPageRead = lastPageRead as NSNumber
+    if let lastPageRead {
+      chapter.lastPageRead = lastPageRead as NSNumber
+    } else {
+      chapter.lastPageRead = nil
+    }
   }
 
 }

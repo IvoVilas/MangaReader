@@ -298,6 +298,7 @@ extension MangaDetailsViewModel {
         }
 
         chapterCrud.updateIsRead(chapter, isRead: isRead)
+        chapterCrud.updateLastPageRead(chapter, lastPageRead: nil)
       }
 
       _ = try? context.saveIfNeeded()
@@ -356,7 +357,10 @@ extension MangaDetailsViewModel {
 
       switch entry {
       case .chapter(let chapter):
-        if chapter.isRead {
+        if (chapter.lastPageRead ?? 0) > 1 {
+          allUnread = false
+          allRead = false
+        } else if chapter.isRead {
           allUnread = false
         } else {
           allRead = false

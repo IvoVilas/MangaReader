@@ -120,12 +120,20 @@ extension MangaLibraryViewModel {
 
     switch sortOrder.sortBy {
     case .title:
-      result = lhs.manga.title < rhs.manga.title
+      result = lhs.manga.title <= rhs.manga.title
 
     case .totalChapters:
+      if lhs.totalChapters == rhs.totalChapters {
+        return lhs.manga.title <= rhs.manga.title
+      }
+
       result = lhs.totalChapters < rhs.totalChapters
 
     case .unreadCount:
+      if lhs.unreadChapters == rhs.unreadChapters {
+        return lhs.manga.title <= rhs.manga.title
+      }
+
       result = lhs.unreadChapters < rhs.unreadChapters
 
     case .latestChapter:
@@ -137,7 +145,7 @@ extension MangaLibraryViewModel {
         return !ascending
       }
 
-      result = lhsDate < rhsDate
+      result = lhsDate <= rhsDate
     }
 
     return ascending == result

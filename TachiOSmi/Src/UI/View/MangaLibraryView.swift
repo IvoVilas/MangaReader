@@ -155,6 +155,7 @@ struct MangaLibraryView: View {
       .presentationCornerRadius(16)
       .presentationDetents([.height(sheetHeight)])
       .animation(.spring(duration: 0.3), value: filterOptions)
+      .preferredColorScheme(scheme)
     }
   }
 

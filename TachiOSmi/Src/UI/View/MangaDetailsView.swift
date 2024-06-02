@@ -317,7 +317,7 @@ struct MangaDetailsView: View {
                 )
               }
             }
-            .onLongPressGesture {
+            .onLongPressGesture(minimumDuration: 0.3) {
               if viewModel.isSelectionOn {
                 viewModel.selectItem(chapter.id)
               } else {
