@@ -23,7 +23,7 @@ final class ChaptersInfoProvider: NSObject {
   ) {
     let fetchRequest = NSFetchRequest<ChapterMO>(entityName: "Chapter")
 
-    fetchRequest.predicate = NSPredicate(format: "manga.isSaved == true")
+    fetchRequest.predicate = NSPredicate(format: "manga.isSaved == YES")
     fetchRequest.sortDescriptors = [
       NSSortDescriptor(keyPath: \ChapterMO.manga.id, ascending: true),
       NSSortDescriptor(keyPath: \ChapterMO.chapter, ascending: true)

@@ -22,6 +22,17 @@ protocol HttpClientType {
     _ url: String
   ) async throws -> String
 
+  func makeJsonSafeGetRequest(
+    url: String,
+    comingFrom referer: String,
+    parameters: [(String, Any)]
+  ) async throws -> [String: Any]
+
+  func makeHtmlSafeGetRequest(
+    _ url: String,
+    comingFrom referer: String
+  ) async throws -> String
+
   func makeDataSafeGetRequest(
     _ url: String,
     comingFrom referer: String

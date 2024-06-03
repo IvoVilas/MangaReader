@@ -242,6 +242,8 @@ final class ChapterCrud {
       moc: moc
     ) else { throw CrudError.failedEntityCreation }
 
+    manga.chapters.insert(chapter)
+
     return chapter
   }
 

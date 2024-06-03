@@ -65,7 +65,6 @@ struct JsonToDataConverter {
       let publishAt = json["publish_at"] as? String,
       let publishAt = formatter.dateFromISO8601(publishAt),
       let urlInfo = json["url_info"] as? String,
-      // let isRead = json["is_read"] as? Bool,
       let chapter = try? chapterCrud.createOrUpdateChapter(
         id: id,
         chapterNumber: json["chapter"] as? Double,
@@ -80,7 +79,9 @@ struct JsonToDataConverter {
       return nil
     }
 
-    manga.chapters.insert(chapter)
+    if let isRead = json["is_read"] as? Bool {
+      chapterCrud.updateIsRead(chapter, isRead: isRead)
+    }
 
     return chapter
   }

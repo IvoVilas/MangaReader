@@ -13,10 +13,11 @@ enum Source: Identifiable {
 
   case mangadex
   case manganelo
+  case mangafire
   case unknown
 
   static func allSources() -> [Source] {
-    [.mangadex, .manganelo]
+    [.mangadex, .manganelo, .mangafire]
   }
 
   static func safeInit(from id: String) -> Source {
@@ -26,6 +27,9 @@ enum Source: Identifiable {
 
     case Source.manganelo.id:
       return .manganelo
+
+    case Source.mangafire.id:
+      return .mangafire
 
     default:
       return .unknown
@@ -40,6 +44,9 @@ enum Source: Identifiable {
     case .manganelo:
       return "1"
 
+    case .mangafire:
+      return "2"
+
     case .unknown:
       return "-1"
     }
@@ -50,11 +57,15 @@ enum Source: Identifiable {
     case .mangadex, .unknown:
       return "MangaDex"
 
+    case .mangafire:
+      return "MangaFire"
+
     case .manganelo:
       return "MangaNelo"
     }
   }
 
+  // TODO: Return asset instead of image
   var logo: UIImage {
     switch self {
     case .mangadex, .unknown:
@@ -62,6 +73,9 @@ enum Source: Identifiable {
 
     case .manganelo:
       return .manganelo
+
+    case .mangafire:
+      return .mangafire
     }
   }
 
@@ -72,6 +86,9 @@ enum Source: Identifiable {
 
     case .manganelo:
       return ManganeloSearchDelegate.self
+
+    case .mangafire:
+      return MangafireSearchDelegate.self
 
     case .unknown:
       return MockSearchDelegate.self
@@ -86,6 +103,9 @@ enum Source: Identifiable {
     case .manganelo:
       return ManganeloDetailsDelegate.self
 
+    case .mangafire:
+      return MangafireDetailsDeletage.self
+
     case .unknown:
       return MockDetailsDelegate.self
     }
@@ -99,6 +119,9 @@ enum Source: Identifiable {
     case .manganelo:
       return ManganeloChaptersDelegate.self
 
+    case .mangafire:
+      return MangafireChaptersDelegate.self
+
     case .unknown:
       return MockChaptersDelegate.self
     }
@@ -111,6 +134,9 @@ enum Source: Identifiable {
 
     case .manganelo:
       return ManganeloPagesDelegate.self
+
+    case .mangafire:
+      return MangafirePagesDelegate.self
 
     case .unknown:
       return MangadexPagesDelegate.self // TODO: Make mock pages
