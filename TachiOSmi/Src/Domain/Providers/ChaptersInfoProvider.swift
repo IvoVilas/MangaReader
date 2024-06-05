@@ -11,6 +11,8 @@ import Combine
 
 final class ChaptersInfoProvider: NSObject {
 
+  private let chapterCrud: ChapterCrud
+
   private let fetchedResultsController: NSFetchedResultsController<ChapterMO>
   private let infoPublisher: CurrentValueSubject<[ChaptersInfo], Never>
 
@@ -19,6 +21,7 @@ final class ChaptersInfoProvider: NSObject {
   }
 
   init(
+    chapterCrud: ChapterCrud,
     viewMoc: NSManagedObjectContext
   ) {
     let fetchRequest = NSFetchRequest<ChapterMO>(entityName: "Chapter")
@@ -29,6 +32,7 @@ final class ChaptersInfoProvider: NSObject {
       NSSortDescriptor(keyPath: \ChapterMO.chapter, ascending: true)
     ]
 
+    self.chapterCrud = chapterCrud
     self.infoPublisher = CurrentValueSubject([])
     self.fetchedResultsController = NSFetchedResultsController<ChapterMO>(
       fetchRequest: fetchRequest,
@@ -42,6 +46,27 @@ final class ChaptersInfoProvider: NSObject {
     initializeFetchedResultsController()
   }
 
+  func forceRefresh() {
+    let context = self.fetchedResultsController.managedObjectContext
+
+    context.performAndWait {
+      guard let results = try? chapterCrud.getAllSavedMangaChapters(moc: context) else {
+        return
+      }
+
+      infoPublisher.value = Dictionary(grouping: results) { $0.manga.id }
+        .map { (id, chapters) -> ChaptersInfo in
+          ChaptersInfo(
+            mangaId: id,
+            chapterCount: chapters.count,
+            unreadChapters: chapters.filter { !$0.isRead }.count,
+            latestChapter: chapters.compactMap { $0.publishAt }.sorted { $0 < $1 }.last
+          )
+        }
+        .reduce(into: [ChaptersInfo]()) { $0.append($1) }
+    }
+  }
+
   private func initializeFetchedResultsController() {
     fetchedResultsController.delegate = self
 
@@ -52,9 +77,12 @@ final class ChaptersInfoProvider: NSObject {
 
   private func updatePublishedValue() {
     let context = self.fetchedResultsController.managedObjectContext
-    let results = (fetchedResultsController.fetchedObjects ?? [])
 
     context.performAndWait {
+      guard let results = fetchedResultsController.fetchedObjects else {
+        return
+      }
+
       infoPublisher.value = Dictionary(grouping: results) { $0.manga.id }
         .map { (id, chapters) -> ChaptersInfo in
           ChaptersInfo(

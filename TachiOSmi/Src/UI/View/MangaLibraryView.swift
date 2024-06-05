@@ -28,6 +28,7 @@ struct MangaLibraryView: View {
   @State var sheetHeight: CGFloat = .zero
 
   init(
+    chapterCrud: ChapterCrud = AppEnv.env.chapterCrud,
     coverCrud: CoverCrud = AppEnv.env.coverCrud,
     viewMoc: NSManagedObjectContext = PersistenceController.shared.container.viewContext,
     appOptionsStore: AppOptionsStore = AppEnv.env.appOptionsStore
@@ -38,7 +39,10 @@ struct MangaLibraryView: View {
           coverCrud: coverCrud,
           viewMoc: viewMoc
         ),
-        chaptersInfoProvider: ChaptersInfoProvider(viewMoc: viewMoc),
+        chaptersInfoProvider: ChaptersInfoProvider(
+          chapterCrud: chapterCrud,
+          viewMoc: viewMoc
+        ),
         optionsStore: appOptionsStore
       )
     )

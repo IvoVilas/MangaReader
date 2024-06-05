@@ -91,6 +91,25 @@ final class ChapterCrud {
     }
   }
 
+
+  func getAllSavedMangaChapters(
+    moc: NSManagedObjectContext
+  ) throws -> [ChapterMO] {
+    let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Chapter")
+
+    fetchRequest.predicate = NSPredicate(format: "manga.isSaved == YES")
+
+    do {
+      guard let results = try moc.fetch(fetchRequest) as? [ChapterMO] else {
+        throw CrudError.wrongRequestType
+      }
+
+      return results
+    } catch {
+      throw CrudError.requestError(error)
+    }
+  }
+
   func getChaptersCount(
     for mangaId: String,
     read: Bool? = nil,

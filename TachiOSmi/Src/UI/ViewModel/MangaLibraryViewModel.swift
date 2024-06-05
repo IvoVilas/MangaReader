@@ -46,6 +46,14 @@ final class MangaLibraryViewModel: ObservableObject {
       .sink { [weak self] in self?.changedGridSize(to: $0) }
       .store(in: &observers)
 
+    // TODO: This a fix because info provider does not detect changes in the chapters of newly added mangas
+    mangasProvider.mangas
+      .removeDuplicates()
+      .sink { _ in
+        chaptersInfoProvider.forceRefresh()
+      }
+      .store(in: &observers)
+
     Publishers.CombineLatest(
       mangasProvider.mangas,
       chaptersInfoProvider.info
