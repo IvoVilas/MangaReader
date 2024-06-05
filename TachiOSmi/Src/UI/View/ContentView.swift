@@ -19,7 +19,7 @@ struct ContentView: View {
   @Environment(\.appOptionsStore) private var optionsStore
   @Environment(\.colorScheme) private var scheme
 
-  @ObservedObject private var router = Router()
+  @StateObject private var router = Router()
 
   @State private var colorScheme: ColorScheme = .light
   @State private var selectedTab: Tabs = .library
