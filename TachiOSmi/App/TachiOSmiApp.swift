@@ -14,7 +14,7 @@ struct TachiOSmiApp: App {
 
   let persistenceController: PersistenceController
   let backgroundManager: BackgroundManager
-  let notificationsManager: NotificationManager
+  let notificationManager: NotificationManager
 
   init() {
     persistenceController = PersistenceController.shared
@@ -25,7 +25,7 @@ struct TachiOSmiApp: App {
 
     AppEnv.env = env
 
-    notificationsManager = NotificationManager()
+    notificationManager = NotificationManager()
     backgroundManager = BackgroundManager(
       mangaCrud: env.mangaCrud,
       coverCrud: env.coverCrud,
@@ -37,7 +37,7 @@ struct TachiOSmiApp: App {
         systemDateTime: env.systemDateTime,
         container: persistenceController.container
       ),
-      notificationManager: notificationsManager,
+      notificationManager: notificationManager,
       systemDateTime: env.systemDateTime,
       viewMoc: persistenceController.container.viewContext
     )
@@ -45,7 +45,7 @@ struct TachiOSmiApp: App {
 
   var body: some Scene {
     WindowGroup {
-      ContentView()
+      ContentView(notificationManager: notificationManager)
         .environment(\.managedObjectContext, persistenceController.container.viewContext)
         .environment(\.appOptionsStore, AppEnv.env.appOptionsStore)
         .environment(\.refreshLibraryUseCase, RefreshLibraryUseCase(
@@ -56,7 +56,7 @@ struct TachiOSmiApp: App {
           container: persistenceController.container
         ))
         .task {
-          await notificationsManager.requestNotificationPermission()
+          await notificationManager.requestNotificationPermission()
         }
     }
     .backgroundTask(.appRefresh(AppTask.libraryRefresh.identifier)) {

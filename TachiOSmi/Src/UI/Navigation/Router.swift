@@ -11,8 +11,8 @@ import SwiftUI
 final class Router: ObservableObject {
 
   @Published var navPath = NavigationPath()
-  
-  func navigate(using navigator: any Navigator) {
+
+  func navigate(using navigator: some Navigator) {
     navPath.append(navigator)
   }
 
@@ -22,6 +22,14 @@ final class Router: ObservableObject {
 
   func navigateToRoot() {
     navPath.removeLast(navPath.count)
+  }
+
+  func navigateToRootAndThen(to navigator: some Navigator) {
+    navigateToRoot()
+
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+      self.navigate(using: navigator)
+    }
   }
 
 }

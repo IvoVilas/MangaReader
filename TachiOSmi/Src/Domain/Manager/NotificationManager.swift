@@ -8,12 +8,20 @@
 import Foundation
 import UserNotifications
 
-final class NotificationManager {
+final class NotificationManager: NSObject, ObservableObject {
+
+  @Published var navigator: (any Navigator)?
 
   private let notificationCenter: UNUserNotificationCenter
 
-  init() {
+  init(mock: Bool = false) {
     notificationCenter = .current()
+
+    super.init()
+
+    if !mock {
+      notificationCenter.delegate = self
+    }
   }
 
   func requestNotificationPermission() async {
@@ -42,6 +50,10 @@ final class NotificationManager {
 
     content.title = manga.title
     content.sound = .default
+    content.userInfo = [
+      "manga": manga.id,
+      "source": manga.source.id
+    ]
 
     switch description {
     case .single(let chapter):
@@ -66,6 +78,22 @@ final class NotificationManager {
       } else {
         print("NotificationManager -> New chapter \(manga.title) notification scheduled")
       }
+    }
+  }
+
+}
+
+extension NotificationManager: UNUserNotificationCenterDelegate {
+
+  @MainActor
+  func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+    let userInfo = response.notification.request.content.userInfo
+    
+    if let manga = userInfo["manga"] as? String, let source = userInfo["source"] as? String {
+      navigator = MangaDetailsNavigator(
+        id: manga,
+        sourceId: source
+      )
     }
   }
 

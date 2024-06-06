@@ -20,6 +20,7 @@ struct ContentView: View {
   @Environment(\.colorScheme) private var scheme
 
   @StateObject private var router = Router()
+  @ObservedObject var notificationManager: NotificationManager
 
   @State private var colorScheme: ColorScheme = .light
   @State private var selectedTab: Tabs = .library
@@ -39,15 +40,15 @@ struct ContentView: View {
           .tag(Tabs.library)
 
         MangaUpdatesView()
-        .padding(top: 24, leading: 24, trailing: 24)
-        .tabItem {
-          Label(
-            title: { Text("Updates") },
-            icon: { Image(systemName: "clock.arrow.2.circlepath") }
-          )
-        }
-        .toolbarBackground(.visible, for: .tabBar)
-        .tag(Tabs.updates)
+          .padding(top: 24, leading: 24, trailing: 24)
+          .tabItem {
+            Label(
+              title: { Text("Updates") },
+              icon: { Image(systemName: "clock.arrow.2.circlepath") }
+            )
+          }
+          .toolbarBackground(.visible, for: .tabBar)
+          .tag(Tabs.updates)
 
         MangaSourcesView()
           .padding(top: 24, leading: 24, trailing: 24)
@@ -82,6 +83,11 @@ struct ContentView: View {
     .onReceive(optionsStore.appThemePublisher) {
       colorScheme = $0.toColorScheme(system: scheme)
     }
+    .onReceive(notificationManager.$navigator) { navigator in
+      if let navigator {
+        router.navigateToRootAndThen(to: navigator)
+      }
+    }
   }
 
 }
@@ -101,5 +107,5 @@ extension UINavigationController: UIGestureRecognizerDelegate {
 }
 
 #Preview {
-  ContentView()
+  ContentView(notificationManager: NotificationManager())
 }

@@ -357,7 +357,7 @@ extension MangaDetailsViewModel {
 
       switch entry {
       case .chapter(let chapter):
-        if (chapter.lastPageRead ?? 0) > 1 {
+        if (chapter.lastPageRead ?? 0) > 0 {
           allUnread = false
           allRead = false
         } else if chapter.isRead {
