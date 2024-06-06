@@ -85,7 +85,7 @@ struct MangaUpdatesView: View {
     Task(priority: .userInitiated) {
       await MainActor.run { isLoading = true }
 
-      await refreshUseCase.refresh()
+      _ = await refreshUseCase.refresh()
 
       await MainActor.run { isLoading = false }
     }

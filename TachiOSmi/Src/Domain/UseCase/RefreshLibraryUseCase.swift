@@ -32,11 +32,11 @@ final class RefreshLibraryUseCase {
     self.container = container
   }
 
-  func refresh() async {
+  func refresh() async -> [String: [String]] {
     if await refreshing {
       print("RefreshLibraryUseCase -> Already refresing")
 
-      return
+      return [:]
     }
 
     print("RefreshLibraryUseCase -> Started library refresh...")
@@ -53,7 +53,7 @@ final class RefreshLibraryUseCase {
           .reduce(into: [String: [String]]()) { $0[$1.sourceId, default: []].append($1.id) }
       }
 
-      await withThrowingTaskGroup(of: Void.self) { taskGroup in
+      let updates = await withTaskGroup(of: (String, [String]).self, returning: [String: [String]].self) { taskGroup in
         let context = container.newBackgroundContext()
 
         for (source, ids) in sources {
@@ -64,41 +64,94 @@ final class RefreshLibraryUseCase {
 
           for id in ids {
             taskGroup.addTask {
-              let chapters = try await delegate.fetchChapters(mangaId: id)
+              let newChapters = await self.refreshChapters(
+                mangaId: id,
+                delegate: delegate,
+                context: context,
+                now: now
+              )
 
-              try context.performAndWait {
-                guard let manga = try self.mangaCrud.getManga(id, moc: context) else {
-                  throw DatasourceError.databaseError("Manga \(id) not found")
-                }
-
-                for chapter in chapters {
-                  _ = try self.chapterCrud.createOrUpdateChapter(
-                    id: chapter.id,
-                    chapterNumber: chapter.number,
-                    title: chapter.title,
-                    numberOfPages: chapter.numberOfPages,
-                    publishAt: chapter.publishAt,
-                    urlInfo: chapter.downloadInfo,
-                    manga: manga,
-                    moc: context
-                  )
-                }
-
-                self.mangaCrud.updateLastUpdateAt(manga, date: now)
-
-                _ = try context.saveIfNeeded()
-              }
+              return (id, newChapters)
             }
+          }
+        }
+
+        return await taskGroup.reduce(into: [:]) { (collection, result) in
+          let (id, chapters) = result
+
+          if chapters.count > 0 {
+            collection[id] = chapters
           }
         }
       }
 
       print("RefreshLibraryUseCase -> Finished refreshing library")
+
+      return updates
     } catch {
       print("RefreshLibraryUseCase -> Error during library refresh: \(error)")
     }
 
     await MainActor.run { refreshing = false }
+
+    return [:]
+  }
+
+}
+
+extension RefreshLibraryUseCase {
+
+  // Only returns newly created chapters
+  private func refreshChapters(
+    mangaId: String,
+    delegate: ChaptersDelegateType,
+    context: NSManagedObjectContext,
+    now: Date
+  ) async -> [String] {
+    do {
+      let chapters = try await delegate.fetchChapters(mangaId: mangaId)
+
+      let newChapters = try await context.perform {
+        guard let manga = try self.mangaCrud.getManga(mangaId, moc: context) else {
+          throw DatasourceError.databaseError("Manga \(mangaId) not found")
+        }
+
+        var newChapters = [String]()
+
+        for chapter in chapters {
+          do {
+            let (didCreate, chapter) = try self.chapterCrud.didCreateOrUpdateChapter(
+              id: chapter.id,
+              chapterNumber: chapter.number,
+              title: chapter.title,
+              numberOfPages: chapter.numberOfPages,
+              publishAt: chapter.publishAt,
+              urlInfo: chapter.downloadInfo,
+              manga: manga,
+              moc: context
+            )
+
+            if didCreate {
+              newChapters.append(chapter.id)
+            }
+          } catch {
+            continue
+          }
+        }
+
+        self.mangaCrud.updateLastUpdateAt(manga, date: now)
+
+        _ = try context.saveIfNeeded() // TODO: Reduce saves (currently saving once per manga)
+
+        return newChapters
+      }
+
+      return newChapters
+    } catch {
+      print("Error during \(mangaId) refresh: \(error.localizedDescription)")
+
+      return []
+    }
   }
 
 }

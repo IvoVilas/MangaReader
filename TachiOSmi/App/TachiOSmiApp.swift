@@ -14,6 +14,7 @@ struct TachiOSmiApp: App {
 
   let persistenceController: PersistenceController
   let backgroundManager: BackgroundManager
+  let notificationsManager: NotificationManager
 
   init() {
     persistenceController = PersistenceController.shared
@@ -24,15 +25,21 @@ struct TachiOSmiApp: App {
 
     AppEnv.env = env
 
+    notificationsManager = NotificationManager()
     backgroundManager = BackgroundManager(
+      mangaCrud: env.mangaCrud,
+      coverCrud: env.coverCrud,
+      chapterCrud: env.chapterCrud,
       refreshLibraryUseCase: RefreshLibraryUseCase(
-        mangaCrud: AppEnv.env.mangaCrud,
-        chapterCrud: AppEnv.env.chapterCrud,
+        mangaCrud: env.mangaCrud,
+        chapterCrud: env.chapterCrud,
         httpClient: BackgroundHttpClient(for: .libraryRefresh),
-        systemDateTime: AppEnv.env.systemDateTime,
+        systemDateTime: env.systemDateTime,
         container: persistenceController.container
       ),
-      systemDateTime: env.systemDateTime
+      notificationManager: notificationsManager,
+      systemDateTime: env.systemDateTime,
+      viewMoc: persistenceController.container.viewContext
     )
   }
 
@@ -48,6 +55,9 @@ struct TachiOSmiApp: App {
           systemDateTime: AppEnv.env.systemDateTime,
           container: persistenceController.container
         ))
+        .task {
+          await notificationsManager.requestNotificationPermission()
+        }
     }
     .backgroundTask(.appRefresh(AppTask.libraryRefresh.identifier)) {
       await backgroundManager.handleLibraryRefresh()

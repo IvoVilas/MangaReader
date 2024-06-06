@@ -240,6 +240,43 @@ final class ChapterCrud {
     }
   }
 
+  func didCreateOrUpdateChapter(
+    id: String,
+    chapterNumber: Double?,
+    title: String?,
+    numberOfPages: Int,
+    publishAt: Date,
+    urlInfo: String,
+    manga: MangaMO,
+    moc: NSManagedObjectContext
+  ) throws -> (Bool, ChapterMO) {
+    if let local = try getChapter(id, moc: moc) {
+      updateChapter(
+        local,
+        chapterNumber: chapterNumber,
+        title: title,
+        numberOfPages: numberOfPages,
+        publishAt: publishAt,
+        urlInfo: urlInfo
+      )
+
+      return (false, local)
+    } else {
+      let new = try createEntity(
+        id: id,
+        chapterNumber: chapterNumber,
+        title: title,
+        numberOfPages: numberOfPages,
+        publishAt: publishAt,
+        urlInfo: urlInfo,
+        manga: manga,
+        moc: moc
+      )
+
+      return (true, new)
+    }
+  }
+
   func createEntity(
     id: String,
     chapterNumber: Double?,

@@ -39,6 +39,22 @@ struct ChapterModel: Identifiable, Hashable {
     }
   }
 
+  var simplifiedDescription: String {
+    let identifier: String
+
+    if let number {
+      if number.truncatingRemainder(dividingBy: 1) == 0 {
+        identifier = String(format: "%.0f", number)
+      } else {
+        identifier = String(format: "%.2f", number).trimmingCharacters(in: ["0"])
+      }
+    } else {
+      identifier = "N/A"
+    }
+
+    return "Chapter \(identifier)"
+  }
+
   var lastPageReadDescription: String? {
     if let lastPageRead {
       return "Page: \(lastPageRead + 1)"

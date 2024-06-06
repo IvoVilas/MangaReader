@@ -7,19 +7,34 @@
 
 import Foundation
 import BackgroundTasks
+import CoreData
 
-// e -l objc -- (void)[[BGTaskScheduler sharedScheduler] _simulateLaunchForTaskWithIdentifier:@"Moguizan.TachiOSmi.background_task.library_refresh"]
 final class BackgroundManager {
 
+  private let mangaCrud: MangaCrud
+  private let coverCrud: CoverCrud
+  private let chapterCrud: ChapterCrud
   private let refreshLibraryUseCase: RefreshLibraryUseCase
+  private let notificationManager: NotificationManager
   private let systemDateTime: SystemDateTimeType
+  private let viewMoc: NSManagedObjectContext
 
   init(
+    mangaCrud: MangaCrud,
+    coverCrud: CoverCrud,
+    chapterCrud: ChapterCrud,
     refreshLibraryUseCase: RefreshLibraryUseCase,
-    systemDateTime: SystemDateTimeType
+    notificationManager: NotificationManager,
+    systemDateTime: SystemDateTimeType,
+    viewMoc: NSManagedObjectContext
   ) {
+    self.mangaCrud = mangaCrud
+    self.coverCrud = coverCrud
+    self.chapterCrud = chapterCrud
     self.refreshLibraryUseCase = refreshLibraryUseCase
+    self.notificationManager = notificationManager
     self.systemDateTime = systemDateTime
+    self.viewMoc = viewMoc
   }
 
   func scheduleLibraryRefresh() {
@@ -40,9 +55,13 @@ final class BackgroundManager {
   func handleLibraryRefresh() async {
     scheduleLibraryRefresh()
 
-    print("BackgroundManager -> Starting library refresh...")
-    await refreshLibraryUseCase.refresh()
-    print("BackgroundManager -> Endend library refresh")
+    print("BackgroundManager -> Starting background library refresh...")
+
+    let updates = await refreshLibraryUseCase.refresh()
+
+    await sendNewChaptersNotifications(using: updates)
+
+    print("BackgroundManager -> Endend background library refresh")
   }
 
 }
@@ -65,6 +84,57 @@ extension BackgroundManager {
       matching: components,
       matchingPolicy: .nextTime
     )
+  }
+
+  private func sendNewChaptersNotifications(
+    using updates: [String: [String]]
+  ) async {
+    for update in updates {
+      let (id, chapters) = update
+
+      if chapters.count <= 0 {
+        continue
+      }
+
+      let context = viewMoc
+
+      let manga = try? await context.perform { () -> MangaModel? in
+        guard let manga = try self.mangaCrud.getManga(id, moc: context) else {
+          return nil
+        }
+
+        let cover = try self.coverCrud.getCoverData(for: id, moc: context)
+
+        return MangaModel.from(manga, cover: cover)
+      }
+
+      guard let manga else {
+        continue
+      }
+
+      let body: NotificationManager.ChapterUpdate
+
+      if chapters.count == 1 {
+        let id = chapters[0]
+
+        let description = await context.perform {
+          let chapter = try? self.chapterCrud.getChapter(id, moc: context)
+
+          guard let chapter else { return "" }
+
+          return ChapterModel.from(chapter).simplifiedDescription
+        }
+
+        body = .single(description)
+      } else {
+        body = .multiple(update.value.count)
+      }
+
+      notificationManager.scheduleChapterNotification(
+        for: manga,
+        description: body
+      )
+    }
   }
 
 }
