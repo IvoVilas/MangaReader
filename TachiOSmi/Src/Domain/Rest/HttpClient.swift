@@ -10,6 +10,17 @@ import Alamofire
 
 final class HttpClient: HttpClientType {
 
+  private let session: URLSession
+
+  init() {
+    let config = URLSessionConfiguration.default
+    
+    config.httpCookieStorage = .shared
+    config.httpCookieAcceptPolicy = .always
+
+    session = URLSession(configuration: config)
+  }
+
   func makeJsonGetRequest(
     url: String,
     parameters: [(String, Any)] = []
@@ -24,9 +35,10 @@ final class HttpClient: HttpClientType {
     request.httpMethod = "GET"
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
     request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36", forHTTPHeaderField: "User-Agent")
+    request.setValue("en-US,en;q=0.5", forHTTPHeaderField: "Accept-Language")
 
     do {
-      let (data, response) = try await URLSession.shared.data(for: request)
+      let (data, response) = try await session.data(for: request)
 
       guard
         let response = response as? HTTPURLResponse,
@@ -64,9 +76,10 @@ final class HttpClient: HttpClientType {
     request.httpMethod = "GET"
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
     request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36", forHTTPHeaderField: "User-Agent")
+    request.setValue("en-US,en;q=0.5", forHTTPHeaderField: "Accept-Language")
 
     do {
-      let (data, response) = try await URLSession.shared.data(for: request)
+      let (data, response) = try await session.data(for: request)
 
       guard
         let response = response as? HTTPURLResponse,
@@ -100,9 +113,10 @@ final class HttpClient: HttpClientType {
     request.httpMethod = "GET"
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
     request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36", forHTTPHeaderField: "User-Agent")
+    request.setValue("en-US,en;q=0.5", forHTTPHeaderField: "Accept-Language")
 
     do {
-      let (data, response) = try await URLSession.shared.data(for: request)
+      let (data, response) = try await session.data(for: request)
 
       guard
         let response = response as? HTTPURLResponse,
@@ -150,10 +164,11 @@ extension HttpClient {
     request.httpMethod = "GET"
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
     request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36", forHTTPHeaderField: "User-Agent")
+    request.setValue("en-US,en;q=0.5", forHTTPHeaderField: "Accept-Language")
     request.setValue(referer, forHTTPHeaderField: "Referer")
 
     do {
-      let (data, response) = try await URLSession.shared.data(for: request)
+      let (data, response) = try await session.data(for: request)
 
       guard
         let response = response as? HTTPURLResponse,
@@ -192,10 +207,11 @@ extension HttpClient {
     request.httpMethod = "GET"
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
     request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36", forHTTPHeaderField: "User-Agent")
+    request.setValue("en-US,en;q=0.5", forHTTPHeaderField: "Accept-Language")
     request.setValue(referer, forHTTPHeaderField: "Referer")
 
     do {
-      let (data, response) = try await URLSession.shared.data(for: request)
+      let (data, response) = try await session.data(for: request)
 
       guard
         let response = response as? HTTPURLResponse,
@@ -238,7 +254,7 @@ extension HttpClient {
     request.setValue("en-US,en;q=0.5", forHTTPHeaderField: "Accept-Language")
 
     do {
-      let (data, response) = try await URLSession.shared.data(for: request)
+      let (data, response) = try await session.data(for: request)
 
       guard
         let response = response as? HTTPURLResponse,

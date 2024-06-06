@@ -17,7 +17,10 @@ final class BackgroundHttpClient: HttpClientType {
     for task: AppTask
   ) {
     let config = URLSessionConfiguration.default
+
     config.sessionSendsLaunchEvents = true
+    config.httpCookieStorage = .shared
+    config.httpCookieAcceptPolicy = .always
 
     session = URLSession(configuration: config)
   }

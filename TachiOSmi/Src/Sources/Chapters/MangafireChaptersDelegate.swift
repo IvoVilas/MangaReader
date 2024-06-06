@@ -59,7 +59,7 @@ final class MangafireChaptersDelegate: ChaptersDelegateType {
       }
 
       if let dateString = try? a.select("span").last()?.text() {
-        date = dateFormatter.date(from: dateString)
+        date = parseDate(from: dateString)
       }
 
       return ChapterIndexResult(
@@ -75,3 +75,30 @@ final class MangafireChaptersDelegate: ChaptersDelegateType {
 
 }
 
+extension MangafireChaptersDelegate {
+
+  private func parseDate(from value: String) -> Date? {
+    let systemDateTime = AppEnv.env.systemDateTime
+
+    if let date = dateFormatter.date(from: value) {
+      return date
+    }
+
+    guard let regex = try? NSRegularExpression(pattern: #"(\d+) hours? ago"#) else {
+      return nil
+    }
+
+    let range = NSRange(value.startIndex..<value.endIndex, in: value)
+    
+    guard
+      let match = regex.firstMatch(in: value, range: range),
+      let timeRange = Range(match.range(at: 1), in: value),
+      let timeSince = Int(String(value[timeRange]))
+    else {
+      return nil
+    }
+
+    return systemDateTime.calculator.removeHours(timeSince, to: systemDateTime.now)
+  }
+
+}
