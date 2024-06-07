@@ -58,7 +58,7 @@ final class RefreshLibraryUseCase {
 
         for (source, ids) in sources {
           let source = Source.safeInit(from: source)
-          let delegate = source.chaptersDelegateType.init(httpClient: self.httpClient)
+          let delegate = source.refreshDelegateType.init(httpClient: self.httpClient)
 
           print("RefreshLibraryUseCase -> Refresing \(ids.count) \(source.name) mangas ")
 
@@ -104,12 +104,12 @@ extension RefreshLibraryUseCase {
   // Only returns newly created chapters
   private func refreshChapters(
     mangaId: String,
-    delegate: ChaptersDelegateType,
+    delegate: RefreshDelegateType,
     context: NSManagedObjectContext,
     now: Date
   ) async -> [String] {
     do {
-      let chapters = try await delegate.fetchChapters(mangaId: mangaId)
+      let data = try await delegate.fetchRefreshData(mangaId, updateCover: false)
 
       let newChapters = try await context.perform {
         guard let manga = try self.mangaCrud.getManga(mangaId, moc: context) else {
@@ -118,7 +118,7 @@ extension RefreshLibraryUseCase {
 
         var newChapters = [String]()
 
-        for chapter in chapters {
+        for chapter in data.chapters {
           do {
             let (didCreate, chapter) = try self.chapterCrud.didCreateOrUpdateChapter(
               id: chapter.id,

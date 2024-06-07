@@ -30,7 +30,7 @@ final class NotificationManager: NSObject, ObservableObject {
     }
 
     do {
-      let options: UNAuthorizationOptions = [.alert, .alert, .sound]
+      let options: UNAuthorizationOptions = [.alert, .badge, .sound]
 
       if try await notificationCenter.requestAuthorization(options: options) {
         print("NotificationManager -> User granted authorization to send notifications")

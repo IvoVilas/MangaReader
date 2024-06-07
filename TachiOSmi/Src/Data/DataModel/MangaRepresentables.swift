@@ -91,3 +91,53 @@ struct MangaDetailsParsedData {
   }
 
 }
+
+// MARK: Refresh
+struct MangaRefreshData {
+
+  let id: String
+  let title: String
+  let description: String?
+  let cover: Data?
+  let status: MangaStatus
+  let tags: [TagModel]
+  let authors: [AuthorModel]
+  let chapters: [ChapterIndexResult]
+
+  init(
+    id: String,
+    title: String,
+    description: String?,
+    cover: Data?,
+    status: MangaStatus,
+    tags: [TagModel],
+    authors: [AuthorModel], 
+    chapters: [ChapterIndexResult]
+  ) {
+    self.id = id
+    self.title = title
+    self.description = description
+    self.cover = cover
+    self.status = status
+    self.tags = tags
+    self.authors = authors
+    self.chapters = chapters
+  }
+
+  init(
+    id: String,
+    cover: Data?,
+    details: MangaDetailsParsedData,
+    chapters: [ChapterIndexResult]
+  ) {
+    self.id = id
+    self.title = details.title
+    self.description = details.description
+    self.cover = cover
+    self.status = details.status
+    self.tags = details.tags
+    self.authors = details.authors
+    self.chapters = chapters
+  }
+
+}

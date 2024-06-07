@@ -1,21 +1,24 @@
 //
-//  ChaptersDatasource.swift
+//  RefreshDatasource.swift
 //  TachiOSmi
 //
-//  Created by Ivo Vilas on 29/02/2024.
+//  Created by Ivo Vilas Boas  on 07/06/2024.
 //
 
 import Foundation
 import Combine
 import CoreData
 
-final class ChaptersDatasource {
+final class RefreshDatasource {
 
-  private let mangaId: String
-
-  private let delegate: ChaptersDelegateType
+  private let manga: MangaSearchResult
+  private let delegate: RefreshDelegateType
   private let mangaCrud: MangaCrud
   private let chapterCrud: ChapterCrud
+  private let coverCrud: CoverCrud
+  private let authorCrud: AuthorCrud
+  private let tagCrud: TagCrud
+  private let appOptionsStore: AppOptionsStore
   private let systemDateTime: SystemDateTimeType
   private let moc: NSManagedObjectContext
 
@@ -30,24 +33,28 @@ final class ChaptersDatasource {
     error.eraseToAnyPublisher()
   }
 
-  var stateValue: DatasourceState {
-    state.value
-  }
-
   private var fetchTask: Task<Void, Never>?
 
   init(
-    mangaId: String,
-    delegate: ChaptersDelegateType,
+    manga: MangaSearchResult,
     mangaCrud: MangaCrud,
     chapterCrud: ChapterCrud,
+    coverCrud: CoverCrud,
+    authorCrud: AuthorCrud,
+    tagCrud: TagCrud,
+    appOptionsStore: AppOptionsStore,
     systemDateTime: SystemDateTimeType,
+    httpClient: HttpClientType,
     moc: NSManagedObjectContext
   ) {
-    self.mangaId = mangaId
-    self.delegate = delegate
+    self.manga = manga
+    self.delegate = manga.source.refreshDelegateType.init(httpClient: httpClient)
     self.mangaCrud = mangaCrud
     self.chapterCrud = chapterCrud
+    self.coverCrud = coverCrud
+    self.authorCrud = authorCrud
+    self.tagCrud = tagCrud
+    self.appOptionsStore = appOptionsStore
     self.systemDateTime = systemDateTime
     self.moc = moc
 
@@ -70,16 +77,13 @@ final class ChaptersDatasource {
 
       do {
         if try await self.needsFetch(isForce: force) {
-          print("MangaDetailsDatasource -> Starting manga chapters refresh...")
+          print("MangaRefreshDatasource -> Starting manga details refresh...")
 
-          let results = try await self.delegate.fetchChapters(mangaId: self.mangaId)
+          let data = try await self.delegate.fetchRefreshData(self.manga.id, updateCover: force)
 
-          try await self.updateDatabase(
-            chapters: results,
-            updatedAt: self.systemDateTime.now
-          )
+          try await self.updateDatabase(data, updatedAt: self.systemDateTime.now)
 
-          print("MangaDetailsDatasource -> Ended manga chapters refresh")
+          print("MangaRefreshDatasources -> Ended manga details refresh")
         }
       } catch {
         self.error.value = .catchError(error)
@@ -98,19 +102,14 @@ final class ChaptersDatasource {
     }
 
     let context = moc
-    var nedsFetch = false
-
-    try await context.perform {
-      guard
-        let manga = try self.mangaCrud.getManga(self.mangaId, moc: context)
-      else {
-        return
+    
+    return try await context.perform {
+      guard let manga = try self.mangaCrud.getManga(self.manga.id, moc: context) else {
+        return true
       }
 
-      nedsFetch = !self.updatedRecently(manga.lastUpdateAt)
+      return !self.updatedRecently(manga.lastUpdateAt)
     }
-
-    return nedsFetch
   }
 
   private func updatedRecently(_ date: Date?) -> Bool {
@@ -126,20 +125,54 @@ final class ChaptersDatasource {
 }
 
 // MARK: Database
-extension ChaptersDatasource {
+extension RefreshDatasource {
 
   private func updateDatabase(
-    chapters: [ChapterIndexResult],
+    _ data: MangaRefreshData,
     updatedAt: Date
   ) async throws {
     let context = moc
 
-    try await context.perform {
-      guard let manga = try self.mangaCrud.getManga(self.mangaId, moc: context) else {
-        throw CrudError.mangaNotFound(id: self.mangaId)
+    try context.performAndWait {
+      let manga = try self.mangaCrud.createOrUpdateManga(
+        id: data.id,
+        title: data.title,
+        synopsis: data.description,
+        isSaved: nil,
+        status: data.status,
+        source: self.manga.source,
+        readingDirection: self.appOptionsStore.defaultDirection,
+        moc: context
+      )
+
+      if let cover = data.cover ?? self.manga.cover {
+        _ = try self.coverCrud.createOrUpdateEntity(
+          mangaId: data.id,
+          data: cover,
+          moc: context
+        )
       }
 
-      for chapter in chapters {
+      // For now, we only store one author
+      if let author = data.authors.first {
+        _ = try self.authorCrud.createOrUpdateAuthor(
+          id: author.id,
+          name: author.name,
+          manga: manga,
+          moc: context
+        )
+      }
+
+      for tag in data.tags {
+        _ = try self.tagCrud.createOrUpdateTag(
+          id: tag.id,
+          title: tag.title,
+          manga: manga,
+          moc: context
+        )
+      }
+
+      for chapter in data.chapters {
         _ = try self.chapterCrud.createOrUpdateChapter(
           id: chapter.id,
           chapterNumber: chapter.number,
@@ -159,4 +192,5 @@ extension ChaptersDatasource {
   }
 
 }
+
 

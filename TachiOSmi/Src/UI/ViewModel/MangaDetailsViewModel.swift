@@ -26,10 +26,8 @@ final class MangaDetailsViewModel: ObservableObject {
   @Published var toolbarActions: [ToolbarAction]
 
   private let chaptersProvider: MangaChaptersProvider
-  private let chaptersDatasource: ChaptersDatasource
-
   private let detailsProvider: MangaDetailsProvider
-  private let detailsDatasource: DetailsDatasource
+  private let refreshDatasource: RefreshDatasource
 
   private let source: Source
   private let mangaCrud: MangaCrud
@@ -67,29 +65,21 @@ final class MangaDetailsViewModel: ObservableObject {
       mangaId: manga.id,
       viewMoc: viewMoc
     )
-    chaptersDatasource = ChaptersDatasource(
-      mangaId: manga.id,
-      delegate: source.chaptersDelegateType.init(httpClient: httpClient),
-      mangaCrud: mangaCrud,
-      chapterCrud: chapterCrud,
-      systemDateTime: systemDateTime,
-      moc: moc
-    )
-
     detailsProvider = MangaDetailsProvider(
       mangaId: manga.id,
       coverCrud: coverCrud,
       viewMoc: viewMoc
     )
-    detailsDatasource = DetailsDatasource(
-      source: source, 
-      mangaId: manga.id,
-      delegate: source.detailsDelegateType.init(httpClient: httpClient),
+    refreshDatasource = RefreshDatasource(
+      manga: manga,
       mangaCrud: mangaCrud,
+      chapterCrud: chapterCrud,
       coverCrud: coverCrud,
-      authorCrud: authorCrud, 
+      authorCrud: authorCrud,
       tagCrud: tagCrud,
       appOptionsStore: appOptionsStore,
+      systemDateTime: systemDateTime,
+      httpClient: httpClient,
       moc: moc
     )
 
@@ -132,29 +122,16 @@ final class MangaDetailsViewModel: ObservableObject {
       }
       .store(in: &observers)
 
-    Publishers.CombineLatest(
-      detailsDatasource.statePublisher,
-      chaptersDatasource.statePublisher
-    )
-    .map { $0.0.isLoading || $0.1.isLoading }
-    .removeDuplicates()
-    .receive(on: DispatchQueue.main)
-    .sink { [weak self] in self?.isLoading = $0 }
-    .store(in: &observers)
+    refreshDatasource.statePublisher
+      .removeDuplicates()
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in self?.isLoading = $0.isLoading }
+      .store(in: &observers)
 
-    Publishers.CombineLatest(
-      detailsDatasource.errorPublisher,
-      chaptersDatasource.errorPublisher
-    )
-    .receive(on: DispatchQueue.main)
-    .map {
-      if let error = $0 { return error }
-      if let error = $1 { return error }
-
-      return nil
-    }
-    .sink { [weak self] in self?.error = $0 }
-    .store(in: &observers)
+    refreshDatasource.errorPublisher
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in self?.error = $0 }
+      .store(in: &observers)
   }
 
   // TODO: Maybe remove from main thread
@@ -221,13 +198,11 @@ final class MangaDetailsViewModel: ObservableObject {
 extension MangaDetailsViewModel {
 
   func setupData() async {
-    await detailsDatasource.refresh()
-    await chaptersDatasource.refresh()
+    await refreshDatasource.refresh()
   }
 
   func forceRefresh() async {
-    await detailsDatasource.refresh(force: true)
-    await chaptersDatasource.refresh(force: true)
+    await refreshDatasource.refresh(force: true)
   }
 
   func saveManga(_ save: Bool) async {

@@ -95,35 +95,19 @@ enum Source: Identifiable {
     }
   }
 
-  var detailsDelegateType: DetailsDelegateType.Type {
+  var refreshDelegateType: RefreshDelegateType.Type {
     switch self {
     case .mangadex:
-      return MangadexDetailsDelegate.self
+      return MangadexRefreshDelegate.self
 
     case .manganelo:
-      return ManganeloDetailsDelegate.self
+      return ManganeloRefreshDelegate.self
 
     case .mangafire:
-      return MangafireDetailsDeletage.self
+      return MangafireRefreshDelegate.self
 
     case .unknown:
-      return MockDetailsDelegate.self
-    }
-  }
-
-  var chaptersDelegateType: ChaptersDelegateType.Type {
-    switch self {
-    case .mangadex:
-      return MangadexChaptersDelegate.self
-
-    case .manganelo:
-      return ManganeloChaptersDelegate.self
-
-    case .mangafire:
-      return MangafireChaptersDelegate.self
-
-    case .unknown:
-      return MockChaptersDelegate.self
+      return MockRefreshDelegate.self
     }
   }
 

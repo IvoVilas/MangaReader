@@ -38,15 +38,15 @@ final class BackgroundManager {
   }
 
   func scheduleLibraryRefresh() {
-    let nextTime = calculateNextDailyRefreshDate()
+    let nextSunday = calculateNextWeeklyRefreshDate()
 
     let request = BGAppRefreshTaskRequest(identifier: AppTask.libraryRefresh.identifier)
-    request.earliestBeginDate = nextTime
+    request.earliestBeginDate = nextSunday
 
     do {
       try BGTaskScheduler.shared.submit(request)
 
-      print("BackgroundManager -> Scheduled library refresh to \(String(describing: nextTime))")
+      print("BackgroundManager -> Scheduled library refresh to \(String(describing: nextSunday))")
     } catch {
       print("BackgroundManager -> Failed to schedule library refresh: \(error)")
     }
@@ -69,11 +69,12 @@ final class BackgroundManager {
 // MARK: Helpers
 extension BackgroundManager {
 
-  private func calculateNextDailyRefreshDate() -> Date? {
+  private func calculateNextWeeklyRefreshDate() -> Date? {
     let calendar = Calendar.current
     let now = systemDateTime.now
 
     var components = DateComponents()
+    components.day = 1
     components.hour = 21
     components.minute = 0
     components.second = 0
