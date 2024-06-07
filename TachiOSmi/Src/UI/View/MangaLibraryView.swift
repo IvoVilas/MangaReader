@@ -99,7 +99,7 @@ struct MangaLibraryView: View {
             .resizable()
             .scaledToFit()
             .foregroundStyle(scheme.secondaryColor)
-            .frame(width: 150)
+            .frame(height: 150)
 
           Text("Your library is emtpy")
             .foregroundStyle(scheme.secondaryColor)

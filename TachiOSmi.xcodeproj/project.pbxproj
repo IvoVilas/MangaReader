@@ -493,11 +493,11 @@
 				D7736CBF2BBC8B1C0081AE98 /* Components */,
 				1EF20A6D2B91E6F000D17A65 /* ContentView.swift */,
 				D7ADA19A2BA066B500A2DB4D /* MangaLibraryView.swift */,
-				D74C8A8A2BBF1C08001274C4 /* MangaDetailsView.swift */,
 				D79382762BD67DD10096ECF7 /* MangaUpdatesView.swift */,
+				1EF815F72B82163F00D9759F /* MangaSearchView.swift */,
+				D74C8A8A2BBF1C08001274C4 /* MangaDetailsView.swift */,
 				D7ADA19C2BA0697E00A2DB4D /* MangaSourcesView.swift */,
 				D77354482BF76BE200871FE5 /* AppOptionsView.swift */,
-				1EF815F72B82163F00D9759F /* MangaSearchView.swift */,
 				1EE68A122B896E2D003B9037 /* ChapterReaderView.swift */,
 			);
 			path = View;

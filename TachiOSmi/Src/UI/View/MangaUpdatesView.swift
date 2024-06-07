@@ -60,23 +60,39 @@ struct MangaUpdatesView: View {
           .animation(.easeInOut, value: isLoading)
       }
 
-      ScrollView {
-        LazyVStack(spacing: 16) {
-          ForEach($viewModel.logs) { log in
-            MangaUpdateLogDateView(
-              logs: log,
-              foregroundColor: scheme.foregroundColor,
-              getNavigator: viewModel.getNavigator
-            )
-            .onAppear {
-              if log.id == viewModel.logs.last?.id {
-                viewModel.loadMoreLogs()
+      ZStack {
+        ScrollView {
+          LazyVStack(spacing: 16) {
+            ForEach($viewModel.logs) { log in
+              MangaUpdateLogDateView(
+                logs: log,
+                foregroundColor: scheme.foregroundColor,
+                getNavigator: viewModel.getNavigator
+              )
+              .onAppear {
+                if log.id == viewModel.logs.last?.id {
+                  viewModel.loadMoreLogs()
+                }
               }
             }
           }
         }
+        .scrollIndicators(.hidden)
+        .opacity(viewModel.logs.isEmpty ? 0 : 1)
+
+        VStack(spacing: 8) {
+          Image(systemName: "book.pages")
+            .resizable()
+            .scaledToFit()
+            .foregroundStyle(scheme.secondaryColor)
+            .frame(height: 150)
+
+          Text("You have no updates")
+            .foregroundStyle(scheme.secondaryColor)
+            .font(.title3)
+        }
+        .opacity(viewModel.logs.isEmpty ? 1 : 0)
       }
-      .scrollIndicators(.hidden)
     }
     .background(scheme.backgroundColor)
   }
