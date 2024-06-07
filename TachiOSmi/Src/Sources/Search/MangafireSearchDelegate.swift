@@ -22,7 +22,7 @@ final class MangafireSearchDelegate: SearchDelegateType {
     page: Int
   ) async throws -> [MangaSearchResultParsedData] {
     let url = "https://mangafire.to/filter?&sort=trending&page=\(page + 1)"
-    let html = try await httpClient.makeHtmlSafeGetRequest(url, comingFrom: "https://mangafire.to/home/")
+    let html = try await httpClient.makeHtmlSafeGetRequest(url, comingFrom: "https://google.com")
 
     guard
       let doc: Document = try? SwiftSoup.parse(html),
@@ -71,7 +71,7 @@ final class MangafireSearchDelegate: SearchDelegateType {
       url = "https://mangafire.to/filter?&sort=trending&page=\(page + 1)"
     }
 
-    let html = try await httpClient.makeHtmlSafeGetRequest(url, comingFrom: "https://mangafire.to/home/")
+    let html = try await httpClient.makeHtmlSafeGetRequest(url, comingFrom: "https://google.com")
 
     guard
       let doc: Document = try? SwiftSoup.parse(html),

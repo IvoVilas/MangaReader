@@ -69,9 +69,15 @@ final class MangafirePagesDelegate: PagesDelegateType {
   ) async throws -> Data {
     guard info.pages.indices.contains(index) else { throw DatasourceError.unexpectedError("Page index out of bounds") }
 
+    let components = info.downloadUrl.components(separatedBy: "%")
+
+    guard let url = components.first else {
+      throw ParserError.parsingError
+    }
+
     return try await httpClient.makeDataSafeGetRequest(
       info.pages[index],
-      comingFrom: info.downloadUrl
+      comingFrom: "https://mangafire.to\(url)"
     )
   }
 

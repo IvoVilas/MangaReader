@@ -24,7 +24,7 @@ final class MangafireDetailsDeletage: DetailsDelegateType {
     _ mangaId: String
   ) async throws -> MangaDetailsParsedData {
     let url = "https://mangafire.to/manga/\(mangaId)"
-    let html = try await httpClient.makeHtmlGetRequest(url)
+    let html = try await httpClient.makeHtmlSafeGetRequest(url, comingFrom: "https://mangafire.to/home")
 
     guard
       let doc: Document = try? SwiftSoup.parse(html),
@@ -77,7 +77,7 @@ final class MangafireDetailsDeletage: DetailsDelegateType {
     mangaId: String,
     coverInfo: String
   ) async throws -> Data {
-    try await httpClient.makeDataGetRequest(url: coverInfo)
+    try await httpClient.makeDataSafeGetRequest(coverInfo, comingFrom: "https://mangafire.to/manga/\(mangaId)")
   }
 
 }

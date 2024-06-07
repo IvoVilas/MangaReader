@@ -27,7 +27,7 @@ final class MangafireChaptersDelegate: ChaptersDelegateType {
     mangaId: String
   ) async throws -> [ChapterIndexResult] {
     let url = "https://mangafire.to/manga/\(mangaId)"
-    let html = try await httpClient.makeHtmlGetRequest(url)
+    let html = try await httpClient.makeHtmlSafeGetRequest(url, comingFrom: "https://mangafire.to/home")
 
     guard
       let doc: Document = try? SwiftSoup.parse(html),
