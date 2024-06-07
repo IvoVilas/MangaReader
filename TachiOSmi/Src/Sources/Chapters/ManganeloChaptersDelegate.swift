@@ -6,74 +6,26 @@
 //
 
 import Foundation
-import SwiftSoup
 
 final class ManganeloChaptersDelegate: ChaptersDelegateType {
 
   private let httpClient: HttpClientType
-  private let dateFormatter: DateFormatter
+  private let parser: ManganeloParser
 
   init(
     httpClient: HttpClientType
   ) {
     self.httpClient = httpClient
-    self.dateFormatter = DateFormatter()
-
-    dateFormatter.dateFormat = "MMM dd,yyyy HH:mm"
-    dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+    self.parser = ManganeloParser()
   }
 
   func fetchChapters(
     mangaId: String
   ) async throws -> [ChapterIndexResult] {
     let url = "https://chapmanganelo.com/manga-\(mangaId)"
-    let html = try await httpClient.makeHtmlGetRequest(url)
+    let html = try await httpClient.makeHtmlSafeGetRequest(url, comingFrom: "https://m.manganelo.com/wwww")
 
-    guard let doc: Document = try? SwiftSoup.parse(html) else {
-      throw ParserError.parsingError
-    }
-
-    guard
-      let chapterListInfo = try? doc.select("div.panel-story-chapter-list").first(),
-      let chaptersInfo = try? chapterListInfo.select("li.a-h").array()
-    else {
-      throw ParserError.parsingError
-    }
-
-    // The id retrived here does not seem to be unique
-    // So the chapter Id is {mangaId}%{chapterId}
-    // Futhrmore we cant get the number of pages
-    // So we use 1 to go throught the numberOfPages > 0 filter later on
-    return chaptersInfo.compactMap { element -> ChapterIndexResult? in
-      guard
-        let id = try? element.attr("id"),
-        let info = try? element.select("a.chapter-name").first,
-        let url = try? info.attr("href")
-      else {
-        return nil
-      }
-
-      var number: Double?
-      var date: Date?
-      let title = try? info.attr("title")
-
-      if let numberString = url.components(separatedBy: "-").last {
-        number = Double(numberString)
-      }
-
-      if let dateString = try? element.select("span.chapter-time").attr("title") {
-        date = dateFormatter.date(from: dateString)
-      }
-
-      return ChapterIndexResult(
-        id: "\(mangaId)%\(id)",
-        title: title,
-        number: number,
-        numberOfPages: 1, // TODO: Do something about this
-        publishAt: date ?? Date.distantPast, // TODO: And this
-        downloadInfo: url
-      )
-    }
+    return try parser.parseChaptersResponse(html, mangaId: mangaId)
   }
 
 }

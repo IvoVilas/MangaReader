@@ -167,7 +167,7 @@ struct MangaLibraryView: View {
     Task(priority: .background) {
       await MainActor.run { isLoading = true }
 
-      await refreshUseCase.refresh()
+      _ = await refreshUseCase.refresh()
 
       await MainActor.run { isLoading = false }
     }

@@ -7,6 +7,7 @@
 
 import SwiftUI
 import CoreData
+import WebKit
 
 // MARK: Search
 struct MangaSearchView: View {

@@ -11,13 +11,13 @@ import CoreData
 final class MangadexDetailsDelegate: DetailsDelegateType {
 
   private let httpClient: HttpClientType
-  private let mangaParser: MangaParser
+  private let parser: MangadexParser
 
   init(
     httpClient: HttpClientType
   ) {
     self.httpClient = httpClient
-    self.mangaParser = MangaParser()
+    self.parser = MangadexParser()
   }
 
   func fetchDetails(
@@ -35,7 +35,7 @@ final class MangadexDetailsDelegate: DetailsDelegateType {
       throw ParserError.parameterNotFound("data")
     }
 
-    return try mangaParser.parseMangaDetailsResponse(data)
+    return try parser.parseMangaDetailsResponse(data)
   }
 
   func fetchCover(

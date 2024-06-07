@@ -10,13 +10,13 @@ import Foundation
 final class MangadexSearchDelegate: SearchDelegateType {
 
   private let httpClient: HttpClientType
-  private let mangaParser: MangaParser
+  private let parser: MangadexParser
 
   init(
     httpClient: HttpClientType
   ) {
     self.httpClient = httpClient
-    self.mangaParser = MangaParser()
+    self.parser = MangadexParser()
   }
   
   func fetchTrending(
@@ -76,7 +76,7 @@ extension MangadexSearchDelegate {
       throw ParserError.parameterNotFound("data")
     }
 
-    return try mangaParser.parseMangaSearchResponse(dataJson)
+    return try parser.parseMangaSearchResponse(dataJson)
   }
 
 }

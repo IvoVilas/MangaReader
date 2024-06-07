@@ -6,16 +6,17 @@
 //
 
 import Foundation
-import SwiftSoup
 
 final class ManganeloSearchDelegate: SearchDelegateType {
 
   private let httpClient: HttpClientType
+  private let parser: ManganeloParser
 
   init(
     httpClient: HttpClientType
   ) {
     self.httpClient = httpClient
+    self.parser = ManganeloParser()
   }
 
   func fetchTrending(
@@ -24,50 +25,7 @@ final class ManganeloSearchDelegate: SearchDelegateType {
     let url = "https://m.manganelo.com/genre-all/\(page + 1)?type=topview"
     let html = try await httpClient.makeHtmlGetRequest(url)
 
-    guard
-      let doc: Document = try? SwiftSoup.parse(html),
-      let elements = try? doc.select("div.content-genres-item")
-    else {
-      throw ParserError.parsingError
-    }
-
-    let results = elements.compactMap { element -> Result? in
-      guard
-        let url = try? element.select("a[data-id]").attr("href"),
-        let idComponent = url.components(separatedBy: "/").last,
-        let id = idComponent.components(separatedBy: "-").last
-      else {
-        print("ManganeloSearchDelegate -> Parameter id not found")
-
-        return nil
-      }
-
-      guard let title = try? element.select("h3 a").text() else {
-        print("ManganeloSearchDelegate -> Parameter title not found")
-
-        return nil
-      }
-
-      guard let url = try? element.select("img.img-loading").attr("src") else {
-        print("ManganeloSearchDelegate -> Parameter cover not found")
-
-        return nil
-      }
-
-      return Result(
-        id: id,
-        title: title,
-        coverUrl: url
-      )
-    }
-
-    return results.map {
-      MangaSearchResultParsedData(
-        id: $0.id,
-        title: $0.title,
-        coverDownloadInfo: $0.coverUrl
-      )
-    }
+    return try parser.parseMangaSearchResponse(html)
   }
 
   func fetchSearchResults(
@@ -88,50 +46,7 @@ final class ManganeloSearchDelegate: SearchDelegateType {
 
     let html = try await httpClient.makeHtmlGetRequest(url)
 
-    guard
-      let doc: Document = try? SwiftSoup.parse(html),
-      let elements = try? doc.select("div.search-story-item")
-    else {
-      throw ParserError.parsingError
-    }
-
-    let results = elements.compactMap { element -> Result? in
-      guard
-        let url = try? element.select("a[data-id]").attr("href"),
-        let idComponent = url.components(separatedBy: "/").last,
-        let id = idComponent.components(separatedBy: "-").last
-      else {
-        print("ManganeloSearchDelegate -> Parameter id not found")
-
-        return nil
-      }
-
-      guard let title = try? element.select("h3 a").text() else {
-        print("ManganeloSearchDelegate -> Parameter title not found")
-
-        return nil
-      }
-
-      guard let url = try? element.select("img.img-loading").attr("src") else {
-        print("ManganeloSearchDelegate -> Parameter cover not found")
-
-        return nil
-      }
-
-      return Result(
-        id: id,
-        title: title,
-        coverUrl: url
-      )
-    }
-
-    return results.map {
-      MangaSearchResultParsedData(
-        id: $0.id,
-        title: $0.title,
-        coverDownloadInfo: $0.coverUrl
-      )
-    }
+    return try parser.parseMangaSearchResponse(html)
   }
   
   func fetchCover(
@@ -139,16 +54,6 @@ final class ManganeloSearchDelegate: SearchDelegateType {
     coverInfo url: String
   ) async throws -> Data {
     try await httpClient.makeDataGetRequest(url: url)
-  }
-
-}
-
-extension ManganeloSearchDelegate {
-
-  struct Result {
-    let id: String
-    let title: String
-    let coverUrl: String
   }
 
 }

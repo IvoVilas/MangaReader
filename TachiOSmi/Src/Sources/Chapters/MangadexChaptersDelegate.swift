@@ -11,13 +11,13 @@ import CoreData
 final class MangadexChaptersDelegate: ChaptersDelegateType {
 
   private let httpClient: HttpClientType
-  private let chapterParser: ChapterParser
+  private let parser: MangadexParser
 
   init(
     httpClient: HttpClientType
   ) {
     self.httpClient = httpClient
-    self.chapterParser = ChapterParser()
+    self.parser = MangadexParser()
   }
   
   func fetchChapters(
@@ -70,7 +70,7 @@ extension MangadexChaptersDelegate {
       throw ParserError.parameterNotFound("data")
     }
 
-    return try chapterParser
+    return try parser
       .parseChapterData(mangaId: mangaId, data: dataJson)
       .filter { $0.numberOfPages > 0 }
   }

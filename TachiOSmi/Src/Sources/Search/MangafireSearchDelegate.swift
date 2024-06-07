@@ -6,16 +6,17 @@
 //
 
 import Foundation
-import SwiftSoup
 
 final class MangafireSearchDelegate: SearchDelegateType {
 
   private let httpClient: HttpClientType
+  private let parser: MangafireParser
 
   init(
     httpClient: HttpClientType
   ) {
     self.httpClient = httpClient
+    self.parser = MangafireParser()
   }
 
   func fetchTrending(
@@ -24,34 +25,7 @@ final class MangafireSearchDelegate: SearchDelegateType {
     let url = "https://mangafire.to/filter?&sort=trending&page=\(page + 1)"
     let html = try await httpClient.makeHtmlSafeGetRequest(url, comingFrom: "https://google.com")
 
-    guard
-      let doc: Document = try? SwiftSoup.parse(html),
-      let card = try? doc.select("div.original.card-lg").first(),
-      let elements = try? card.select("div.unit")
-    else {
-      throw ParserError.parsingError
-    }
-
-    return elements.compactMap { element -> MangaSearchResultParsedData? in
-      guard
-        let inner = try? element.select("div.inner"),
-        let poster = try? inner.select("a.poster"),
-        let id = try? poster.attr("href").components(separatedBy: "/").last,
-        let img = try? poster.select("img"),
-        let title = try? img.attr("alt"),
-        let coverUrl = try? img.attr("src")
-      else {
-        print("ManganeloSearchDelegate -> Entity parameters not found")
-
-        return nil
-      }
-
-      return MangaSearchResultParsedData(
-        id: id,
-        title: title,
-        coverDownloadInfo: coverUrl
-      )
-    }
+    return try parser.parseMangaSearchResponse(html)
   }
 
   func fetchSearchResults(
@@ -73,34 +47,7 @@ final class MangafireSearchDelegate: SearchDelegateType {
 
     let html = try await httpClient.makeHtmlSafeGetRequest(url, comingFrom: "https://google.com")
 
-    guard
-      let doc: Document = try? SwiftSoup.parse(html),
-      let card = try? doc.select("div.original.card-lg").first(),
-      let elements = try? card.select("div.unit")
-    else {
-      throw ParserError.parsingError
-    }
-
-    return elements.compactMap { element -> MangaSearchResultParsedData? in
-      guard
-        let inner = try? element.select("div.inner"),
-        let poster = try? inner.select("a.poster"),
-        let id = try? poster.attr("href").components(separatedBy: "/").last,
-        let img = try? poster.select("img"),
-        let title = try? img.attr("alt"),
-        let coverUrl = try? img.attr("src")
-      else {
-        print("ManganeloSearchDelegate -> Entity parameters not found")
-
-        return nil
-      }
-
-      return MangaSearchResultParsedData(
-        id: id,
-        title: title,
-        coverDownloadInfo: coverUrl
-      )
-    }
+    return try parser.parseMangaSearchResponse(html)
   }
 
   func fetchCover(
