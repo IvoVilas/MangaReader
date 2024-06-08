@@ -102,7 +102,14 @@ private struct SourceSearchResultsView: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
-      Button { /* TODO */ } label: {
+      Button {
+        router.navigate(
+          using: MangaLoadedSearchNavigator(
+            input: viewModel.input,
+            datasource: viewModel.datasource
+          )
+        )
+      } label: {
         HStack(spacing: 8) {
           Image(uiImage: viewModel.source.logo)
             .resizable()

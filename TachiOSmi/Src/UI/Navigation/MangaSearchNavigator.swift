@@ -20,3 +20,31 @@ struct MangaSearchNavigator: Navigator {
   }
 
 }
+
+struct MangaLoadedSearchNavigator: Navigator {
+
+  let input: String
+  let datasource: SearchDatasource
+
+  static func navigate(
+    to entity: MangaLoadedSearchNavigator
+  ) -> MangaSearchView {
+    return MangaSearchView(
+      input: entity.input,
+      datasource: entity.datasource
+    )
+  }
+
+}
+
+extension SearchDatasource: Hashable {
+
+  static func == (lhs: SearchDatasource, rhs: SearchDatasource) -> Bool {
+      ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
+  }
+
+  func hash(into hasher: inout Hasher) {
+      hasher.combine(ObjectIdentifier(self))
+  }
+
+}

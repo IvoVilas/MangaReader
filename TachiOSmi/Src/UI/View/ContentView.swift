@@ -78,6 +78,7 @@ struct ContentView: View {
       .registerNavigator(MangaReaderNavigator.self)
       .registerNavigator(MangaSearchNavigator.self)
       .registerNavigator(MangaGlobalSearchNavigator.self)
+      .registerNavigator(MangaLoadedSearchNavigator.self)
     }
     .environment(\.router, router)
     .environment(\.colorScheme, colorScheme)

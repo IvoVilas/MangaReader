@@ -16,6 +16,7 @@ final class MangaSearchViewModel: ObservableObject {
   @Published var results: [MangaSearchResult]
   @Published var savedMangas: [String]
   @Published var input: String
+  @Published var isSearching: Bool
   @Published var layout: CollectionLayout
   @Published var isLoading: Bool
   @Published var error: DatasourceError?
@@ -61,10 +62,40 @@ final class MangaSearchViewModel: ObservableObject {
     results = []
     savedMangas = []
     input = ""
+    isSearching = false
     layout = optionsStore.libraryLayout
     isLoading = false
     error = nil
 
+    setupObservers()
+  }
+
+  init(
+    input: String,
+    datasource: SearchDatasource,
+    optionsStore: AppOptionsStore,
+    container: NSPersistentContainer
+  ) {
+    self.source = datasource.source
+    self.datasource = datasource
+    self.store = optionsStore
+    self.provider = MangaSearchProvider(
+      viewMoc: container.viewContext
+    )
+
+    self.input = input
+    isSearching = true
+    sourceName = source.name
+    results = []
+    savedMangas = []
+    layout = optionsStore.libraryLayout
+    isLoading = false
+    error = nil
+
+    setupObservers()
+  }
+
+  private func setupObservers() {
     provider.$savedMangas
       .receive(on: DispatchQueue.main)
       .sink { [weak self] in self?.savedMangas = $0 }

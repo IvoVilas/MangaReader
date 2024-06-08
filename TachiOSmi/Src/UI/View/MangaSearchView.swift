@@ -38,6 +38,22 @@ struct MangaSearchView: View {
     )
   }
 
+  init(
+    input: String,
+    datasource: SearchDatasource,
+    appOptionsStore: AppOptionsStore = AppEnv.env.appOptionsStore,
+    container: NSPersistentContainer = PersistenceController.shared.container
+  ) {
+    _viewModel = StateObject(
+      wrappedValue: MangaSearchViewModel(
+        input: input,
+        datasource: datasource,
+        optionsStore: appOptionsStore,
+        container: container
+      )
+    )
+  }
+
   private let columns = Array(
     repeating: GridItem(.flexible(), spacing: 16),
     count: 3
@@ -51,6 +67,7 @@ struct MangaSearchView: View {
         textColor: scheme.foregroundColor,
         doSearch: viewModel.doSearch,
         changeLayout: viewModel.toggleLayout,
+        isSearching: $viewModel.isSearching,
         input: $viewModel.input,
         layout: $viewModel.layout
       )
@@ -152,7 +169,7 @@ private struct HeaderView: View {
   let changeLayout: (() -> Void)?
 
   @State var didSearch = false
-  @State var isSearching: Bool = false
+  @Binding var isSearching: Bool
   @Binding var input: String
   @Binding var layout: CollectionLayout
   @FocusState private var inputFieldIsFocused: Bool

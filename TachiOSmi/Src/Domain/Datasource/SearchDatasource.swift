@@ -11,7 +11,7 @@ import CoreData
 
 final class SearchDatasource {
 
-  private let source: Source
+  let source: Source
   private let delegate: SearchDelegateType
   private let mangaCrud: MangaCrud
   private let coverCrud: CoverCrud

@@ -72,7 +72,8 @@ final class SourceResultsViewModel: ObservableObject, Identifiable {
   @Published var isLoading: Bool
   @Published var error: DatasourceError?
 
-  private let datasource: SearchDatasource
+  @Published var input: String
+  let datasource: SearchDatasource
 
   private var observers = Set<AnyCancellable>()
 
@@ -87,6 +88,7 @@ final class SourceResultsViewModel: ObservableObject, Identifiable {
     self.results = []
     self.isLoading = false
     self.error = nil
+    self.input = ""
 
     self.datasource = SearchDatasource(
       source: source,
@@ -111,6 +113,8 @@ final class SourceResultsViewModel: ObservableObject, Identifiable {
   }
 
   func doSearch(value: String) {
+    input = value
+
     Task {
       await datasource.searchManga(.query(value))
     }
