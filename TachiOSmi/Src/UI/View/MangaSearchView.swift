@@ -66,8 +66,9 @@ struct MangaSearchView: View {
           resultCollectionView()
             .padding(16)
         }
-        .opacity(viewModel.isLoading ? 0 : 1)
+        .scrollDismissesKeyboard(.interactively)
         .scrollIndicators(.hidden)
+        .opacity(viewModel.isLoading ? 0 : 1)
         .task(priority: .medium) {
           if viewModel.results.isEmpty {
             await viewModel.doSearch()

@@ -25,7 +25,7 @@ final class ManganeloSearchDelegate: SearchDelegateType {
     let url = "https://m.manganelo.com/genre-all/\(page + 1)?type=topview"
     let html = try await httpClient.makeHtmlGetRequest(url)
 
-    return try parser.parseMangaSearchResponse(html)
+    return try parser.parseMangaTrendingResponse(html)
   }
 
   func fetchSearchResults(

@@ -74,9 +74,9 @@ final class SearchDatasource {
     }
 
     fetchTask = Task { [weak self] in
-      print("MangaSearchDatasource -> Search task started")
-
       guard let self else { return }
+
+      print("MangaSearchDatasource -> Starting search task for \(self.source.name)...")
 
       var erro: DatasourceError?
 
@@ -111,7 +111,7 @@ final class SearchDatasource {
         self.fetchTask = nil
       }
 
-      print("MangaSearchDatasource -> Search task ended")
+      print("MangaSearchDatasource -> Ended search task for \(self.source.name)")
     }
   }
 

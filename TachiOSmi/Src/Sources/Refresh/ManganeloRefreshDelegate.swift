@@ -30,8 +30,6 @@ final class ManganeloRefreshDelegate: RefreshDelegateType {
     let chapters = try parser.parseChaptersResponse(html, mangaId: mangaId)
     let cover = updateCover ? try? await fetchCover(mangaId: mangaId, coverInfo: details.coverInfo) : nil
 
-    print(updateCover)
-
     return MangaRefreshData(
       id: mangaId,
       cover: cover,

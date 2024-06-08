@@ -28,7 +28,6 @@ final class MangadexRefreshDelegate: RefreshDelegateType {
     async let chapters = try await fetchChapters(mangaId: mangaId)
 
     if updateCover {
-      print("True")
       async let cover = try? await fetchCover(mangaId: mangaId, coverInfo: details.coverInfo)
 
       return await MangaRefreshData(
@@ -39,7 +38,6 @@ final class MangadexRefreshDelegate: RefreshDelegateType {
       )
     }
 
-    print("False")
     return await MangaRefreshData(
       id: mangaId,
       cover: nil,

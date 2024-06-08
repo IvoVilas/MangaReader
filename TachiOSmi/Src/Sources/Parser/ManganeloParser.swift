@@ -28,12 +28,53 @@ struct ManganeloParser {
 // MARK: Search Parser
 extension ManganeloParser {
 
-  func parseMangaSearchResponse(
+  func parseMangaTrendingResponse(
     _ html: String
   ) throws -> [MangaSearchResultParsedData] {
     guard
       let doc: Document = try? SwiftSoup.parse(html),
       let elements = try? doc.select("div.content-genres-item")
+    else {
+      throw ParserError.parsingError
+    }
+
+    return elements.compactMap { element -> MangaSearchResultParsedData? in
+      guard
+        let url = try? element.select("a[data-id]").attr("href"),
+        let idComponent = url.components(separatedBy: "/").last,
+        let id = idComponent.components(separatedBy: "-").last
+      else {
+        print("ManganeloSearchDelegate -> Parameter id not found")
+
+        return nil
+      }
+
+      guard let title = try? element.select("h3 a").text() else {
+        print("ManganeloSearchDelegate -> Parameter title not found")
+
+        return nil
+      }
+
+      guard let url = try? element.select("img.img-loading").attr("src") else {
+        print("ManganeloSearchDelegate -> Parameter cover not found")
+
+        return nil
+      }
+
+      return MangaSearchResultParsedData(
+        id: id,
+        title: title,
+        coverDownloadInfo: url
+      )
+    }
+  }
+
+  func parseMangaSearchResponse(
+    _ html: String
+  ) throws -> [MangaSearchResultParsedData] {
+    guard
+      let doc: Document = try? SwiftSoup.parse(html),
+      let elements = try? doc.select("div.search-story-item")
     else {
       throw ParserError.parsingError
     }

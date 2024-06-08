@@ -16,9 +16,21 @@ struct MangaSourcesView: View {
 
   var body: some View {
     VStack(alignment: .leading) {
-      Text("Sources")
-        .foregroundStyle(scheme.foregroundColor)
-        .font(.title)
+      HStack(spacing: 0) {
+        Text("Sources")
+          .foregroundStyle(scheme.foregroundColor)
+          .font(.title)
+
+        Spacer()
+
+        Button {
+          router.navigate(using: MangaGlobalSearchNavigator())
+        } label: {
+          Image(.globalSearch)
+            .scaledToFit()
+            .foregroundStyle(scheme.foregroundColor)
+        }
+      }
 
       ScrollView {
         VStack(alignment: .leading, spacing: 24) {
