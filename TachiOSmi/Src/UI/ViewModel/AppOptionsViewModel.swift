@@ -216,6 +216,7 @@ final class OptionSelectionViewModel<T: Hashable & CustomStringConvertible>: Obs
   @Published var title: String
   @Published var icon: IconSource
   @Published var iconColor: Color
+  @Published var showingSelection: Bool
 
   let id: String
 
@@ -233,6 +234,7 @@ final class OptionSelectionViewModel<T: Hashable & CustomStringConvertible>: Obs
     self.title = title
     self.icon = icon
     self.iconColor = iconColor
+    self.showingSelection = false
   }
 
 }

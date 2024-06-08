@@ -118,16 +118,14 @@ struct AppOptionsView: View {
 // MARK: Selection view
 private struct OptionSelectionView<T: Hashable & CustomStringConvertible>: View {
 
+  @Environment(\.colorScheme) private var scheme
   @ObservedObject var viewModel: OptionSelectionViewModel<T>
 
   let foregroundColor: Color
 
   var body: some View {
-    ValuePicker(viewModel.title, selection: $viewModel.selectedOption) {
-      ForEach(viewModel.options, id: \.self.description) { option in
-        Text(option.description)
-          .pickerTag(option)
-      }
+    Button {
+      viewModel.showingSelection.toggle()
     } label: {
       VStack(spacing: 0) {
         viewModel.icon.image()
@@ -159,7 +157,36 @@ private struct OptionSelectionView<T: Hashable & CustomStringConvertible>: View 
       .background(Color(uiColor: .systemFill))
       .clipShape(RoundedRectangle(cornerRadius: 8))
     }
+    .sheet(isPresented: $viewModel.showingSelection) {
+      SelectionSheet(
+        title: viewModel.title,
+        selectedOption: $viewModel.selectedOption,
+        options: $viewModel.options,
+        idBuilder: { String(describing: $0) },
+        nameBuilder: { String(describing: $0) }
+      )
+      .presentationCornerRadius(16)
+      .presentationDetents(calculatePresentationDetents(count: viewModel.options.count))
+      .preferredColorScheme(scheme)
+    }
   }
+
+  private func calculatePresentationDetents(
+    count: Int
+  ) -> Set<PresentationDetent> {
+    let fraction = max(0.1 * CGFloat(count), 0.25)
+
+    if fraction < 0.5 {
+      return [.fraction(fraction), .medium, .large]
+    }
+
+    if fraction < 1 {
+      return [.medium, .fraction(fraction), .large]
+    }
+
+    return [.medium, .large]
+  }
+
 }
 
 // MARK: Toggle view
