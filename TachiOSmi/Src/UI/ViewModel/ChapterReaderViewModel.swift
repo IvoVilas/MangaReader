@@ -66,6 +66,7 @@ final class ChapterReaderViewModel: ObservableObject {
 
     delegate = source.pagesDelegateType.init(httpClient: httpClient)
     datasource = PagesDatasource(
+      mangaId: mangaId,
       chapter: chapter,
       delegate: delegate,
       appOptionsStore: appOptionsStore
@@ -321,6 +322,7 @@ extension ChapterReaderViewModel {
     print("ChapterReadViewModel -> Moving to the next chapter")
 
     datasource = PagesDatasource(
+      mangaId: mangaId,
       chapter: nextChapter,
       delegate: delegate,
       appOptionsStore: appOptionsStore
@@ -338,6 +340,7 @@ extension ChapterReaderViewModel {
     print("ChapterReadViewModel -> Moving to the previous chapter")
 
     datasource = PagesDatasource(
+      mangaId: mangaId,
       chapter: previousChapter,
       delegate: delegate,
       appOptionsStore: appOptionsStore

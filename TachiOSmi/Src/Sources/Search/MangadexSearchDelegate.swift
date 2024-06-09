@@ -9,6 +9,9 @@ import Foundation
 
 final class MangadexSearchDelegate: SearchDelegateType {
 
+  let searchPageSize = 15
+  let trendingPageSize = 15
+
   private let httpClient: HttpClientType
   private let parser: MangadexParser
 
@@ -29,12 +32,11 @@ final class MangadexSearchDelegate: SearchDelegateType {
     _ searchValue: String,
     page: Int
   ) async throws -> [MangaSearchResultParsedData] {
-    let limit  = 15
-    let offset = page * limit
+    let offset = page * searchPageSize
 
     let results = try await makeSearchRequest(
       searchValue,
-      limit: limit,
+      limit: searchPageSize,
       offset: offset
     )
 

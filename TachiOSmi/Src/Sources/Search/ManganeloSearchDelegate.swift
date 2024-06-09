@@ -9,8 +9,13 @@ import Foundation
 
 final class ManganeloSearchDelegate: SearchDelegateType {
 
+  let searchPageSize = 20
+  let trendingPageSize = 24
+
   private let httpClient: HttpClientType
   private let parser: ManganeloParser
+
+  private var lastRequest: String?
 
   init(
     httpClient: HttpClientType
@@ -22,8 +27,11 @@ final class ManganeloSearchDelegate: SearchDelegateType {
   func fetchTrending(
     page: Int
   ) async throws -> [MangaSearchResultParsedData] {
-    let url = "https://m.manganelo.com/genre-all/\(page + 1)?type=topview"
-    let html = try await httpClient.makeHtmlGetRequest(url)
+    let (url, referer) = getTrendingUrlAndReferer(page: page)
+
+    let html = try await httpClient.makeHtmlSafeGetRequest(url, comingFrom: referer)
+
+    lastRequest = url
 
     return try parser.parseMangaTrendingResponse(html)
   }
@@ -32,19 +40,11 @@ final class ManganeloSearchDelegate: SearchDelegateType {
     _ searchValue: String,
     page: Int
   ) async throws -> [MangaSearchResultParsedData] {
-    let url: String
-    var set = CharacterSet.alphanumerics
-    set.insert("_")
+    let (url, referer) = getSearchUrlAndReferer(search: searchValue, page: page)
 
-    if !searchValue.isEmpty {
-      let noSpaces = searchValue.lowercased().replacingOccurrences(of: " ", with: "_")
-      let noSpecialChars = String(noSpaces.unicodeScalars.filter(set.contains))
-      url = "https://m.manganelo.com/search/story/\(noSpecialChars)?page=\(page + 1)"
-    } else {
-      url = "https://m.manganelo.com/genre-all?type=topview"
-    }
+    let html = try await httpClient.makeHtmlSafeGetRequest(url, comingFrom: referer)
 
-    let html = try await httpClient.makeHtmlGetRequest(url)
+    lastRequest = url
 
     return try parser.parseMangaSearchResponse(html)
   }
@@ -53,7 +53,65 @@ final class ManganeloSearchDelegate: SearchDelegateType {
     mangaId: String,
     coverInfo url: String
   ) async throws -> Data {
-    try await httpClient.makeDataGetRequest(url: url)
+    try await httpClient.makeDataSafeGetRequest(
+      url,
+      comingFrom: "https://m.manganelo.com/wwww",
+      addRefererCookies: false
+    )
+  }
+
+}
+
+extension ManganeloSearchDelegate {
+
+  private func getTrendingUrlAndReferer(
+    page: Int
+  ) -> (String, String) {
+    let url: String
+    let referer: String
+
+    if page == 0 {
+      url = "https://m.manganelo.com/genre-all?type=topview"
+      referer = lastRequest ?? "https://m.manganelo.com/wwww"
+    } else if page == 1 {
+      url = "https://m.manganelo.com/genre-all/\(page + 1)?type=topview"
+      referer = lastRequest ?? "https://m.manganelo.com/genre-all?type=topview"
+    } else {
+      url = "https://m.manganelo.com/genre-all/\(page + 1)?type=topview"
+      referer = lastRequest ?? "https://m.manganelo.com/genre-all/\(page)?type=topview"
+    }
+
+    return (url, referer)
+  }
+
+  private func getSearchUrlAndReferer(
+    search: String,
+    page: Int
+  ) -> (String, String) {
+    guard !search.isEmpty else {
+      return getTrendingUrlAndReferer(page: page)
+    }
+
+    let url: String
+    let referer: String
+    var set = CharacterSet.alphanumerics
+    set.insert("_")
+
+    let noSpaces = search.lowercased().replacingOccurrences(of: " ", with: "_")
+    let noSpecialChars = String(noSpaces.unicodeScalars.filter(set.contains))
+    
+    if page == 0 {
+      url = "https://m.manganelo.com/search/story/\(noSpecialChars)"
+      referer = lastRequest ?? "https://m.manganelo.com/wwww"
+    } else if page == 1 {
+      url = "https://m.manganelo.com/search/story/\(noSpecialChars)?page=\(page + 1)"
+      referer = lastRequest ?? "https://m.manganelo.com/search/story/\(noSpecialChars)"
+    } else {
+      url = "https://m.manganelo.com/search/story/\(noSpecialChars)?page=\(page + 1)"
+      referer = lastRequest ?? "https://m.manganelo.com/search/story/\(noSpecialChars)?page=\(page)"
+    }
+
+    return (url, referer)
   }
 
 }

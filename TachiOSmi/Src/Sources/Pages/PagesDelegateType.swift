@@ -12,6 +12,7 @@ protocol PagesDelegateType {
   init(httpClient: HttpClientType)
 
   func fetchDownloadInfo(
+    mangaId: String,
     using: String,
     saveData: Bool
   ) async throws -> ChapterDownloadInfo

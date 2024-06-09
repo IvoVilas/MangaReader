@@ -46,7 +46,11 @@ extension MangafireRefreshDelegate {
     mangaId: String,
     coverInfo: String
   ) async throws -> Data {
-    try await httpClient.makeDataSafeGetRequest(coverInfo, comingFrom: "https://mangafire.to/manga/\(mangaId)")
+    try await httpClient.makeDataSafeGetRequest(
+      coverInfo, 
+      comingFrom: "https://mangafire.to/",
+      addRefererCookies: true
+    )
   }
 
 }

@@ -17,6 +17,7 @@ final class PagesDatasource {
 
   private static let limit = 10
 
+  private let mangaId: String
   private let chapter: ChapterModel
   private let delegate: PagesDelegateType
   private let appOptionsStore: AppOptionsStore
@@ -43,10 +44,12 @@ final class PagesDatasource {
   @MainActor private var pagination = [Int: PaginationBlock]()
 
   init(
+    mangaId: String,
     chapter: ChapterModel,
     delegate: PagesDelegateType,
     appOptionsStore: AppOptionsStore
   ) {
+    self.mangaId = mangaId
     self.chapter = chapter
     self.delegate = delegate
     self.appOptionsStore = appOptionsStore
@@ -206,6 +209,7 @@ extension PagesDatasource {
     }
 
     let remote = try await delegate.fetchDownloadInfo(
+      mangaId: mangaId,
       using: chapter.downloadInfo,
       saveData: appOptionsStore.isDataSavingOn
     )

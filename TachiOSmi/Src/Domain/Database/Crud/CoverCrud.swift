@@ -10,6 +10,43 @@ import CoreData
 
 final class CoverCrud {
 
+  func getAllCovers(
+    moc: NSManagedObjectContext
+  ) throws -> [CoverMO] {
+    let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Cover")
+
+    do {
+      guard let results = try moc.fetch(fetchRequest) as? [CoverMO] else {
+        throw CrudError.wrongRequestType
+      }
+
+      return results
+    } catch {
+      throw CrudError.requestError(error)
+    }
+  }
+
+  func getAllCovers(
+    excludingMangaIds mangaIds: [String],
+    moc: NSManagedObjectContext
+  ) throws -> [CoverMO] {
+    let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Cover")
+
+    if !mangaIds.isEmpty {
+      fetchRequest.predicate = NSPredicate(format: "NOT mangaId IN %@", mangaIds)
+    }
+
+    do {
+      guard let results = try moc.fetch(fetchRequest) as? [CoverMO] else {
+        throw CrudError.wrongRequestType
+      }
+
+      return results
+    } catch {
+      throw CrudError.requestError(error)
+    }
+  }
+
   func getCover(
     for mangaId: String,
     moc: NSManagedObjectContext

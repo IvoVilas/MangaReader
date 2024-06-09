@@ -44,20 +44,20 @@ final class DatabaseManager {
 
       try context.performAndWait {
         let mangas = try self.mangaCrud.getAllMangas(saved: false, moc: context)
-        let ids = mangas.map { $0.id }
+
+        let covers = try self.coverCrud.getAllCovers(
+          excludingMangaIds: try self.mangaCrud.getAllMangas(saved: true, moc: context).map { $0.id },
+          moc: context
+        )
 
         for manga in mangas {
           context.delete(manga)
           mangaCount += 1
         }
 
-        for id in ids {
-          let covers = try self.coverCrud.getCovers(for: id, moc: context)
-
-          for cover in covers {
-            context.delete(cover)
-            coverCount += 1
-          }
+        for cover in covers {
+          context.delete(cover)
+          coverCount += 1
         }
 
         if context.hasChanges {

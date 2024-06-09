@@ -156,18 +156,27 @@ extension HttpClient {
   ) async throws -> [String: Any] {
     var urlParameters = URLComponents(string: url)
 
-    urlParameters?.queryItems = parameters.map { URLQueryItem(name: $0.0, value: String(describing: $0.1)) }
+    if !parameters.isEmpty {
+      urlParameters?.queryItems = parameters.map { URLQueryItem(name: $0.0, value: String(describing: $0.1)) }
+    }
 
     guard let url = urlParameters?.url else { throw HttpError.invalidUrl }
 
     var request = URLRequest(url: url)
     request.httpMethod = "GET"
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36", forHTTPHeaderField: "User-Agent")
     request.setValue("en-US,en;q=0.5", forHTTPHeaderField: "Accept-Language")
+    request.setValue("gzip, deflate, br", forHTTPHeaderField: "Accept-Encoding")
     request.setValue(referer, forHTTPHeaderField: "Referer")
+    request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", forHTTPHeaderField: "Accept")
+    request.setValue(
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      forHTTPHeaderField: "User-Agent"
+    )
 
     do {
+      logRequest(request: request)
+
       let (data, response) = try await session.data(for: request)
 
       guard
@@ -206,11 +215,23 @@ extension HttpClient {
     var request = URLRequest(url: url)
     request.httpMethod = "GET"
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36", forHTTPHeaderField: "User-Agent")
     request.setValue("en-US,en;q=0.5", forHTTPHeaderField: "Accept-Language")
+    request.setValue("gzip, deflate, br", forHTTPHeaderField: "Accept-Encoding")
     request.setValue(referer, forHTTPHeaderField: "Referer")
+    request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", forHTTPHeaderField: "Accept")
+    request.setValue(
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      forHTTPHeaderField: "User-Agent"
+    )
+
+    if let cookies = HTTPCookieStorage.shared.cookies(for: url) {
+        let cookieHeader = HTTPCookie.requestHeaderFields(with: cookies)
+        request.allHTTPHeaderFields?.merge(cookieHeader) { (current, _) in current }
+    }
 
     do {
+      logRequest(request: request)
+
       let (data, response) = try await session.data(for: request)
 
       guard
@@ -242,16 +263,30 @@ extension HttpClient {
 
   func makeDataSafeGetRequest(
     _ url: String,
-    comingFrom referer: String
+    comingFrom referer: String,
+    addRefererCookies: Bool
   ) async throws -> Data {
     guard let url = URL(string: url) else { throw HttpError.invalidUrl }
 
     var request = URLRequest(url: url)
 
-    request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36", forHTTPHeaderField: "User-Agent")
     request.setValue(referer, forHTTPHeaderField: "Referer")
-    request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8", forHTTPHeaderField: "Accept")
+    request.setValue("image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8", forHTTPHeaderField: "Accept")
     request.setValue("en-US,en;q=0.5", forHTTPHeaderField: "Accept-Language")
+    request.setValue("gzip, deflate, br", forHTTPHeaderField: "Accept-Encoding")
+    request.setValue(
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      forHTTPHeaderField: "User-Agent"
+    )
+
+    if
+      addRefererCookies, 
+      let refererUrl = URL(string: referer),
+      let cookies = HTTPCookieStorage.shared.cookies(for: refererUrl)
+    {
+      let cookieHeader = HTTPCookie.requestHeaderFields(with: cookies)
+      request.allHTTPHeaderFields?.merge(cookieHeader) { (current, _) in current }
+    }
 
     do {
       let (data, response) = try await session.data(for: request)
@@ -277,6 +312,20 @@ extension HttpClient {
     } catch {
       throw HttpError.requestError(error)
     }
+  }
+
+}
+
+extension HttpClient {
+
+  private func logRequest(
+    request: URLRequest
+  ) {
+    print()
+    print("HttpClient -> Sending request to: \(request.url?.absoluteString ?? "Url not found")")
+    print("  HttpClient -> Referer: \(request.value(forHTTPHeaderField: "Referer") ?? "Empty")")
+    print("  HttpClient -> Has cookies: \(request.value(forHTTPHeaderField: "Cookie")?.isEmpty == false)")
+    print()
   }
 
 }

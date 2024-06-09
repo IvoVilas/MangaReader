@@ -19,6 +19,7 @@ final class MangafirePagesDelegate: PagesDelegateType {
   }
 
   func fetchDownloadInfo(
+    mangaId: String,
     using info: String,
     saveData: Bool
   ) async throws -> ChapterDownloadInfo {
@@ -69,15 +70,10 @@ final class MangafirePagesDelegate: PagesDelegateType {
   ) async throws -> Data {
     guard info.pages.indices.contains(index) else { throw DatasourceError.unexpectedError("Page index out of bounds") }
 
-    let components = info.downloadUrl.components(separatedBy: "%")
-
-    guard let url = components.first else {
-      throw ParserError.parsingError
-    }
-
     return try await httpClient.makeDataSafeGetRequest(
       info.pages[index],
-      comingFrom: "https://mangafire.to\(url)"
+      comingFrom: "https://mangafire.to/",
+      addRefererCookies: false
     )
   }
 
@@ -87,7 +83,8 @@ final class MangafirePagesDelegate: PagesDelegateType {
   ) async throws -> Data {
     return try await httpClient.makeDataSafeGetRequest(
       url,
-      comingFrom: info.downloadUrl
+      comingFrom: "https://mangafire.to/",
+      addRefererCookies: false
     )
   }
 

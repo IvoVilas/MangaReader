@@ -10,6 +10,9 @@ import UIKit
 
 final class MockSearchDelegate: SearchDelegateType {
 
+  let searchPageSize = 10
+  let trendingPageSize = 10
+
   init(httpClient: HttpClientType) { }
 
   func fetchTrending(page: Int) async throws -> [MangaSearchResultParsedData] {

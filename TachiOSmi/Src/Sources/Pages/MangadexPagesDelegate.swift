@@ -18,6 +18,7 @@ final class MangadexPagesDelegate: PagesDelegateType {
   }
 
   func fetchDownloadInfo(
+    mangaId: String,
     using chapterId: String,
     saveData: Bool
   ) async throws -> ChapterDownloadInfo {

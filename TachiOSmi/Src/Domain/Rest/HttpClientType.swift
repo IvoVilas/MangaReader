@@ -35,7 +35,8 @@ protocol HttpClientType {
 
   func makeDataSafeGetRequest(
     _ url: String,
-    comingFrom referer: String
+    comingFrom referer: String,
+    addRefererCookies: Bool
   ) async throws -> Data
 
 }

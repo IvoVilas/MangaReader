@@ -622,10 +622,10 @@
 			isa = PBXGroup;
 			children = (
 				D75C943D2C139E0C00A7C5F2 /* RefreshDelegateType.swift */,
+				D75C94432C13A31100A7C5F2 /* MockRefreshDelegate.swift */,
 				D75C943B2C139E0100A7C5F2 /* MangadexRefreshDelegate.swift */,
 				D75C943F2C139FE900A7C5F2 /* ManganeloRefreshDelegate.swift */,
 				D75C94412C13A27800A7C5F2 /* MangafireRefreshDelegate.swift */,
-				D75C94432C13A31100A7C5F2 /* MockRefreshDelegate.swift */,
 			);
 			path = Refresh;
 			sourceTree = "<group>";

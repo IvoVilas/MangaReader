@@ -10,6 +10,9 @@ import CoreData
 
 protocol SearchDelegateType {
 
+  var searchPageSize: Int { get }
+  var trendingPageSize: Int { get }
+
   init(httpClient: HttpClientType)
 
   func fetchTrending(

@@ -24,7 +24,7 @@ final class ManganeloRefreshDelegate: RefreshDelegateType {
     updateCover: Bool
   ) async throws -> MangaRefreshData {
     let url = "https://chapmanganelo.com/manga-\(mangaId)"
-    let html = try await httpClient.makeHtmlSafeGetRequest(url, comingFrom: "https://m.manganelo.com/wwww")
+    let html = try await httpClient.makeHtmlSafeGetRequest(url, comingFrom: "https://m.manganelo.com/")
 
     let details = try parser.parseDetailsResponse(html, mangaId: mangaId)
     let chapters = try parser.parseChaptersResponse(html, mangaId: mangaId)
@@ -46,7 +46,11 @@ extension ManganeloRefreshDelegate {
     mangaId: String,
     coverInfo: String
   ) async throws -> Data {
-    try await httpClient.makeDataSafeGetRequest(coverInfo, comingFrom: "https://chapmanganelo.com/manga-\(mangaId)")
+    try await httpClient.makeDataSafeGetRequest(
+      coverInfo,
+      comingFrom: "https://chapmanganelo.com/",
+      addRefererCookies: false
+    )
   }
 
 }

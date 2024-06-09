@@ -82,22 +82,25 @@ final class SearchDatasource {
 
       do {
         let results = try await self.fetchSearchResults(search, page: 0)
+        let pageSize: Int
 
-        var mangas = [MangaSearchResult]()
+        switch search {
+        case .trending: pageSize = delegate.trendingPageSize
+        case .query: pageSize = delegate.searchPageSize
+        }
 
-        for result in results {
-          mangas.append(
-            MangaSearchResult(
-              id: result.id,
-              title: result.title,
-              cover: nil,
-              source: source
-            )
+        let mangas = results.map {
+          MangaSearchResult(
+            id: $0.id,
+            title: $0.title,
+            cover: nil,
+            source: self.source
           )
         }
 
         await MainActor.run { [mangas] in
           self.mangas.valueOnMain = mangas
+          self.hasMorePages = results.count >= pageSize
         }
 
         doFetchCoversTask(results)
@@ -137,27 +140,29 @@ final class SearchDatasource {
 
       do {
         let results = try await self.fetchSearchResults(search, page: page)
+        let pageSize: Int
 
-        if results.isEmpty {
+        switch search {
+        case .trending: pageSize = delegate.trendingPageSize
+        case .query: pageSize = delegate.searchPageSize
+        }
+
+        if results.count < pageSize {
           await MainActor.run { self.hasMorePages = false }
 
           return
         }
 
-        var searchResult = [MangaSearchResult]()
-
-        for result in results {
-          searchResult.append(
-            MangaSearchResult(
-              id: result.id,
-              title: result.title,
-              cover: nil,
-              source: source
-            )
+        let mangas = results.map {
+          MangaSearchResult(
+            id: $0.id,
+            title: $0.title,
+            cover: nil,
+            source: self.source
           )
         }
 
-        await appendResults(searchResult)
+        await appendResults(mangas)
 
         doFetchCoversTask(results)
       } catch {
