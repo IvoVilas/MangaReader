@@ -329,7 +329,7 @@ private struct MangaResultItemView: View, Equatable {
 #Preview {
   MangaSearchView(
     source: .unknown,
-    appOptionsStore: AppOptionsStore(keyValueManager: InMemoryKeyValueManager()),
+    appOptionsStore: AppOptionsStore.inMemory(),
     container: PersistenceController.preview.container
   )
 }

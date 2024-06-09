@@ -15,6 +15,7 @@ final class AppOptionsStore {
     case appTheme(ThemePalette)
     case defaultDirection(ReadingDirection)
     case isDataSavingOn(Bool)
+    case allowedSources([Source])
 
     case libraryLayout(CollectionLayout)
     case libraryGridSize(Int)
@@ -27,6 +28,7 @@ final class AppOptionsStore {
   private let appThemeProperty: KVMProperty<Int16>
   private let defaultDirectionProperty: KVMProperty<Int16>
   private let isDataSavingOnProperty: KVMProperty<Bool>
+  private let allowedSourcesProperty: KVMProperty<[String]>
 
   private let libraryLayoutProperty: KVMProperty<Int16>
   private let libraryGridSizeProperty: KVMProperty<Int>
@@ -41,6 +43,12 @@ final class AppOptionsStore {
       .eraseToAnyPublisher()
   }
 
+  var allowedSourcesPublisher: AnyPublisher<[Source], Never> {
+    allowedSourcesProperty.publisher
+      .map { ids in ids.map { .safeInit(from: $0) } }
+      .eraseToAnyPublisher()
+  }
+
   var appTheme: ThemePalette {
     return .safeInit(from: appThemeProperty.value)
   }
@@ -51,6 +59,10 @@ final class AppOptionsStore {
 
   var isDataSavingOn: Bool {
     return isDataSavingOnProperty.value
+  }
+
+  var allowedSources: [Source] {
+    return allowedSourcesProperty.value.map { .safeInit(from: $0) }
   }
 
   var libraryLayout: CollectionLayout {
@@ -91,6 +103,12 @@ final class AppOptionsStore {
     isDataSavingOnProperty = KVMProperty(
       key: "is_data_saving_on",
       defaultValue: false,
+      keyValueManager: keyValueManager
+    )
+
+    allowedSourcesProperty = KVMProperty(
+      key: "allowed_sources",
+      defaultValue: Source.allSources().map { $0.id },
       keyValueManager: keyValueManager
     )
 
@@ -136,6 +154,9 @@ final class AppOptionsStore {
     case .isDataSavingOn(let value):
       isDataSavingOnProperty.setValue(value)
 
+    case .allowedSources(let sources):
+      allowedSourcesProperty.setValue(sources.map { $0.id })
+
     case .libraryLayout(let layout):
       libraryLayoutProperty.setValue(layout.id)
 
@@ -157,6 +178,16 @@ final class AppOptionsStore {
     for property in properties {
       changeProperty(property)
     }
+  }
+
+}
+
+extension AppOptionsStore {
+
+  static func inMemory() -> AppOptionsStore {
+    return AppOptionsStore(
+      keyValueManager: InMemoryKeyValueManager()
+    )
   }
 
 }

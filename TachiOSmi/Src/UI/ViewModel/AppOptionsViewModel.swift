@@ -63,6 +63,17 @@ final class AppOptionsViewModel: ObservableObject {
       iconColorOff: .pink
     )
 
+    let allowedSourcesViewModel = OptionMultiSelectionViewModel(
+      id: "select_allowed_sources",
+      options: Source.allSources(),
+      selectedOptions: store.allowedSources,
+      iconBuilder: { Image(uiImage: $0.logo) },
+      title: "Allowed sources",
+      description: "Select allowed manga sources",
+      icon: .system("tray.and.arrow.down"),
+      iconColor: .mint
+    )
+
     options = [
       .themeSelection(themeSelectionViewModel),
       .readerDirectionSelection(readerDirectionSelectionViewModel),
@@ -125,7 +136,7 @@ final class AppOptionsViewModel: ObservableObject {
         OptionImportViewModel(
           id: "action_import_database",
           title: "Import database",
-          description: "Import database data from file",
+          description: "Import database data from a file",
           icon: .system("square.and.arrow.down"),
           iconColor: .red,
           processFile: { [weak self] data in
@@ -150,7 +161,8 @@ final class AppOptionsViewModel: ObservableObject {
             }
           }
         )
-      )
+      ),
+      .allowedSourcesSelection(allowedSourcesViewModel)
     ]
 
     themeSelectionViewModel.$selectedOption
@@ -167,6 +179,11 @@ final class AppOptionsViewModel: ObservableObject {
       .receive(on: DispatchQueue.main)
       .sink { [weak self] in self?.store.changeProperty(.isDataSavingOn($0))}
       .store(in: &observers)
+
+    allowedSourcesViewModel.$selectedOptions
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in self?.store.changeProperty(.allowedSources($0)) }
+      .store(in: &observers)
   }
 
 }
@@ -177,6 +194,7 @@ extension AppOptionsViewModel {
   enum Option: Identifiable {
     case themeSelection(OptionSelectionViewModel<ThemePalette>)
     case readerDirectionSelection(OptionSelectionViewModel<ReadingDirection>)
+    case allowedSourcesSelection(OptionMultiSelectionViewModel<Source>)
     case toggle(OptionToggleViewModel)
     case action(OptionActionViewModel)
     case share(OptionShareViewModel)
@@ -188,6 +206,9 @@ extension AppOptionsViewModel {
         return viewModel.id
 
       case .readerDirectionSelection(let viewModel):
+        return viewModel.id
+
+      case .allowedSourcesSelection(let viewModel):
         return viewModel.id
 
       case .toggle(let viewModel):
@@ -232,6 +253,42 @@ final class OptionSelectionViewModel<T: Hashable & CustomStringConvertible>: Obs
     self.options = options
     self.selectedOption = selectedOption
     self.title = title
+    self.icon = icon
+    self.iconColor = iconColor
+    self.showingSelection = false
+  }
+
+}
+
+final class OptionMultiSelectionViewModel<T: Hashable & CustomStringConvertible>: ObservableObject {
+
+  @Published var options: [T]
+  @Published var selectedOptions: [T]
+  @Published var iconBuilder: (T) -> Image?
+  @Published var title: String
+  @Published var description: String
+  @Published var icon: IconSource
+  @Published var iconColor: Color
+  @Published var showingSelection: Bool
+
+  let id: String
+
+  init(
+    id: String,
+    options: [T],
+    selectedOptions: [T],
+    iconBuilder: @escaping (T) -> Image?,
+    title: String,
+    description: String,
+    icon: IconSource,
+    iconColor: Color
+  ) {
+    self.id = id
+    self.options = options
+    self.selectedOptions = selectedOptions
+    self.iconBuilder = iconBuilder
+    self.title = title
+    self.description = description
     self.icon = icon
     self.iconColor = iconColor
     self.showingSelection = false
@@ -426,6 +483,14 @@ extension ReadingDirection: CustomStringConvertible {
     case .upToDown:
       return "Long strip"
     }
+  }
+
+}
+
+extension Source: CustomStringConvertible {
+
+  var description: String {
+    self.name
   }
 
 }

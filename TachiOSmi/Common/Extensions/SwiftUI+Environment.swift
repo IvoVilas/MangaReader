@@ -53,7 +53,7 @@ private struct PersistenceContainerKey: EnvironmentKey {
 
 private struct AppOptionsStoreKey: EnvironmentKey {
 
-  static let defaultValue = AppOptionsStore(keyValueManager: InMemoryKeyValueManager())
+  static let defaultValue = AppOptionsStore.inMemory()
 
 }
 

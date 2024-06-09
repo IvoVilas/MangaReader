@@ -13,6 +13,7 @@ struct SelectionSheet<OptionType: Hashable>: View {
   @Environment(\.colorScheme) private var scheme
 
   let title: String
+
   @Binding var selectedOptions: [Option]
   @Binding var options: [Option]
   @State var settings: Settings
@@ -23,6 +24,7 @@ struct SelectionSheet<OptionType: Hashable>: View {
     options: Binding<[OptionType]>,
     idBuilder: @escaping (OptionType) -> String,
     nameBuilder: @escaping (OptionType) -> String,
+    iconBuilder: @escaping (OptionType) -> Image? = { _ in nil},
     settings: Settings
   ) {
     self.title = title
@@ -34,6 +36,7 @@ struct SelectionSheet<OptionType: Hashable>: View {
         Option(
           id: idBuilder($0),
           name: nameBuilder($0),
+          icon: iconBuilder($0),
           option: $0
         )
       }
@@ -44,22 +47,24 @@ struct SelectionSheet<OptionType: Hashable>: View {
 
   init(
     title: String,
-    selectedOption: Binding<[OptionType]>,
+    selectedOptions: Binding<[OptionType]>,
     options: Binding<[OptionType]>,
     idBuilder: @escaping (OptionType) -> String,
     nameBuilder: @escaping (OptionType) -> String,
+    iconBuilder: @escaping (OptionType) -> Image? = { _ in nil},
     mandatory: Bool = true
   ) {
     let selected = Binding<[Option]> {
-      selectedOption.wrappedValue.map {
+      selectedOptions.wrappedValue.map {
         Option(
           id: idBuilder($0),
           name: nameBuilder($0),
+          icon: iconBuilder($0),
           option: $0
         )
       }
     } set: { newOptions in
-      selectedOption.wrappedValue = newOptions.map { $0.option }
+      selectedOptions.wrappedValue = newOptions.map { $0.option }
     }
 
     self.init(
@@ -68,6 +73,7 @@ struct SelectionSheet<OptionType: Hashable>: View {
       options: options,
       idBuilder: idBuilder,
       nameBuilder: nameBuilder,
+      iconBuilder: iconBuilder,
       settings: Settings(
         multiSelection: true,
         closeOnSelection: false,
@@ -78,15 +84,16 @@ struct SelectionSheet<OptionType: Hashable>: View {
 
   init(
     title: String,
-    selectedOptions: Binding<OptionType?>,
+    selectedOption: Binding<OptionType?>,
     options: Binding<[OptionType]>,
     idBuilder: @escaping (OptionType) -> String,
     nameBuilder: @escaping (OptionType) -> String,
+    iconBuilder: @escaping (OptionType) -> Image? = { _ in nil},
     closeOnSelection: Bool = false,
     mandatory: Bool = true
   ) {
     let selected = Binding<[Option]> {
-      guard let option = selectedOptions.wrappedValue else {
+      guard let option = selectedOption.wrappedValue else {
         return []
       }
 
@@ -94,11 +101,12 @@ struct SelectionSheet<OptionType: Hashable>: View {
         Option(
           id: idBuilder(option),
           name: nameBuilder(option),
+          icon: iconBuilder(option),
           option: option
         )
       ]
     } set: { newOptions in
-      selectedOptions.wrappedValue = newOptions.first.map { $0.option }
+      selectedOption.wrappedValue = newOptions.first.map { $0.option }
     }
 
     self.init(
@@ -107,6 +115,7 @@ struct SelectionSheet<OptionType: Hashable>: View {
       options: options,
       idBuilder: idBuilder,
       nameBuilder: nameBuilder,
+      iconBuilder: iconBuilder,
       settings: Settings(
         multiSelection: false,
         closeOnSelection: closeOnSelection,
@@ -121,6 +130,7 @@ struct SelectionSheet<OptionType: Hashable>: View {
     options: Binding<[OptionType]>,
     idBuilder: @escaping (OptionType) -> String,
     nameBuilder: @escaping (OptionType) -> String,
+    iconBuilder: @escaping (OptionType) -> Image? = { _ in nil},
     closeOnSelection: Bool = false,
     mandatory: Bool = true
   ) {
@@ -129,6 +139,7 @@ struct SelectionSheet<OptionType: Hashable>: View {
         Option(
           id: idBuilder(selectedOption.wrappedValue),
           name: nameBuilder(selectedOption.wrappedValue),
+          icon: iconBuilder(selectedOption.wrappedValue),
           option: selectedOption.wrappedValue
         )
       ]
@@ -144,6 +155,7 @@ struct SelectionSheet<OptionType: Hashable>: View {
       options: options,
       idBuilder: idBuilder,
       nameBuilder: nameBuilder,
+      iconBuilder: iconBuilder,
       settings: Settings(
         multiSelection: false,
         closeOnSelection: closeOnSelection,
@@ -163,7 +175,15 @@ struct SelectionSheet<OptionType: Hashable>: View {
               dismiss()
             }
           } label: {
-            HStack(spacing: 0) {
+            HStack(spacing: 8) {
+              if let icon = option.icon {
+                icon
+                  .resizable()
+                  .aspectRatio(contentMode: .fill)
+                  .frame(width: 24, height: 24)
+                  .clipShape(RoundedRectangle(cornerRadius: 8))
+              }
+
               Text(option.name)
                 .foregroundStyle(scheme.foregroundColor)
 
@@ -174,6 +194,7 @@ struct SelectionSheet<OptionType: Hashable>: View {
                 .font(.body.weight(.semibold))
                 .opacity(isOptionSelected(option) ? 1 : 0)
             }
+            .padding(.vertical, option.icon == nil ? 0 : 4)
           }
         }
       } header: {
@@ -210,6 +231,7 @@ struct SelectionSheet<OptionType: Hashable>: View {
   struct Option: Identifiable {
     let id: String
     let name: String
+    let icon: Image?
     let option: OptionType
   }
 
@@ -228,7 +250,7 @@ private struct Preview_Content_Single: View {
     .sheet(isPresented: $showingSelection) {
       SelectionSheet(
         title: "Select one option",
-        selectedOptions: $selectedOption,
+        selectedOption: $selectedOption,
         options: $options,
         idBuilder: { $0 },
         nameBuilder: { $0 }
@@ -254,10 +276,11 @@ private struct Preview_Content_Multiple: View {
     .sheet(isPresented: $showingSelection) {
       SelectionSheet(
         title: "Select each that applies",
-        selectedOption: $selectedOption,
+        selectedOptions: $selectedOption,
         options: $options,
         idBuilder: { $0 },
-        nameBuilder: { $0 }
+        nameBuilder: { $0 },
+        iconBuilder: { _ in Image(.mangadex) }
       )
       .presentationDetents([.medium])
     }

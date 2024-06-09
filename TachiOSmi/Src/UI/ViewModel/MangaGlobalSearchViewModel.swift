@@ -24,6 +24,7 @@ final class MangaGlobalSearchViewModel: ObservableObject {
     mangaCrud: MangaCrud,
     coverCrud: CoverCrud,
     httpClient: HttpClientType,
+    appOptionsStore: AppOptionsStore,
     container: NSPersistentContainer
   ) {
     let moc = container.newBackgroundContext()
@@ -32,7 +33,7 @@ final class MangaGlobalSearchViewModel: ObservableObject {
     input = ""
     savedMangas = []
     provider = MangaSearchProvider(viewMoc: viewMoc)
-    sources = Source.allSources().map {
+    sources = appOptionsStore.allowedSources.map {
       SourceResultsViewModel(
         source: $0,
         mangaCrud: mangaCrud,
@@ -45,6 +46,24 @@ final class MangaGlobalSearchViewModel: ObservableObject {
     provider.$savedMangas
       .receive(on: DispatchQueue.main)
       .sink { [weak self] in self?.savedMangas = $0 }
+      .store(in: &observers)
+
+    appOptionsStore.allowedSourcesPublisher
+      .removeDuplicates()
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] allowed in
+        guard let self else { return }
+
+        self.sources = allowed.map { source in
+          self.sources.first { $0.id == source.id } ?? SourceResultsViewModel(
+            source: source,
+            mangaCrud: mangaCrud,
+            coverCrud: coverCrud,
+            httpClient: httpClient,
+            moc: moc
+          )
+        }
+      }
       .store(in: &observers)
   }
 

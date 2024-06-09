@@ -29,6 +29,7 @@ struct MangaGlobalSearchView: View {
         mangaCrud: mangaCrud,
         coverCrud: coverCrud,
         httpClient: httpClient,
+        appOptionsStore: appOptionsStore,
         container: container
       )
     )
@@ -208,6 +209,7 @@ private struct SourceSearchResultsView: View {
 
 #Preview {
   MangaGlobalSearchView(
+    appOptionsStore: AppOptionsStore.inMemory(),
     container: PersistenceController.preview.container
   )
 }

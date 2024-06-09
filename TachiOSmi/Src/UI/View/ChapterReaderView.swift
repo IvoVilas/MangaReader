@@ -287,7 +287,7 @@ struct ChapterReaderView: View {
       downloadInfo: "5624518b-f062-49e8-84ec-e4f40e0de038"
     ),
     readingDirection: .leftToRight,
-    appOptionsStore: AppOptionsStore(keyValueManager: InMemoryKeyValueManager()),
+    appOptionsStore: AppOptionsStore.inMemory(),
     container: PersistenceController.preview.container
   )
 }

@@ -12,7 +12,17 @@ struct MangaSourcesView: View {
   @Environment(\.router) private var router
   @Environment(\.colorScheme) private var scheme
 
-  @StateObject var viewModel = MangaSourcesViewModel()
+  @StateObject var viewModel: MangaSourcesViewModel
+
+  init(
+    appOptionsStore: AppOptionsStore = AppEnv.env.appOptionsStore
+  ) {
+    _viewModel = StateObject(
+      wrappedValue: MangaSourcesViewModel(
+        appOptionsStore: appOptionsStore
+      )
+    )
+  }
 
   var body: some View {
     VStack(alignment: .leading) {
@@ -79,5 +89,7 @@ struct MangaSourcesView: View {
 }
 
 #Preview {
-  MangaSourcesView()
+  MangaSourcesView(
+    appOptionsStore: AppOptionsStore.inMemory()
+  )
 }

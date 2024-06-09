@@ -364,7 +364,7 @@ struct MangaDetailsView: View {
         cover: UIImage.jujutsuCover.jpegData(compressionQuality: 1),
         source: .unknown
       ),
-      appOptionsStore: AppOptionsStore(keyValueManager: InMemoryKeyValueManager()),
+      appOptionsStore: AppOptionsStore.inMemory(),
       container: PersistenceController.preview.container
     )
   }

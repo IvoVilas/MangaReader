@@ -54,6 +54,12 @@ struct AppOptionsView: View {
                   foregroundColor: scheme.foregroundColor
                 )
 
+              case .allowedSourcesSelection(let viewModel):
+                OptionMultiSelectionView(
+                  viewModel: viewModel,
+                  foregroundColor: scheme.foregroundColor
+                )
+
               case .toggle(let viewModel):
                 OptionToggleView(
                   viewModel: viewModel,
@@ -164,6 +170,82 @@ private struct OptionSelectionView<T: Hashable & CustomStringConvertible>: View 
         options: $viewModel.options,
         idBuilder: { String(describing: $0) },
         nameBuilder: { String(describing: $0) }
+      )
+      .presentationCornerRadius(16)
+      .presentationDetents(calculatePresentationDetents(count: viewModel.options.count))
+      .preferredColorScheme(scheme)
+    }
+  }
+
+  private func calculatePresentationDetents(
+    count: Int
+  ) -> Set<PresentationDetent> {
+    let fraction = max(0.1 * CGFloat(count), 0.25)
+
+    if fraction < 0.5 {
+      return [.fraction(fraction), .medium, .large]
+    }
+
+    if fraction < 1 {
+      return [.medium, .fraction(fraction), .large]
+    }
+
+    return [.medium, .large]
+  }
+
+}
+
+// MARK: Multi Selection view
+private struct OptionMultiSelectionView<T: Hashable & CustomStringConvertible>: View {
+
+  @Environment(\.colorScheme) private var scheme
+  @ObservedObject var viewModel: OptionMultiSelectionViewModel<T>
+
+  let foregroundColor: Color
+
+  var body: some View {
+    Button {
+      viewModel.showingSelection.toggle()
+    } label: {
+      VStack(spacing: 0) {
+        viewModel.icon.image()
+          .resizable()
+          .scaledToFit()
+          .foregroundStyle(viewModel.iconColor)
+          .frame(width: 24, height: 24)
+
+        Spacer().frame(height: 8)
+
+        Text(viewModel.title)
+          .foregroundStyle(foregroundColor)
+          .font(.caption)
+          .frame(maxWidth: .infinity)
+
+        Spacer().frame(height: 4)
+
+        Text(viewModel.description)
+          .foregroundStyle(.blue)
+          .font(.caption2)
+
+        Spacer().frame(idealHeight: 16, maxHeight: 16)
+
+        Image(.expandMore)
+          .foregroundStyle(foregroundColor)
+      }
+      .padding(.vertical)
+      .padding(.horizontal, 4)
+      .background(Color(uiColor: .systemFill))
+      .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+    .sheet(isPresented: $viewModel.showingSelection) {
+      SelectionSheet(
+        title: viewModel.title,
+        selectedOptions: $viewModel.selectedOptions,
+        options: $viewModel.options,
+        idBuilder: { String(describing: $0) },
+        nameBuilder: { String(describing: $0) },
+        iconBuilder: viewModel.iconBuilder,
+        mandatory: false
       )
       .presentationCornerRadius(16)
       .presentationDetents(calculatePresentationDetents(count: viewModel.options.count))
@@ -424,7 +506,7 @@ private struct MyToggleStyle: ToggleStyle {
 #Preview {
   NavigationStack {
     AppOptionsView(
-      store: AppOptionsStore(keyValueManager: InMemoryKeyValueManager())
+      store: AppOptionsStore.inMemory()
     )
     .padding(.horizontal, 24)
   }

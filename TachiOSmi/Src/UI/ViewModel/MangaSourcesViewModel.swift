@@ -7,13 +7,24 @@
 
 import Foundation
 import SwiftUI
+import Combine
 
 final class MangaSourcesViewModel: ObservableObject {
 
   @Published var sources: [Source]
 
-  init() {
-    sources = Source.allSources()
+  private var observers = Set<AnyCancellable>()
+
+  init(
+    appOptionsStore: AppOptionsStore
+  ) {
+    sources = appOptionsStore.allowedSources
+
+    appOptionsStore.allowedSourcesPublisher
+      .removeDuplicates()
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in self?.sources = $0 }
+      .store(in: &observers)
   }
 
 }
