@@ -23,7 +23,12 @@ struct FilePicker: UIViewControllerRepresentable {
     }
 
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-      guard let selectedFileURL = urls.first else {
+      guard 
+        let selectedFileURL = urls.first,
+        selectedFileURL.startAccessingSecurityScopedResource()
+      else {
+        print("Failed to read file content")
+
         return
       }
 
@@ -34,7 +39,7 @@ struct FilePicker: UIViewControllerRepresentable {
 
         completion(data)
       } catch {
-        print("Failed to read file content")
+        print("Failed to read file content: \(error)")
       }
     }
   }

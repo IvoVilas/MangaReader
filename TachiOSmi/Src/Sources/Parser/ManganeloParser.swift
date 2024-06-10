@@ -90,6 +90,13 @@ extension ManganeloParser {
         return nil
       }
 
+      let finalId: String
+      if url.hasPrefix("https://m.manganelo.com/") {
+        finalId = "\(id)%1"
+      } else {
+        finalId = "\(id)%0"
+      }
+
       guard let title = try? element.select("h3 a").text() else {
         print("ManganeloSearchDelegate -> Parameter title not found")
 
@@ -103,7 +110,7 @@ extension ManganeloParser {
       }
 
       return MangaSearchResultParsedData(
-        id: id,
+        id: finalId,
         title: title,
         coverDownloadInfo: url
       )
