@@ -70,7 +70,11 @@ extension MangadexSearchDelegate {
         ("includes[]", "cover_art"),
         ("includes[]", "author"),
         ("limit", limit),
-        ("offset", offset)
+        ("offset", offset),
+        ("contentRating[]", "safe"),
+        ("contentRating[]", "suggestive"),
+        ("contentRating[]", "erotica")
+        //("contentRating[]", "pornographic")
       ]
     )
 

@@ -206,6 +206,14 @@ struct MangaDetailsView: View {
           Text(viewModel.manga.status.value.localizedCapitalized)
             .foregroundStyle(scheme.foregroundColor)
             .font(.footnote)
+
+          Text("\u{2022}")
+            .foregroundStyle(scheme.foregroundColor)
+            .font(.footnote)
+
+          Text(viewModel.manga.source.name)
+            .foregroundStyle(scheme.foregroundColor)
+            .font(.footnote)
         }
 
         Button {
