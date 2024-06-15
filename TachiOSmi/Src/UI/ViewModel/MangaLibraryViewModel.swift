@@ -48,6 +48,7 @@ final class MangaLibraryViewModel: ObservableObject {
 
     // TODO: This a fix because info provider does not detect changes in the chapters of newly added mangas
     mangasProvider.mangas
+      .dropFirst()
       .removeDuplicates()
       .sink { _ in
         chaptersInfoProvider.forceRefresh()

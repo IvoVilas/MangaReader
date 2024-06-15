@@ -46,24 +46,18 @@ final class ChaptersInfoProvider: NSObject {
     initializeFetchedResultsController()
   }
 
+  // TODO: Better evaluate this method
   func forceRefresh() {
-    let context = self.fetchedResultsController.managedObjectContext
+    let context = fetchedResultsController.managedObjectContext
 
     context.performAndWait {
-      guard let results = try? chapterCrud.getAllSavedMangaChapters(moc: context) else {
+      guard let results = try? MangaCrud().getAllMangas(saved: true, moc: context) else {
         return
       }
 
-      infoPublisher.value = Dictionary(grouping: results) { $0.manga.id }
-        .map { (id, chapters) -> ChaptersInfo in
-          ChaptersInfo(
-            mangaId: id,
-            chapterCount: chapters.count,
-            unreadChapters: chapters.filter { !$0.isRead }.count,
-            latestChapter: chapters.compactMap { $0.publishAt }.sorted { $0 < $1 }.last
-          )
-        }
-        .reduce(into: [ChaptersInfo]()) { $0.append($1) }
+      results.forEach { entity in
+        entity.chapters.forEach { context.refresh($0, mergeChanges: false) }
+      }
     }
   }
 
@@ -76,7 +70,7 @@ final class ChaptersInfoProvider: NSObject {
   }
 
   private func updatePublishedValue() {
-    let context = self.fetchedResultsController.managedObjectContext
+    let context = fetchedResultsController.managedObjectContext
 
     context.performAndWait {
       guard let results = fetchedResultsController.fetchedObjects else {
