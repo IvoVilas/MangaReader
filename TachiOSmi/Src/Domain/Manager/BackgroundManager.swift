@@ -74,7 +74,7 @@ extension BackgroundManager {
     let now = systemDateTime.now
 
     var components = DateComponents()
-    components.day = 1
+    components.weekday = 1
     components.hour = 21
     components.minute = 0
     components.second = 0
@@ -89,14 +89,17 @@ extension BackgroundManager {
   private func sendNewChaptersNotifications(
     using updates: [String: [String]]
   ) async {
+    guard !updates.isEmpty else {
+      notificationManager.scheduleNoNewChaptersNotification()
+
+      return
+    }
+
     for update in updates {
       let (id, chapters) = update
-
-      if chapters.count <= 0 {
-        continue
-      }
-
       let context = viewMoc
+
+      if chapters.count <= 0 { continue }
 
       let manga = try? await context.perform { () -> MangaModel? in
         guard let manga = try self.mangaCrud.getManga(id, moc: context) else {
@@ -108,9 +111,7 @@ extension BackgroundManager {
         return MangaModel.from(manga, cover: cover)
       }
 
-      guard let manga else {
-        continue
-      }
+      guard let manga else { continue }
 
       let body: NotificationManager.ChapterUpdate
 

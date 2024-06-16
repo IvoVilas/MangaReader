@@ -69,7 +69,7 @@ final class NotificationManager: NSObject, ObservableObject {
       content.attachments = [attachment]
     }
 
-    let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3, repeats: false)
+    let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
     let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
 
     notificationCenter.add(request) { error in
@@ -77,6 +77,25 @@ final class NotificationManager: NSObject, ObservableObject {
         print("NotificationManager -> Error scheduling new \(manga.title) chapter notification: \(error.localizedDescription)")
       } else {
         print("NotificationManager -> New chapter \(manga.title) notification scheduled")
+      }
+    }
+  }
+
+  func scheduleNoNewChaptersNotification() {
+    let content = UNMutableNotificationContent()
+
+    content.title = "Finished refresing your library"
+    content.sound = .default
+    content.body = "No new chapters were found"
+
+    let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+    let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+
+    notificationCenter.add(request) { error in
+      if let error {
+        print("NotificationManager -> Error scheduling notification: \(error.localizedDescription)")
+      } else {
+        print("NotificationManager -> New notification scheduled")
       }
     }
   }
