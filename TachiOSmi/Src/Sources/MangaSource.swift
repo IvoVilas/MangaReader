@@ -17,7 +17,7 @@ enum Source: Identifiable {
   case unknown
 
   static func allSources() -> [Source] {
-    [.mangadex, .manganelo, .mangafire]
+    [.mangadex, .manganelo]
   }
 
   static func safeInit(from id: String) -> Source {

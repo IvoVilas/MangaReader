@@ -87,6 +87,8 @@ final class RefreshLibraryUseCase {
 
       print("RefreshLibraryUseCase -> Finished refreshing library")
 
+      await MainActor.run { refreshing = false }
+
       return updates
     } catch {
       print("RefreshLibraryUseCase -> Error during library refresh: \(error)")

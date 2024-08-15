@@ -25,14 +25,18 @@ struct MissingChaptersUseCase {
       .map { Int($0) }
 
     // Last = numbers.first becase sort order is inversed
-    guard let last = numbers.first else {
+    guard 
+      let last = numbers.first,
+      let first = numbers.last,
+      first <= last
+    else {
       return []
     }
 
     var missing = [Int]()
     let chaptersNumbers = Set(numbers)
 
-    for n in 1..<Int(last) {
+    for n in Int(first)..<Int(last) {
       if !chaptersNumbers.contains(n) {
         missing.append(n)
       }

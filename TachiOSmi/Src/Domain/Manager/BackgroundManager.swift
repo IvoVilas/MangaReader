@@ -38,7 +38,7 @@ final class BackgroundManager {
   }
 
   func scheduleLibraryRefresh() {
-    let nextSunday = calculateNextWeeklyRefreshDate()
+    let nextSunday = calculateNextRefreshDate()
 
     let request = BGAppRefreshTaskRequest(identifier: AppTask.libraryRefresh.identifier)
     request.earliestBeginDate = nextSunday
@@ -69,12 +69,18 @@ final class BackgroundManager {
 // MARK: Helpers
 extension BackgroundManager {
 
-  private func calculateNextWeeklyRefreshDate() -> Date? {
+  private func calculateNextRefreshDate() -> Date? {
+    return [1, 4, 6]
+      .compactMap { nextDate(weekday: $0) }
+      .min()
+  }
+
+  private func nextDate(weekday: Int) -> Date? {
     let calendar = Calendar.current
     let now = systemDateTime.now
 
     var components = DateComponents()
-    components.weekday = 1
+    components.weekday = weekday
     components.hour = 21
     components.minute = 0
     components.second = 0

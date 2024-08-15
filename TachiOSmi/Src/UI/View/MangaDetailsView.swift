@@ -101,7 +101,6 @@ struct MangaDetailsView: View {
             .opacity(viewModel.isLoading ? 1 : 0)
             .offset(y: viewModel.isLoading ? 75 : -100)
             .animation(.easeInOut, value: viewModel.isLoading)
-
         }
       }
       .refreshable { await viewModel.forceRefresh() }
