@@ -9,6 +9,11 @@ import Foundation
 
 struct MissingChaptersUseCase {
 
+  private struct ChapterNumber {
+    let number: Int
+    let isRead: Bool
+  }
+
   func calculateMissingChapters(
     _ chapters: [ChapterModel]
   ) -> [MissingChaptersModel] {
@@ -16,29 +21,46 @@ struct MissingChaptersUseCase {
       return []
     }
 
-    let numbers = chapters
-      .compactMap { (chapter) -> Double? in
+    let chapters: [ChapterNumber] = chapters
+      .compactMap { (chapter) -> (Double, Bool)? in
         guard let number = chapter.number else { return nil }
 
-        return number.truncatingRemainder(dividingBy: 1.0) == .zero ? number : nil
+        return number.truncatingRemainder(dividingBy: 1.0) == .zero ? (number, chapter.isRead) : nil
       }
-      .map { Int($0) }
+      .map {
+        ChapterNumber(
+          number: Int($0.0),
+          isRead: $0.1
+        )
+      }
 
     // Last = numbers.first becase sort order is inversed
     guard 
-      let last = numbers.first,
-      let first = numbers.last,
-      first <= last
+      let last = chapters.first,
+      let first = chapters.last,
+      first.number <= last.number
     else {
       return []
     }
 
-    var missing = [Int]()
-    let chaptersNumbers = Set(numbers)
 
-    for n in Int(first)..<Int(last) {
-      if !chaptersNumbers.contains(n) {
-        missing.append(n)
+    var missing = [ChapterNumber]()
+    var isPreviousRead = false
+
+    for n in (first.number...last.number).reversed() {
+      if let chapter = chapters.first(where: { $0.number == n }) {
+        isPreviousRead = chapter.isRead
+
+        print("Ivo: Found chapter \(n) and it is \(chapter.isRead ? "read" : "not read")")
+      } else {
+        print("Ivo: Found missing chapter \(n) and previous was \(isPreviousRead ? "read" : "not read")")
+
+        missing.append(
+          ChapterNumber(
+            number: n,
+            isRead: isPreviousRead
+          )
+        )
       }
     }
 
@@ -50,11 +72,11 @@ struct MissingChaptersUseCase {
 extension MissingChaptersUseCase {
 
   private func mergeMissing(
-    _ missing: [Int]
+    _ missing: [ChapterNumber]
   ) -> [MissingChaptersModel] {
     var res = [MissingChaptersModel]()
-    var lastMissing: Int?
-    var group = [Int]()
+    var lastMissing: ChapterNumber?
+    var group = [ChapterNumber]()
 
     for m in missing {
       guard let last = lastMissing else {
@@ -64,12 +86,16 @@ extension MissingChaptersUseCase {
         continue
       }
 
-      if m == last + 1 {
+      if m.number == last.number + 1 {
         group.append(m)
       } else {
-        if let number = group.first {
+        if let chapterNumber = group.first {
           res.append(
-            MissingChaptersModel(number: Double(number), count: group.count)
+            MissingChaptersModel(
+              number: Double(chapterNumber.number),
+              count: group.count,
+              isRead: chapterNumber.isRead
+            )
           )
         }
 
@@ -79,9 +105,13 @@ extension MissingChaptersUseCase {
       lastMissing = m
     }
 
-    if let number = group.first {
+    if let chapterNumber = group.first {
       res.append(
-        MissingChaptersModel(number: Double(number), count: group.count)
+        MissingChaptersModel(
+          number: Double(chapterNumber.number),
+          count: group.count,
+          isRead: chapterNumber.isRead
+        )
       )
     }
 

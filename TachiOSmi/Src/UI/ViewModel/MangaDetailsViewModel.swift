@@ -16,6 +16,7 @@ final class MangaDetailsViewModel: ObservableObject {
   @Published var chapters: [ChapterCell]
   @Published var chaptersCount: Int
   @Published var missingChaptersCount: Int
+  @Published var isMissingChaptersRead: Bool
   @Published var isLoading: Bool
   @Published var isImageLoading: Bool
   @Published var error: DatasourceError?
@@ -101,6 +102,7 @@ final class MangaDetailsViewModel: ObservableObject {
     isImageLoading = false
     chaptersCount = 0
     missingChaptersCount = 0
+    isMissingChaptersRead = false
 
     isSelectionOn = false
     selectedChapters = Set()
@@ -142,6 +144,7 @@ final class MangaDetailsViewModel: ObservableObject {
     self.chapters = addMissingChapters(missing, to: sortedChapters)
     self.chaptersCount = chapters.count
     self.missingChaptersCount = missing.reduce(into: 0) { $0 += $1.count }
+    self.isMissingChaptersRead = !missing.contains { !$0.isRead }
   }
 
   private func turnOffSelection() {

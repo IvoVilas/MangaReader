@@ -273,7 +273,9 @@ struct MangaDetailsView: View {
 
       Text("Missing \(viewModel.missingChaptersCount) chapters")
         .font(.caption)
-        .foregroundStyle(.red)
+        .foregroundStyle(
+          viewModel.isMissingChaptersRead ? .gray : .red
+        )
         .frame(height: viewModel.missingChaptersCount > 0 ? nil : 0)
         .opacity(viewModel.missingChaptersCount > 0 ? 1 : 0)
     }

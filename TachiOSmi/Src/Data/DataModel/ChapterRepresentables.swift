@@ -136,6 +136,7 @@ struct MissingChaptersModel: Identifiable {
 
   let number: Double
   let count: Int
+  let isRead: Bool
 
   var id: String {
     "missing-\(count)-chapters-at-\(number)"

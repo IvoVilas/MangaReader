@@ -79,7 +79,7 @@ private struct Preview_Content: View {
 
       MissingChapterEntryView(
         missing: MissingChaptersModel(
-          number: 166, count: 10
+          number: 166, count: 10, isRead: false
         )
       )
     }
