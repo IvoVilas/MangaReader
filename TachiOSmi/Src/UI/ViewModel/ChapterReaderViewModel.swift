@@ -17,6 +17,8 @@ final class ChapterReaderViewModel: ObservableObject {
   @Published var pageId: String?
   @Published var readingDirection: ReadingDirection
   @Published var chapter: ChapterModel
+  @Published var missingNextChapters: Int
+  @Published var missingPreviousChapters: Int
   @Published var isLoading: Bool
   @Published var error: DatasourceError?
 
@@ -76,6 +78,8 @@ final class ChapterReaderViewModel: ObservableObject {
     self.pageId = nil
     self.chapter = chapter
     self.readingDirection = readingDirection
+    self.missingNextChapters = 0
+    self.missingPreviousChapters = 0
     self.isLoading = true
     self.error = nil
     self.isEmpty = true
@@ -193,6 +197,16 @@ final class ChapterReaderViewModel: ObservableObject {
 
     nextChapter = next
     previousChapter = previous
+
+    missingNextChapters = calculateMissingChapters(
+      from: chapter.number,
+      to: next?.number
+    )
+
+    missingPreviousChapters = calculateMissingChapters(
+      from: previous?.number,
+      to: chapter.number
+    )
 
     DispatchQueue.main.async {
       self.updateTransitionPages(
@@ -389,7 +403,11 @@ extension ChapterReaderViewModel {
 
   private func makeStartTransitionPage() -> TransitionPageModel {
     if let previousChapter {
-      return .transitionToPrevious(from: chapter.description, to: previousChapter.description)
+      return .transitionToPrevious(
+        from: chapter.description,
+        to: previousChapter.description,
+        missingCount: missingPreviousChapters
+      )
     }
 
     return .noPreviousChapter(currentChapter: chapter.description)
@@ -397,7 +415,11 @@ extension ChapterReaderViewModel {
 
   private func makeEndTransitionPage() -> TransitionPageModel {
     if let nextChapter {
-      return .transitionToNext(from: chapter.description, to: nextChapter.description)
+      return .transitionToNext(
+        from: chapter.description,
+        to: nextChapter.description,
+        missingCount: missingNextChapters
+      )
     }
 
     return .noNextChapter(currentChapter: chapter.description)
@@ -479,6 +501,24 @@ extension ChapterReaderViewModel {
     } else {
       pages.append(.page(page))
     }
+  }
+
+  private func calculateMissingChapters(
+    from currentChapter: Double?,
+    to nextChapter: Double?
+  ) -> Int {
+    guard
+      let currentChapter,
+      let nextChapter,
+      nextChapter >= currentChapter
+    else {
+      return 0
+    }
+
+    let isNextChapterMain = nextChapter.truncatingRemainder(dividingBy: 1.0) == .zero
+    let dif = Int(nextChapter) - Int(currentChapter)
+
+    return isNextChapterMain ? dif - 1 : dif
   }
 
 }

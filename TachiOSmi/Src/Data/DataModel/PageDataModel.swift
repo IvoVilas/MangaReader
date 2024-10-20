@@ -77,17 +77,17 @@ enum PageModel: Identifiable {
 
 enum TransitionPageModel: Identifiable {
 
-  case transitionToPrevious(from: String, to: String)
-  case transitionToNext(from: String, to: String)
+  case transitionToPrevious(from: String, to: String, missingCount: Int)
+  case transitionToNext(from: String, to: String, missingCount: Int)
   case noNextChapter(currentChapter: String)
   case noPreviousChapter(currentChapter: String)
 
   var id: String {
     switch self {
-    case .transitionToPrevious(let from, let to):
+    case .transitionToPrevious(let from, let to, _):
       return "transition-page-\(to)-\(from)"
 
-    case .transitionToNext(let from, let to):
+    case .transitionToNext(let from, let to, _):
       return "transition-page-\(from)-\(to)"
 
     case .noNextChapter(let chapter):

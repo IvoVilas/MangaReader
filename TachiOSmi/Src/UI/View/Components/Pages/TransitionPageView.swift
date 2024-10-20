@@ -36,9 +36,13 @@ struct TransitionPageView: View, Equatable {
 
   var body: some View {
     switch page {
-    case .transitionToPrevious(let current, let previous):
+    case .transitionToPrevious(let current, let previous, let missingCount):
       VStack(alignment: .leading, spacing: 48) {
         chapterTag(current, prefix: "Current")
+
+        if missingCount > 0 {
+          missingChapters(missingCount)
+        }
 
         chapterTag(previous, prefix: "Previous")
 
@@ -52,9 +56,13 @@ struct TransitionPageView: View, Equatable {
         alignment: .leading
       )
 
-    case .transitionToNext(let current, let next):
+    case .transitionToNext(let current, let next, let missingCount):
       VStack(alignment: .leading, spacing: 48) {
         chapterTag(current, prefix: "Finished")
+
+        if missingCount > 0 {
+          missingChapters(missingCount)
+        }
 
         chapterTag(next, prefix: "Next")
 
@@ -112,6 +120,16 @@ struct TransitionPageView: View, Equatable {
         .font(.body)
         .foregroundStyle(.white)
     }
+  }
+
+  @ViewBuilder
+  private func missingChapters(
+    _ count: Int
+  ) -> some View {
+    Text("Missing \(count) \(count > 1 ? "chapters" : "chapter")")
+      .font(.footnote)
+      .foregroundStyle(.red)
+      .opacity(count > 0 ? 1 : 0)
   }
 
   @ViewBuilder
@@ -178,17 +196,27 @@ struct TransitionPageView: View, Equatable {
   ScrollView(.horizontal) {
     HStack(spacing: 0) {
       TransitionPageView(
-        page: .noNextChapter(currentChapter: "Chapter 2"),
+        page: .noNextChapter(currentChapter: "Chapter 7"),
         action: nil
       )
 
       TransitionPageView(
-        page: .transitionToPrevious(from: "Chapter 2", to: "Chapter 1"),
+        page: .transitionToPrevious(from: "Chapter 7", to: "Chapter 5", missingCount: 1),
         action: nil
       )
 
       TransitionPageView(
-        page: .transitionToNext(from: "Chapter 1", to: "Chapter 2"),
+        page: .transitionToPrevious(from: "Chapter 5", to: "Chapter 4", missingCount: 0),
+        action: nil
+      )
+
+      TransitionPageView(
+        page: .transitionToNext(from: "Chapter 3", to: "Chapter 4", missingCount: 0),
+        action: nil
+      )
+
+      TransitionPageView(
+        page: .transitionToNext(from: "Chapter 1", to: "Chapter 3", missingCount: 1),
         action: nil
       )
 
