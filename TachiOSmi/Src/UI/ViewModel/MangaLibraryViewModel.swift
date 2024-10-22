@@ -15,6 +15,7 @@ final class MangaLibraryViewModel: ObservableObject {
   @Published var layout: CollectionLayout
   @Published var gridSize: CGFloat
   @Published var sortOrder: SortOrder
+  @Published var refreshStatus: [String: RefreshLibraryUseCase.RefreshStatus]
 
   private let mangasProvider: MangaLibraryProvider
   private let chaptersInfoProvider: ChaptersInfoProvider
@@ -25,6 +26,7 @@ final class MangaLibraryViewModel: ObservableObject {
   init(
     mangasProvider: MangaLibraryProvider,
     chaptersInfoProvider: ChaptersInfoProvider,
+    refreshLibraryUseCase: RefreshLibraryUseCase,
     optionsStore: AppOptionsStore
   ) {
     self.mangasProvider = mangasProvider
@@ -32,6 +34,7 @@ final class MangaLibraryViewModel: ObservableObject {
     self.store = optionsStore
 
     mangas = []
+    refreshStatus = [:]
     layout = optionsStore.libraryLayout
     gridSize = CGFloat(optionsStore.libraryGridSize)
     sortOrder = SortOrder(
@@ -78,6 +81,11 @@ final class MangaLibraryViewModel: ObservableObject {
     .receive(on: DispatchQueue.main)
     .sink { [weak self] in self?.mangas = $0 }
     .store(in: &observers)
+
+    refreshLibraryUseCase.$refreshStatus
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] in self?.refreshStatus = $0 }
+      .store(in: &observers)
   }
 
   func changeLayout(to layout: CollectionLayout) {

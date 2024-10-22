@@ -30,6 +30,7 @@ struct MangaLibraryView: View {
   init(
     chapterCrud: ChapterCrud = AppEnv.env.chapterCrud,
     coverCrud: CoverCrud = AppEnv.env.coverCrud,
+    refreshUseCase: RefreshLibraryUseCase = AppEnv.env.refreshLibraryUseCase,
     viewMoc: NSManagedObjectContext = PersistenceController.shared.container.viewContext,
     appOptionsStore: AppOptionsStore = AppEnv.env.appOptionsStore
   ) {
@@ -43,6 +44,7 @@ struct MangaLibraryView: View {
           chapterCrud: chapterCrud,
           viewMoc: viewMoc
         ),
+        refreshLibraryUseCase: refreshUseCase,
         optionsStore: appOptionsStore
       )
     )
@@ -192,7 +194,11 @@ private extension MangaLibraryView {
               title: result.manga.title,
               unreadChapters: result.unreadChapters,
               textColor: scheme.foregroundColor,
-              layout: $viewModel.layout
+              layout: $viewModel.layout,
+              refreshStatus: Binding(
+                get: { return viewModel.refreshStatus[result.manga.id] ?? .idle },
+                set: { viewModel.refreshStatus[result.manga.id] = $0 }
+              )
             )
             .equatable()
           }
@@ -216,7 +222,11 @@ private extension MangaLibraryView {
               title: result.manga.title,
               unreadChapters: result.unreadChapters,
               textColor: scheme.foregroundColor,
-              layout: $viewModel.layout
+              layout: $viewModel.layout,
+              refreshStatus: Binding(
+                get: { return viewModel.refreshStatus[result.manga.id] ?? .idle },
+                set: { viewModel.refreshStatus[result.manga.id] = $0 }
+              )
             )
             .equatable()
           }
@@ -355,6 +365,7 @@ private struct MangaResultItemView: View, Equatable {
   let textColor: Color
 
   @Binding var layout: CollectionLayout
+  @Binding var refreshStatus: RefreshLibraryUseCase.RefreshStatus
 
   static func == (lhs: MangaResultItemView, rhs: MangaResultItemView) -> Bool {
     guard
@@ -362,7 +373,8 @@ private struct MangaResultItemView: View, Equatable {
       lhs.unreadChapters == rhs.unreadChapters,
       lhs.textColor == rhs.textColor,
       lhs.layout == rhs.layout,
-      lhs.cover == rhs.cover
+      lhs.cover == rhs.cover,
+      lhs.refreshStatus == rhs.refreshStatus
     else {
       return false
     }
@@ -387,8 +399,16 @@ private struct MangaResultItemView: View, Equatable {
           .background(.blue)
           .clipShape(RoundedRectangle(cornerRadius: 4))
           .padding(.leading, 8)
-          .padding(.top, 8)
+          .padding(.top, 10)
           .opacity(unreadChapters > 0 ? 1 : 0)
+      }
+      .overlay(alignment: .top) {
+        ProgressView(value: refreshStatus.progress)
+          .progressViewStyle(.linear)
+          .tint(refreshStatus.isError ? .red : .blue)
+          .padding(.top, 4)
+          .padding(.horizontal, 4)
+          .opacity(refreshStatus == .idle ? 0 : 1)
       }
 
     case .compact:
@@ -409,6 +429,14 @@ private struct MangaResultItemView: View, Equatable {
           .padding(.top, 8)
           .opacity(unreadChapters > 0 ? 1 : 0)
       }
+      .overlay(alignment: .bottom) {
+        ProgressView(value: refreshStatus.progress)
+          .progressViewStyle(.linear)
+          .tint(refreshStatus.isError ? .red : .blue)
+          .padding(.bottom, 4)
+          .padding(.horizontal, 4)
+          .opacity(refreshStatus == .idle ? 0 : 1)
+      }
 
     case .list:
       MangaListResultView(
@@ -426,6 +454,14 @@ private struct MangaResultItemView: View, Equatable {
           .padding(.leading, 8)
           .padding(.top, 8)
           .opacity(unreadChapters > 0 ? 1 : 0)
+      }
+      .overlay(alignment: .bottom) {
+        ProgressView(value: refreshStatus.progress)
+          .progressViewStyle(.linear)
+          .tint(refreshStatus.isError ? .red : .blue)
+          .padding(.horizontal, 56)
+          .padding(.bottom, 4)
+          .opacity(refreshStatus == .idle ? 0 : 1)
       }
     }
   }

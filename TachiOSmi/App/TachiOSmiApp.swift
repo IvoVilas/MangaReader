@@ -48,13 +48,7 @@ struct TachiOSmiApp: App {
       ContentView(notificationManager: notificationManager)
         .environment(\.managedObjectContext, persistenceController.container.viewContext)
         .environment(\.appOptionsStore, AppEnv.env.appOptionsStore)
-        .environment(\.refreshLibraryUseCase, RefreshLibraryUseCase(
-          mangaCrud: AppEnv.env.mangaCrud,
-          chapterCrud: AppEnv.env.chapterCrud,
-          httpClient: AppEnv.env.httpClient,
-          systemDateTime: AppEnv.env.systemDateTime,
-          container: persistenceController.container
-        ))
+        .environment(\.refreshLibraryUseCase, AppEnv.env.refreshLibraryUseCase)
         .task {
           await notificationManager.requestNotificationPermission()
         }

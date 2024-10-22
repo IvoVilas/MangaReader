@@ -19,7 +19,7 @@ final class MangaUpdatesProvider: NSObject, ObservableObject {
   private let formatter: Formatter
   private let systemDateTime: SystemDateTimeType
 
-  private var limit: Int = 20
+  private var limit: Int = 50
   private var page: Int = 0
 
   init(
@@ -61,34 +61,38 @@ final class MangaUpdatesProvider: NSObject, ObservableObject {
   func updatePublishedValue(withPage page: Int) {
     self.page = page
 
-    let context = self.fetchedResultsController.managedObjectContext
+    Task {
+      let context = fetchedResultsController.managedObjectContext
 
-    let logs = fetchedResultsController
-      .fetchedObjects?
-      .prefix((page + 1) * limit)
-      .map { chapter in
-        context.performAndWait {
-          let cover = try? self.coverCrud.getCoverData(for: chapter.manga.id, moc: context)
+      let logs = fetchedResultsController
+        .fetchedObjects?
+        .prefix((page + 1) * limit)
+        .map { chapter in
+          context.performAndWait {
+            let cover = try? self.coverCrud.getCoverData(for: chapter.manga.id, moc: context)
 
-          return MangaUpdateLogModel(
-            manga: .from(chapter.manga, cover: cover),
-            chapter: .from(chapter)
-          )
+            return MangaUpdateLogModel(
+              manga: .from(chapter.manga, cover: cover),
+              chapter: .from(chapter)
+            )
+          }
         }
+
+      guard let logs else { return }
+
+      let updateLogs = Dictionary(grouping: logs) {
+        systemDateTime.calculator.getStartOfDay($0.chapter.publishAt)
+      }.map {
+        MangaUpdatesLogDate(
+          date: $0.key,
+          logs: $0.value,
+          dateDescription: formatter.dateAsFriendlyFormat($0.key)
+        )
       }
+        .sorted { $0.date > $1.date }
 
-    guard let logs else { return }
-
-    updateLogs = Dictionary(grouping: logs) {
-      systemDateTime.calculator.getStartOfDay($0.chapter.publishAt)
-    }.map {
-      MangaUpdatesLogDate(
-        date: $0.key,
-        logs: $0.value,
-        dateDescription: formatter.dateAsFriendlyFormat($0.key)
-      )
+      await MainActor.run { self.updateLogs = updateLogs }
     }
-    .sorted { $0.date > $1.date }
   }
 
 }

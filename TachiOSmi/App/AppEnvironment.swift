@@ -38,6 +38,9 @@ final class AppEnvironment {
   // Manager
   let databaseManager: DatabaseManager
 
+  // Refresh
+  let refreshLibraryUseCase: RefreshLibraryUseCase
+
   init(
     persistenceContainer: NSPersistentContainer
   ) {
@@ -63,6 +66,13 @@ final class AppEnvironment {
       coverCrud: coverCrud,
       formatter: formatter,
       persistenceContainer: persistenceContainer
+    )
+    refreshLibraryUseCase = RefreshLibraryUseCase(
+      mangaCrud: mangaCrud,
+      chapterCrud: chapterCrud,
+      httpClient: httpClient,
+      systemDateTime: systemDateTime,
+      container: persistenceContainer
     )
   }
 

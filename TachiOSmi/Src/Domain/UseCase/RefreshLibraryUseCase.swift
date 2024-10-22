@@ -8,7 +8,41 @@
 import Foundation
 import CoreData
 
-final class RefreshLibraryUseCase {
+final class RefreshLibraryUseCase: ObservableObject {
+
+  enum RefreshStatus {
+
+    case idle
+    case starting
+    case requesting
+    case parsing
+    case done
+    case error
+
+    var isError: Bool {
+      return self == .error
+    }
+
+    var progress: CGFloat {
+      switch self {
+      case .idle:
+        return 0
+
+      case .starting:
+        return 0.1
+
+      case .requesting:
+        return 0.33
+
+      case .parsing:
+        return 0.66
+
+      case .done, .error:
+        return 1
+      }
+    }
+
+  }
 
   private let mangaCrud: MangaCrud
   private let chapterCrud: ChapterCrud
@@ -17,6 +51,8 @@ final class RefreshLibraryUseCase {
   private let container: NSPersistentContainer
 
   @MainActor private var refreshing = false
+
+  @Published var refreshStatus = [String: RefreshStatus]()
 
   init(
     mangaCrud: MangaCrud,
@@ -47,11 +83,16 @@ final class RefreshLibraryUseCase {
       let context = container.viewContext
 
       let now = systemDateTime.now
-      let sources = try await context.perform {
-        try self.mangaCrud
-          .getAllMangas(saved: true, moc: context)
-          .reduce(into: [String: [String]]()) { $0[$1.sourceId, default: []].append($1.id) }
+      let (sources, status) = try await context.perform {
+        let mangas = try self.mangaCrud.getAllMangas(saved: true, moc: context)
+
+        let status = mangas.reduce(into: [String: RefreshStatus]()) { $0[$1.id] = .starting }
+        let sources = mangas.reduce(into: [String: [String]]()) { $0[$1.sourceId, default: []].append($1.id) }
+
+        return (sources, status)
       }
+
+      await MainActor.run { self.refreshStatus = status }
 
       let updates = await withTaskGroup(of: (String, [String]).self, returning: [String: [String]].self) { taskGroup in
         let context = container.newBackgroundContext()
@@ -87,14 +128,20 @@ final class RefreshLibraryUseCase {
 
       print("RefreshLibraryUseCase -> Finished refreshing library")
 
-      await MainActor.run { refreshing = false }
+      await MainActor.run {
+        refreshing = false
+        refreshStatus = [:]
+      }
 
       return updates
     } catch {
       print("RefreshLibraryUseCase -> Error during library refresh: \(error)")
     }
 
-    await MainActor.run { refreshing = false }
+    await MainActor.run {
+      refreshing = false
+      refreshStatus = [:]
+    }
 
     return [:]
   }
@@ -111,7 +158,11 @@ extension RefreshLibraryUseCase {
     now: Date
   ) async -> [String] {
     do {
+      await updateRefreshStatus(mangaId, to: .requesting)
+
       let data = try await delegate.fetchRefreshData(mangaId, updateCover: false)
+
+      await updateRefreshStatus(mangaId, to: .parsing)
 
       let newChapters = try await context.perform {
         guard let manga = try self.mangaCrud.getManga(mangaId, moc: context) else {
@@ -148,12 +199,24 @@ extension RefreshLibraryUseCase {
         return newChapters
       }
 
+      await updateRefreshStatus(mangaId, to: .done)
+
       return newChapters
     } catch {
+      await updateRefreshStatus(mangaId, to: .error)
+
       print("Error during \(mangaId) refresh: \(error.localizedDescription)")
 
       return []
     }
+  }
+
+  @MainActor
+  private func updateRefreshStatus(
+    _ id: String,
+    to status: RefreshStatus
+  ) {
+    refreshStatus[id] = status
   }
 
 }

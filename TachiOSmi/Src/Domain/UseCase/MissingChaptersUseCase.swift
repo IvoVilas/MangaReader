@@ -50,11 +50,7 @@ struct MissingChaptersUseCase {
     for n in (first.number...last.number).reversed() {
       if let chapter = chapters.first(where: { $0.number == n }) {
         isPreviousRead = chapter.isRead
-
-        print("Ivo: Found chapter \(n) and it is \(chapter.isRead ? "read" : "not read")")
       } else {
-        print("Ivo: Found missing chapter \(n) and previous was \(isPreviousRead ? "read" : "not read")")
-
         missing.append(
           ChapterNumber(
             number: n,
