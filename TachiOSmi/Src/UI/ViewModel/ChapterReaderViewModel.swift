@@ -198,20 +198,20 @@ final class ChapterReaderViewModel: ObservableObject {
     nextChapter = next
     previousChapter = previous
 
-    missingNextChapters = calculateMissingChapters(
-      from: chapter.number,
-      to: next?.number
-    )
+    await MainActor.run {
+      missingNextChapters = calculateMissingChapters(
+        from: chapter.number,
+        to: next?.number
+      )
 
-    missingPreviousChapters = calculateMissingChapters(
-      from: previous?.number,
-      to: chapter.number
-    )
+      missingPreviousChapters = calculateMissingChapters(
+        from: previous?.number,
+        to: chapter.number
+      )
 
-    DispatchQueue.main.async {
-      self.updateTransitionPages(
-        previous: self.makeEndTransitionPage(),
-        next: self.makeStartTransitionPage()
+      updateTransitionPages(
+        previous: makeEndTransitionPage(),
+        next: makeStartTransitionPage()
       )
     }
   }

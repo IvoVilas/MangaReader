@@ -163,7 +163,11 @@ final class ChapterCrud {
     let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Chapter")
 
     fetchRequest.predicate = NSPredicate(format: "manga.id == %@", mangaId)
-    fetchRequest.sortDescriptors = [NSSortDescriptor(key: "chapter", ascending: true)]
+    fetchRequest.sortDescriptors = [
+      NSSortDescriptor(key: "chapter", ascending: true),
+      NSSortDescriptor(key: "publishAt", ascending: true),
+      NSSortDescriptor(key: "id", ascending: true),
+    ]
 
     do {
       guard let results = try moc.fetch(fetchRequest) as? [ChapterMO] else {
@@ -188,7 +192,11 @@ final class ChapterCrud {
     let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Chapter")
 
     fetchRequest.predicate = NSPredicate(format: "manga.id == %@", mangaId)
-    fetchRequest.sortDescriptors = [NSSortDescriptor(key: "chapter", ascending: true)]
+    fetchRequest.sortDescriptors = [
+      NSSortDescriptor(key: "chapter", ascending: true),
+      NSSortDescriptor(key: "publishAt", ascending: true),
+      NSSortDescriptor(key: "id", ascending: true)
+    ]
 
     do {
       guard let results = try moc.fetch(fetchRequest) as? [ChapterMO] else {

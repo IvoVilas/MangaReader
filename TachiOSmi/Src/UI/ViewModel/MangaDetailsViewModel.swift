@@ -17,6 +17,8 @@ final class MangaDetailsViewModel: ObservableObject {
   @Published var chaptersCount: Int
   @Published var missingChaptersCount: Int
   @Published var isMissingChaptersRead: Bool
+  @Published var showPlayButton: Bool
+  @Published var playButtonTitle: String
   @Published var isLoading: Bool
   @Published var isImageLoading: Bool
   @Published var error: DatasourceError?
@@ -98,6 +100,8 @@ final class MangaDetailsViewModel: ObservableObject {
     )
 
     chapters = []
+    playButtonTitle = "Start"
+    showPlayButton = true
     isLoading = false
     isImageLoading = false
     chaptersCount = 0
@@ -145,6 +149,23 @@ final class MangaDetailsViewModel: ObservableObject {
     self.chaptersCount = chapters.count
     self.missingChaptersCount = missing.reduce(into: 0) { $0 += $1.count }
     self.isMissingChaptersRead = !missing.contains { !$0.isRead }
+
+    setupPlayButton(chapters)
+  }
+
+  private func setupPlayButton(_ chapters: [ChapterModel]) {
+    let hasReadAnyChapter = chapters.contains {
+      let lastPageRead = $0.lastPageRead ?? 0
+
+      return $0.isRead || lastPageRead > 0
+    }
+
+    let hasAnyChpaterToRead = chapters.contains {
+      return !$0.isRead
+    }
+
+    playButtonTitle = hasReadAnyChapter ? "Resume" : "Start"
+    showPlayButton = hasAnyChpaterToRead
   }
 
   private func turnOffSelection() {
@@ -435,6 +456,32 @@ extension MangaDetailsViewModel {
   func getNavigator(_ chapter: ChapterModel) -> MangaReaderNavigator {
     return MangaReaderNavigator(
       source: source, 
+      mangaId: manga.id,
+      mangaTitle: manga.title,
+      chapter: chapter,
+      readingDirection: manga.readingDirection
+    )
+  }
+
+  func getResumeNavigation() -> MangaReaderNavigator? {
+    let chapters = chapters.compactMap {
+      switch $0 {
+      case .chapter(let model):
+        return model
+
+      case .missing:
+        return nil
+      }
+    }
+
+    let chapter = sortChaptersUseCase
+      .sortByNumber(chapters, ascending: true)
+      .first { !$0.isRead }
+
+    guard let chapter = chapter ?? chapters.last else { return nil }
+
+    return MangaReaderNavigator(
+      source: source,
       mangaId: manga.id,
       mangaTitle: manga.title,
       chapter: chapter,

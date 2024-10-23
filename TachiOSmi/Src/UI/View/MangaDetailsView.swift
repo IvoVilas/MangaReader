@@ -49,7 +49,7 @@ struct MangaDetailsView: View {
   }
 
   var body: some View {
-    ZStack(alignment: .bottom) {
+    ZStack(alignment: .bottomTrailing) {
       PositionObservingScrollView(
         offset: $offset
       ) {
@@ -105,6 +105,24 @@ struct MangaDetailsView: View {
       }
       .refreshable { await viewModel.forceRefresh() }
       .ignoresSafeArea(.all, edges: .top)
+
+      if viewModel.showPlayButton {
+        PlayButton(
+          title: $viewModel.playButtonTitle,
+          offset: .constant(offset.y),
+          scheme: scheme
+        ) {
+          guard let navigatior = viewModel.getResumeNavigation() else {
+            return
+          }
+          
+          router.navigate(using: navigatior)
+        }
+        .offset(x: viewModel.isSelectionOn ? 200 : 0)
+        .opacity(viewModel.isSelectionOn ? 0 : 1)
+        .animation(.bouncy(duration: 0.3), value: viewModel.isSelectionOn)
+        .padding(.trailing, 24)
+      }
 
       toolBar()
         .padding(.top, 12)
@@ -364,6 +382,48 @@ struct MangaDetailsView: View {
 
 }
 
+private struct PlayButton: View {
+
+  @Binding var title: String
+  @Binding var offset: CGFloat
+  @State var expandButton: Bool = true
+
+  let scheme: ColorScheme
+  let action: () -> Void
+
+  var body: some View {
+    Button { action() } label: {
+      HStack(spacing: 12) {
+        Image(systemName: "play.fill")
+          .resizable()
+          .scaledToFit()
+          .foregroundStyle(scheme.foregroundColor)
+          .frame(width: 16)
+          .padding(.vertical, 24)
+          .padding(.leading, 24)
+          .padding(.trailing, expandButton ? 0 : 24)
+
+        if expandButton {
+          Text(title)
+            .font(.callout)
+            .lineLimit(1)
+            .foregroundStyle(scheme.foregroundColor)
+            .padding(.trailing, 24)
+            .transition(.scale)
+        }
+      }
+    }
+    .background(scheme.terciaryColor)
+    .clipShape(RoundedRectangle(cornerRadius: 24))
+    .onChange(of: offset) { oldValue, value in
+      withAnimation {
+        expandButton = value >= oldValue || value >= 0
+      }
+    }
+  }
+
+}
+
 #Preview {
   NavigationStack {
     MangaDetailsView(
@@ -377,4 +437,14 @@ struct MangaDetailsView: View {
       container: PersistenceController.preview.container
     )
   }
+}
+
+#Preview {
+
+  PlayButton(
+    title: .constant("Resume"),
+    offset: .constant(0),
+    scheme: .light
+  ) { }
+
 }

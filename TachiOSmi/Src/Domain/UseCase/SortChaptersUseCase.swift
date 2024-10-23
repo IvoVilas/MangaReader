@@ -10,17 +10,51 @@ import Foundation
 struct SortChaptersUseCase {
   
   func sortByNumber(
-    _ chapters: [ChapterModel]
+    _ chapters: [ChapterModel],
+    ascending: Bool = false
   ) -> [ChapterModel] {
     let sortedChapters = chapters.sorted {
-      guard let lhs = $0.number, let rhs = $1.number else {
-        return $0.publishAt > $1.publishAt
-      }
-
-      return lhs > rhs
+      return ascending == sortUsingNumber($0, $1)
     }
 
     return sortedChapters
+  }
+
+}
+
+extension SortChaptersUseCase {
+
+  private func sortUsingNumber(
+    _ lhs: ChapterModel,
+    _ rhs: ChapterModel
+  ) -> Bool {
+    guard
+      let lhsNumber = lhs.number,
+      let rhsNumber = rhs.number,
+      lhsNumber != rhsNumber
+    else {
+      return sortUsingPublishAt(lhs, rhs)
+    }
+
+    return lhsNumber < rhsNumber
+  }
+
+  private func sortUsingPublishAt(
+    _ lhs: ChapterModel,
+    _ rhs: ChapterModel
+  ) -> Bool {
+    if lhs.publishAt == rhs.publishAt {
+      return sortUsingId(lhs, rhs)
+    }
+
+    return lhs.publishAt < rhs.publishAt
+  }
+
+  private func sortUsingId(
+    _ lhs: ChapterModel,
+    _ rhs: ChapterModel
+  ) -> Bool {
+    return lhs.id < rhs.id
   }
 
 }

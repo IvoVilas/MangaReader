@@ -195,10 +195,7 @@ private extension MangaLibraryView {
               unreadChapters: result.unreadChapters,
               textColor: scheme.foregroundColor,
               layout: $viewModel.layout,
-              refreshStatus: Binding(
-                get: { return viewModel.refreshStatus[result.manga.id] ?? .idle },
-                set: { viewModel.refreshStatus[result.manga.id] = $0 }
-              )
+              refreshStatus: .constant(viewModel.refreshStatus[result.manga.id] ?? .idle)
             )
             .equatable()
           }
@@ -223,10 +220,7 @@ private extension MangaLibraryView {
               unreadChapters: result.unreadChapters,
               textColor: scheme.foregroundColor,
               layout: $viewModel.layout,
-              refreshStatus: Binding(
-                get: { return viewModel.refreshStatus[result.manga.id] ?? .idle },
-                set: { viewModel.refreshStatus[result.manga.id] = $0 }
-              )
+              refreshStatus: .constant(viewModel.refreshStatus[result.manga.id] ?? .idle)
             )
             .equatable()
           }
