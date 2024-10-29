@@ -235,7 +235,7 @@ extension PagesDatasource {
           taskGroup.addTask {
             do {
               let index = index * PagesDatasource.limit + offset
-              let data = try await self.delegate.fetchPage(url: url, info: info)
+              let data = try await self.delegate.fetchPage(url: url)
 
               await self.updateOrAppend(.remote(url, index, data))
             } catch {

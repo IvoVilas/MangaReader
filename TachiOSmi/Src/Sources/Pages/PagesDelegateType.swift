@@ -23,8 +23,7 @@ protocol PagesDelegateType {
   ) async throws -> Data
 
   func fetchPage(
-    url: String,
-    info: ChapterDownloadInfo
+    url: String
   ) async throws -> Data
 
   func buildPageUrl(

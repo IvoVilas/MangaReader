@@ -21,11 +21,14 @@ final class ChapterReaderViewModel: ObservableObject {
   @Published var missingPreviousChapters: Int
   @Published var isLoading: Bool
   @Published var error: DatasourceError?
+  @Published var warning: String?
+  @Published var success: String?
 
   private var isEmpty: Bool
 
   private var datasource: PagesDatasource
   private let delegate: PagesDelegateType
+  private let savePageUseCase: SavePageUseCase
 
   private var nextChapter: ChapterModel?
   private var previousChapter: ChapterModel?
@@ -54,6 +57,7 @@ final class ChapterReaderViewModel: ObservableObject {
     chapterCrud: ChapterCrud,
     httpClient: HttpClientType,
     appOptionsStore: AppOptionsStore,
+    savePageUseCase: SavePageUseCase,
     container: NSPersistentContainer
   ) {
     self.source = source
@@ -63,6 +67,7 @@ final class ChapterReaderViewModel: ObservableObject {
     self.chapterCrud = chapterCrud
     self.httpClient = httpClient
     self.appOptionsStore = appOptionsStore
+    self.savePageUseCase = savePageUseCase
     self.viewMoc = container.viewContext
     self.moc = container.newBackgroundContext()
 
@@ -82,6 +87,7 @@ final class ChapterReaderViewModel: ObservableObject {
     self.missingPreviousChapters = 0
     self.isLoading = true
     self.error = nil
+    self.warning = nil
     self.isEmpty = true
 
     resetViewModel()
@@ -308,6 +314,50 @@ extension ChapterReaderViewModel {
     }
 
     await datasource.reloadPages(pages)
+  }
+
+  // TODO: Allow for users to unfavorite page
+  // TODO: Don't show action on transition pages
+  // TODO: Move error, warning and success all to one variable
+  func onMarkPageAsFavorite(_ pageId: String?) async {
+    guard
+      let pageId,
+      let page = pages.first(where: { $0.id == pageId })
+    else {
+      return
+    }
+
+    do {
+      switch page {
+      case .page(let pageModel):
+        switch pageModel {
+        case .remote(let url, _, let data):
+          try await savePageUseCase.savePage(
+            data: data,
+            pageUrl: url,
+            mangaId: mangaId,
+            sourceId: source.id,
+            isFavorite: true
+          )
+
+          await MainActor.run {
+            success = "Page added to favorites"
+          }
+
+        case .loading, .notFound:
+          await MainActor.run {
+            warning = "Page is not yet loaded"
+          }
+        }
+
+      case .transition:
+        return
+      }
+    } catch {
+      await MainActor.run {
+        self.error = .catchError(error)
+      }
+    }
   }
 
 }

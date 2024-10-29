@@ -41,8 +41,7 @@ final class MangadexPagesDelegate: PagesDelegateType {
   }
 
   func fetchPage(
-    url: String,
-    info: ChapterDownloadInfo
+    url: String
   ) async throws -> Data {
     return try await makePageRequest(url)
   }

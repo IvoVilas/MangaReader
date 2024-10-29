@@ -1,11 +1,47 @@
 //
-//  PageDataModel.swift
+//  PageRepresentables.swift
 //  TachiOSmi
 //
 //  Created by Ivo Vilas on 27/02/2024.
 //
 
 import Foundation
+
+struct StoredPageModel: Identifiable, Hashable {
+
+  let id: String
+  let mangaId: String
+  let source: Source
+  let isFavorite: Bool
+  let downloadInfo: String
+  let filePath: String?
+  let data: Data?
+
+  static func from(_ entity: PageMO) -> StoredPageModel {
+    StoredPageModel(
+      id: entity.id,
+      mangaId: entity.mangaId,
+      source: Source.safeInit(from: entity.sourceId),
+      isFavorite: entity.isFavorite,
+      downloadInfo: entity.downloadInfo,
+      filePath: entity.filePath,
+      data: nil
+    )
+  }
+
+  func injectData(_ data: Data?) -> StoredPageModel {
+    StoredPageModel(
+      id: id,
+      mangaId: mangaId,
+      source: source,
+      isFavorite: isFavorite,
+      downloadInfo: downloadInfo,
+      filePath: filePath,
+      data: data
+    )
+  }
+
+}
 
 enum ChapterPage: Identifiable {
 

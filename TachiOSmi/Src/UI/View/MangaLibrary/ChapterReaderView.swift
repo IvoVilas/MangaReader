@@ -31,6 +31,7 @@ struct ChapterReaderView: View {
     chapterCrud: ChapterCrud = AppEnv.env.chapterCrud,
     httpClient: HttpClientType = AppEnv.env.httpClient,
     appOptionsStore: AppOptionsStore = AppEnv.env.appOptionsStore,
+    savePageUseCase: SavePageUseCase = AppEnv.env.savePageUseCase,
     container: NSPersistentContainer = PersistenceController.shared.container
   ) {
     _viewModel = StateObject(
@@ -44,6 +45,7 @@ struct ChapterReaderView: View {
         chapterCrud: chapterCrud,
         httpClient: httpClient,
         appOptionsStore: appOptionsStore,
+        savePageUseCase: savePageUseCase,
         container: container
       )
     )
@@ -94,13 +96,35 @@ struct ChapterReaderView: View {
     .toastView(toast: $toast)
     .onReceive(viewModel.$error) { error in
       if let error {
+        withAnimation { showingToolBar = false }
+
         toast = Toast(
           style: .error,
           message: error.localizedDescription
         )
       }
     }
-    .onReceive(viewModel.closeReaderEvent) { 
+    .onReceive(viewModel.$warning) { warning in
+      if let warning {
+        withAnimation { showingToolBar = false }
+
+        toast = Toast(
+          style: .warning,
+          message: warning
+        )
+      }
+    }
+    .onReceive(viewModel.$success) { success in
+      if let success {
+        withAnimation { showingToolBar = false }
+
+        toast = Toast(
+          style: .success,
+          message: success
+        )
+      }
+    }
+    .onReceive(viewModel.closeReaderEvent) {
       dismiss()
     }
     .onTapGesture {
@@ -142,6 +166,17 @@ struct ChapterReaderView: View {
             "arrow.left.arrow.right" : "arrow.up.arrow.down"
           )
           .tint(.black)
+        }
+
+        Button {
+          Task(priority: .medium) {
+            await viewModel.onMarkPageAsFavorite(
+              viewModel.pageId
+            )
+          }
+        } label: {
+          Image(systemName: "heart.fill")
+            .tint(.black)
         }
       }
       .padding(.bottom, 16)
@@ -288,6 +323,11 @@ struct ChapterReaderView: View {
     ),
     readingDirection: .leftToRight,
     appOptionsStore: AppOptionsStore.inMemory(),
+    savePageUseCase: SavePageUseCase(
+      fileManager: AppEnv.env.fileManager,
+      crud: AppEnv.env.pageCrud, 
+      container: PersistenceController.preview.container
+    ),
     container: PersistenceController.preview.container
   )
 }

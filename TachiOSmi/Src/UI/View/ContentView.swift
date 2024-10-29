@@ -14,6 +14,7 @@ struct ContentView: View {
     case updates
     case search
     case options
+    case favorites
   }
 
   @Environment(\.appOptionsStore) private var optionsStore
@@ -61,6 +62,17 @@ struct ContentView: View {
           .toolbarBackground(.visible, for: .tabBar)
           .tag(Tabs.search)
 
+        MangaFavoritesView()
+          .padding(top: 24, leading: 24, trailing: 24)
+          .tabItem {
+            Label(
+              title: { Text("Favorites") },
+              icon: { Image(systemName: "heart.fill") }
+            )
+          }
+          .toolbarBackground(.visible, for: .tabBar)
+          .tag(Tabs.favorites)
+
         AppOptionsView()
           .padding(top: 24, leading: 24, trailing: 24)
           .tabItem {
@@ -79,6 +91,7 @@ struct ContentView: View {
       .registerNavigator(MangaSearchNavigator.self)
       .registerNavigator(MangaGlobalSearchNavigator.self)
       .registerNavigator(MangaLoadedSearchNavigator.self)
+      .registerNavigator(MangaFavoritePagesNavigator.self)
     }
     .environment(\.router, router)
     .environment(\.colorScheme, colorScheme)

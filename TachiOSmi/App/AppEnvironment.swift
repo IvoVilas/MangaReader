@@ -27,6 +27,7 @@ final class AppEnvironment {
   let authorCrud: AuthorCrud
   let tagCrud: TagCrud
   let coverCrud: CoverCrud
+  let pageCrud: PageCrud
 
   // Tools
   let systemDateTime: SystemDateTimeType
@@ -37,9 +38,12 @@ final class AppEnvironment {
 
   // Manager
   let databaseManager: DatabaseManager
+  let fileManager: LocalFileManager
 
-  // Refresh
+  // UseCase
   let refreshLibraryUseCase: RefreshLibraryUseCase
+  let savePageUseCase: SavePageUseCase
+  let fetchPageUseCase: FetchPageUseCase
 
   init(
     persistenceContainer: NSPersistentContainer
@@ -51,6 +55,7 @@ final class AppEnvironment {
     authorCrud = AuthorCrud()
     tagCrud = TagCrud()
     coverCrud = CoverCrud()
+    pageCrud = PageCrud()
 
     systemDateTime = SystemDateTime()
     formatter = Formatter(systemDateTime: systemDateTime)
@@ -67,12 +72,23 @@ final class AppEnvironment {
       formatter: formatter,
       persistenceContainer: persistenceContainer
     )
+    fileManager = LocalFileManager()
     refreshLibraryUseCase = RefreshLibraryUseCase(
       mangaCrud: mangaCrud,
       chapterCrud: chapterCrud,
       httpClient: httpClient,
       systemDateTime: systemDateTime,
       container: persistenceContainer
+    )
+    savePageUseCase = SavePageUseCase(
+      fileManager: fileManager,
+      crud: pageCrud,
+      container: persistenceContainer
+    )
+    fetchPageUseCase = FetchPageUseCase(
+      fileManager: fileManager,
+      httpClient: httpClient,
+      crud: pageCrud
     )
   }
 
