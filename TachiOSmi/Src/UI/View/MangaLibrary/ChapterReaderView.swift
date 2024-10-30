@@ -25,13 +25,14 @@ struct ChapterReaderView: View {
     source: Source,
     mangaId: String,
     mangaTitle: String,
+    jumpToPage: String?,
     chapter: ChapterModel,
     readingDirection: ReadingDirection,
     mangaCrud: MangaCrud = AppEnv.env.mangaCrud,
     chapterCrud: ChapterCrud = AppEnv.env.chapterCrud,
     httpClient: HttpClientType = AppEnv.env.httpClient,
     appOptionsStore: AppOptionsStore = AppEnv.env.appOptionsStore,
-    savePageUseCase: SavePageUseCase = AppEnv.env.savePageUseCase,
+    markPageAsFavoriteUseCase: MarkPageAsFavoriteUseCase = AppEnv.env.markPageAsFavoriteUseCase,
     container: NSPersistentContainer = PersistenceController.shared.container
   ) {
     _viewModel = StateObject(
@@ -39,13 +40,14 @@ struct ChapterReaderView: View {
         source: source,
         mangaId: mangaId,
         mangaTitle: mangaTitle,
+        jumpToPage: jumpToPage,
         chapter: chapter,
         readingDirection: readingDirection,
         mangaCrud: mangaCrud,
         chapterCrud: chapterCrud,
         httpClient: httpClient,
         appOptionsStore: appOptionsStore,
-        savePageUseCase: savePageUseCase,
+        markPageAsFavoriteUseCase: markPageAsFavoriteUseCase,
         container: container
       )
     )
@@ -94,34 +96,11 @@ struct ChapterReaderView: View {
     .environment(\.layoutDirection, .rightToLeft)
     .background(.black)
     .toastView(toast: $toast)
-    .onReceive(viewModel.$error) { error in
-      if let error {
+    .onReceive(viewModel.$toastInfo) { info in
+      if let info {
         withAnimation { showingToolBar = false }
 
-        toast = Toast(
-          style: .error,
-          message: error.localizedDescription
-        )
-      }
-    }
-    .onReceive(viewModel.$warning) { warning in
-      if let warning {
-        withAnimation { showingToolBar = false }
-
-        toast = Toast(
-          style: .warning,
-          message: warning
-        )
-      }
-    }
-    .onReceive(viewModel.$success) { success in
-      if let success {
-        withAnimation { showingToolBar = false }
-
-        toast = Toast(
-          style: .success,
-          message: success
-        )
+        toast = Toast(style: info.style, message: info.message)
       }
     }
     .onReceive(viewModel.closeReaderEvent) {
@@ -171,11 +150,12 @@ struct ChapterReaderView: View {
         Button {
           Task(priority: .medium) {
             await viewModel.onMarkPageAsFavorite(
-              viewModel.pageId
+              viewModel.pageId,
+              addToFavorites: !viewModel.pageIsFavorite
             )
           }
         } label: {
-          Image(systemName: "heart.fill")
+          Image(systemName: viewModel.pageIsFavorite ? "heart.fill" : "heart")
             .tint(.black)
         }
       }
@@ -311,6 +291,7 @@ struct ChapterReaderView: View {
     source: .mangadex,
     mangaId: "c52b2ce3-7f95-469c-96b0-479524fb7a1a",
     mangaTitle: "Jujutsu Kaisen",
+    jumpToPage: nil,
     chapter: ChapterModel(
       id: "5624518b-f062-49e8-84ec-e4f40e0de038",
       title: nil,
@@ -323,7 +304,7 @@ struct ChapterReaderView: View {
     ),
     readingDirection: .leftToRight,
     appOptionsStore: AppOptionsStore.inMemory(),
-    savePageUseCase: SavePageUseCase(
+    markPageAsFavoriteUseCase: MarkPageAsFavoriteUseCase(
       fileManager: AppEnv.env.fileManager,
       crud: AppEnv.env.pageCrud, 
       container: PersistenceController.preview.container

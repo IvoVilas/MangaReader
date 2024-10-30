@@ -42,21 +42,6 @@ struct TachiOSmiApp: App {
       viewMoc: persistenceController.container.viewContext
     )
 
-    /*
-    _ = env.fileManager.deleteAllImages()
-    let context = persistenceController.container.viewContext
-    context.performAndWait {
-      guard let pages = try? env.pageCrud.getAllPages(moc: context) else {
-        return
-      }
-
-      for page in pages {
-        context.delete(page)
-      }
-
-      try? context.save()
-    }
-     */
   }
 
   var body: some Scene {

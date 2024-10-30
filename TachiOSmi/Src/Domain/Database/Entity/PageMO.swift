@@ -10,16 +10,20 @@ import CoreData
 
 class PageMO: NSManagedObject {
 
-  @NSManaged var id: String
+  @NSManaged var pageId: String
   @NSManaged var mangaId: String
+  @NSManaged var chapterId: String
+  @NSManaged var pageNumber: Int64
   @NSManaged var sourceId: String
   @NSManaged var isFavorite: Bool
   @NSManaged var downloadInfo: String
   @NSManaged var filePath: String?
 
   convenience init?(
-    id: String,
+    pageId: String,
     mangaId: String,
+    chapterId: String,
+    pageNumber: Int64,
     sourceId: String,
     isFavorite: Bool,
     downloadInfo: String,
@@ -32,8 +36,10 @@ class PageMO: NSManagedObject {
 
     self.init(entity: entity, insertInto: moc)
 
-    self.id = id
+    self.pageId = pageId
     self.mangaId = mangaId
+    self.chapterId = chapterId
+    self.pageNumber = pageNumber
     self.sourceId = sourceId
     self.isFavorite = isFavorite
     self.downloadInfo = downloadInfo

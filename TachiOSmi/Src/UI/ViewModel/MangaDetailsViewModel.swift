@@ -458,6 +458,7 @@ extension MangaDetailsViewModel {
       source: source, 
       mangaId: manga.id,
       mangaTitle: manga.title,
+      jumpToPage: nil,
       chapter: chapter,
       readingDirection: manga.readingDirection
     )
@@ -484,6 +485,7 @@ extension MangaDetailsViewModel {
       source: source,
       mangaId: manga.id,
       mangaTitle: manga.title,
+      jumpToPage: nil,
       chapter: chapter,
       readingDirection: manga.readingDirection
     )

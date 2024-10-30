@@ -13,58 +13,52 @@ final class PageCrud {
   func getPage(
     _ id: String,
     moc: NSManagedObjectContext
-  ) throws -> PageMO? {
+  ) -> PageMO? {
     let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Page")
-
-    fetchRequest.predicate  = NSPredicate(format: "id == %@", id)
+    
+    fetchRequest.predicate  = NSPredicate(format: "pageId == %@", id)
     fetchRequest.fetchLimit = 1
-
-    do {
-      let results = try moc.fetch(fetchRequest) as? [PageMO]
-
-      return results?.first
-    } catch {
-      throw CrudError.requestError(error)
-    }
+    
+    let results = try? moc.fetch(fetchRequest) as? [PageMO]
+    
+    return results?.first
   }
 
   func getAllPages(
     moc: NSManagedObjectContext
-  ) throws -> [PageMO] {
+  ) -> [PageMO] {
     let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Page")
 
     fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \PageMO.mangaId, ascending: true)]
 
-    do {
-      guard let results = try moc.fetch(fetchRequest) as? [PageMO] else {
-        throw CrudError.wrongRequestType
-      }
+    let results = try? moc.fetch(fetchRequest) as? [PageMO]
 
-      return results
-    } catch {
-      throw CrudError.requestError(error)
-    }
+    return results ?? []
   }
 
   func createEntity(
-    id: String,
+    pageId: String,
     mangaId: String,
+    chapterId: String,
+    pageNumber: Int,
     sourceId: String,
     isFavorite: Bool,
     downloadInfo: String,
     filePath: String?,
     moc: NSManagedObjectContext
-  ) throws -> PageMO {
+  ) -> PageMO? {
     guard let page = PageMO(
-      id: id,
+      pageId: pageId,
       mangaId: mangaId,
+      chapterId: chapterId,
+      pageNumber: Int64(pageNumber),
       sourceId: sourceId,
       isFavorite: isFavorite,
       downloadInfo: downloadInfo,
       filePath: filePath,
       moc: moc
     ) else {
-      throw CrudError.failedEntityCreation
+      return nil
     }
 
     return page
@@ -72,15 +66,19 @@ final class PageCrud {
 
   func updatePage(
     _ page: PageMO,
-    id: String,
+    pageId: String,
     mangaId: String,
+    chapterId: String,
+    pageNumber: Int,
     sourceId: String,
     isFavorite: Bool,
     downloadInfo: String,
     filePath: String?
   ) {
-    page.id = id
+    page.pageId = pageId
     page.mangaId = mangaId
+    page.chapterId = chapterId
+    page.pageNumber = Int64(pageNumber)
     page.sourceId = sourceId
     page.isFavorite = isFavorite
     page.downloadInfo = downloadInfo
@@ -88,19 +86,23 @@ final class PageCrud {
   }
 
   func createOrUpdatePage(
-    id: String,
+    pageId: String,
     mangaId: String,
+    chapterId: String,
+    pageNumber: Int,
     sourceId: String,
     isFavorite: Bool,
     downloadInfo: String,
     filePath: String?,
     moc: NSManagedObjectContext
-  ) throws -> PageMO {
-    if let local = try getPage(id, moc: moc) {
+  ) -> PageMO? {
+    if let local = getPage(pageId, moc: moc) {
       updatePage(
         local,
-        id: id,
+        pageId: pageId,
         mangaId: mangaId,
+        chapterId: chapterId,
+        pageNumber: pageNumber,
         sourceId: sourceId,
         isFavorite: isFavorite,
         downloadInfo: downloadInfo,
@@ -109,9 +111,11 @@ final class PageCrud {
 
       return local
     } else {
-      let new = try createEntity(
-        id: id,
+      let new = createEntity(
+        pageId: pageId,
         mangaId: mangaId,
+        chapterId: chapterId,
+        pageNumber: pageNumber,
         sourceId: sourceId,
         isFavorite: isFavorite,
         downloadInfo: downloadInfo,

@@ -6,54 +6,79 @@
 //
 
 import SwiftUI
+import CoreData
 
 struct MangaFavoritePagesView: View {
 
   @Environment(\.colorScheme) private var scheme
+  @Environment(\.router) private var router
 
   @StateObject var viewModel: MangaFavoritePagesViewModel
+  @State private var selectedPage: StoredPageModel?
+  @Namespace private var namespace
 
   init(
-    mangaPages: MangaFavoritePages
+    mangaPages: MangaFavoritePages,
+    mangaCrud: MangaCrud = AppEnv.env.mangaCrud,
+    chapterCrud: ChapterCrud = AppEnv.env.chapterCrud,
+    viewMoc: NSManagedObjectContext = PersistenceController.shared.container.viewContext
   ) {
     _viewModel = StateObject(
       wrappedValue: MangaFavoritePagesViewModel(
-        mangaPages: mangaPages
+        mangaPages: mangaPages,
+        mangaCrud: mangaCrud,
+        chapterCrud: chapterCrud,
+        viewMoc: viewMoc
       )
     )
   }
 
   var body: some View {
-    VStack(spacing: 0) {
-      navbarView()
+    ZStack {
+      VStack(spacing: 0) {
+        navbarView()
+          .padding(.horizontal, 24)
 
-      ZStack(alignment: .top) {
-        ScrollView {
-          Spacer().frame(height: 16)
+        ZStack(alignment: .top) {
+          ScrollView {
+            Spacer().frame(height: 16)
 
-          VStack(spacing: 16) {
-            pageView(viewModel.spotlightPage?.data)
+            VStack(spacing: 16) {
+              pageView(viewModel.spotlightPage)
 
-            LazyVGrid(
-              columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: 2),
-              spacing: 16
-            ) {
-              ForEach(viewModel.pages) { page in
-                pageView(page.data)
+              LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: 2),
+                spacing: 16
+              ) {
+                ForEach(viewModel.pages) { page in
+                  pageView(page)
+                }
               }
             }
+            .padding(.horizontal, 24)
+          }
+          .scrollIndicators(.hidden)
+
+          LinearGradient(
+            gradient: Gradient(colors: [scheme.backgroundColor, .clear]),
+            startPoint: .top,
+            endPoint: .bottom
+          ).frame(height: 8)
+        }
+      }
+      .blur(radius: selectedPage == nil ? 0 : 4)
+
+      if let selectedPage {
+        FavoritePageView(page: selectedPage, namespace: namespace) {
+          viewModel.navigateToChapter(using: $0, router: router)
+        } onDismiss: {
+          withAnimation {
+            self.selectedPage = nil
           }
         }
-        .scrollIndicators(.hidden)
-
-        LinearGradient(
-          gradient: Gradient(colors: [scheme.backgroundColor, .clear]),
-          startPoint: .top,
-          endPoint: .bottom
-        ).frame(height: 8)
+        .transition(.opacity)
       }
     }
-    .padding(.horizontal, 24)
     .navigationBarBackButtonHidden(true)
   }
 
@@ -66,6 +91,7 @@ struct MangaFavoritePagesView: View {
       Text(viewModel.title)
         .foregroundStyle(scheme.foregroundColor)
         .font(.title)
+        .lineLimit(1)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
   }
@@ -75,8 +101,12 @@ struct MangaFavoritePagesView: View {
 extension MangaFavoritePagesView {
 
   @ViewBuilder
-  private func pageView(_ pageData: Data?) -> some View {
-    if let pageData, let uiImage = UIImage(data: pageData) {
+  private func pageView(_ page: StoredPageModel?) -> some View {
+    if 
+      let page,
+      let pageData = page.data,
+      let uiImage = UIImage(data: pageData)
+    {
       Image(uiImage: uiImage)
         .resizable()
         .aspectRatio(contentMode: .fit)
@@ -86,6 +116,12 @@ extension MangaFavoritePagesView {
             .stroke(scheme.foregroundColor, lineWidth: 2)
         )
         .clipShape(RoundedRectangle(cornerRadius: 20))
+        .matchedGeometryEffect(id: page.id, in: namespace, isSource: selectedPage == nil)
+        .onTapGesture {
+          withAnimation {
+            selectedPage = page
+          }
+        }
     } else {
       Text("Unable to load image")
         .foregroundColor(.red)
@@ -111,40 +147,48 @@ extension MangaFavoritePagesView {
       ),
       pages: [
         StoredPageModel(
-          id: "1",
+          pageId: "1",
           mangaId: "1",
+          chapterId: "1",
+          pageNumber: 1,
           source: .unknown,
           isFavorite: true,
           downloadInfo: "",
           filePath: nil,
-          data: UIImage.jujutsuCover.jpegData(compressionQuality: 1)
+          data: UIImage.jujutsuPage.pngData()
         ),
         StoredPageModel(
-          id: "2",
+          pageId: "2",
           mangaId: "1",
+          chapterId: "1",
+          pageNumber: 1,
           source: .unknown,
           isFavorite: true,
           downloadInfo: "",
           filePath: nil,
-          data: UIImage.jujutsuCover.jpegData(compressionQuality: 1)
+          data: UIImage.jujutsuPage.pngData()
         ),
         StoredPageModel(
-          id: "3",
+          pageId: "3",
           mangaId: "1",
+          chapterId: "1",
+          pageNumber: 1,
           source: .unknown,
           isFavorite: true,
           downloadInfo: "",
           filePath: nil,
-          data: UIImage.jujutsuCover.jpegData(compressionQuality: 1)
+          data: UIImage.jujutsuPage.pngData()
         ),
         StoredPageModel(
-          id: "4",
+          pageId: "4",
           mangaId: "1",
+          chapterId: "1",
+          pageNumber: 1,
           source: .unknown,
           isFavorite: true,
           downloadInfo: "",
           filePath: nil,
-          data: UIImage.jujutsuCover.jpegData(compressionQuality: 1)
+          data: UIImage.jujutsuPage.pngData()
         )
       ]
     )

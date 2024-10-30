@@ -25,13 +25,15 @@ struct ZoomableImageView: View {
       .resizable()
       .scaledToFit()
       .scaleEffect(scale)
-      .offset(limitOffset(
-        CGSize(
-          width: offset.width + dragAmount.width,
-          height: offset.height + dragAmount.height
-        ),
-        scale: scale,
-        size: imageSize)
+      .offset(
+        limitOffset(
+          CGSize(
+            width: offset.width + dragAmount.width,
+            height: offset.height + dragAmount.height
+          ),
+          scale: scale,
+          size: imageSize
+        )
       )
       .background(
         GeometryReader { geo in

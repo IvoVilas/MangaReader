@@ -16,19 +16,13 @@ extension MangaCrud {
   func getManga(
     _ id: String,
     moc: NSManagedObjectContext
-  ) throws -> MangaMO? {
+  ) -> MangaMO? {
     let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Manga")
 
     fetchRequest.predicate  = NSPredicate(format: "id == %@", id)
     fetchRequest.fetchLimit = 1
 
-    do {
-      let results = try moc.fetch(fetchRequest) as? [MangaMO]
-
-      return results?.first
-    } catch {
-      throw CrudError.requestError(error)
-    }
+    return try? moc.fetch(fetchRequest).first as? MangaMO
   }
 
   func getAllMangas(

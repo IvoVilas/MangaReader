@@ -20,15 +20,15 @@ final class ChapterReaderViewModel: ObservableObject {
   @Published var missingNextChapters: Int
   @Published var missingPreviousChapters: Int
   @Published var isLoading: Bool
-  @Published var error: DatasourceError?
-  @Published var warning: String?
-  @Published var success: String?
+  @Published var pageIsFavorite: Bool
+  @Published var toastInfo: ToastInfo?
 
   private var isEmpty: Bool
 
   private var datasource: PagesDatasource
   private let delegate: PagesDelegateType
-  private let savePageUseCase: SavePageUseCase
+  private let markPageAsFavoriteUseCase: MarkPageAsFavoriteUseCase
+  private let mangaFavoritePagesProvider: MangaFavoritePagesProvider
 
   private var nextChapter: ChapterModel?
   private var previousChapter: ChapterModel?
@@ -51,13 +51,14 @@ final class ChapterReaderViewModel: ObservableObject {
     source: Source,
     mangaId: String,
     mangaTitle: String,
+    jumpToPage: String?,
     chapter: ChapterModel,
     readingDirection: ReadingDirection,
     mangaCrud: MangaCrud,
     chapterCrud: ChapterCrud,
     httpClient: HttpClientType,
     appOptionsStore: AppOptionsStore,
-    savePageUseCase: SavePageUseCase,
+    markPageAsFavoriteUseCase: MarkPageAsFavoriteUseCase,
     container: NSPersistentContainer
   ) {
     self.source = source
@@ -67,7 +68,7 @@ final class ChapterReaderViewModel: ObservableObject {
     self.chapterCrud = chapterCrud
     self.httpClient = httpClient
     self.appOptionsStore = appOptionsStore
-    self.savePageUseCase = savePageUseCase
+    self.markPageAsFavoriteUseCase = markPageAsFavoriteUseCase
     self.viewMoc = container.viewContext
     self.moc = container.newBackgroundContext()
 
@@ -78,6 +79,10 @@ final class ChapterReaderViewModel: ObservableObject {
       delegate: delegate,
       appOptionsStore: appOptionsStore
     )
+    mangaFavoritePagesProvider = MangaFavoritePagesProvider(
+      mangaId: mangaId,
+      viewMoc: viewMoc
+    )
 
     self.pages = []
     self.pageId = nil
@@ -86,20 +91,20 @@ final class ChapterReaderViewModel: ObservableObject {
     self.missingNextChapters = 0
     self.missingPreviousChapters = 0
     self.isLoading = true
-    self.error = nil
-    self.warning = nil
+    self.pageIsFavorite = false
     self.isEmpty = true
 
-    resetViewModel()
+    resetViewModel(jumpToPage: jumpToPage)
   }
 
   private func resetViewModel(
-    prepareDatasource: Bool = false
+    prepareDatasource: Bool = false,
+    jumpToPage: String?
   ) {
     receivedPagesEvent.value = false
     pageId = nil
 
-    setupObservers()
+    setupObservers(jumpToPage: jumpToPage)
 
     // TODO: Some of these tasks can be parallel
     Task {
@@ -111,7 +116,7 @@ final class ChapterReaderViewModel: ObservableObject {
     }
   }
 
-  private func setupObservers() {
+  private func setupObservers(jumpToPage: String?) {
     observers.forEach { $0.cancel() }
     observers.removeAll()
 
@@ -138,7 +143,9 @@ final class ChapterReaderViewModel: ObservableObject {
         var pageId: String?
         let firstId = pages.first?.id
 
-        if self.chapter.isRead {
+        if let jumpToPage, pages.contains(where: { $0.id == jumpToPage }) {
+          pageId = jumpToPage
+        } else if self.chapter.isRead {
           pageId = firstId
         } else {
           pageId = pages.safeGet(self.chapter.lastPageRead)?.id ?? firstId
@@ -160,10 +167,20 @@ final class ChapterReaderViewModel: ObservableObject {
     .sink { [weak self] in self?.isLoading = $0 }
     .store(in: &observers)
 
+    Publishers.CombineLatest(
+      $pageId,
+      mangaFavoritePagesProvider.pages
+    )
+    .map { pageId, pages in pages.contains { $0.id == pageId } }
+    .removeDuplicates()
+    .receive(on: DispatchQueue.main)
+    .sink { [weak self] in self?.pageIsFavorite = $0 }
+    .store(in: &observers)
+
     datasource.errorPublisher
       .receive(on: DispatchQueue.main)
       .compactMap { $0 }
-      .sink { [weak self] in self?.error = $0 }
+      .sink { [weak self] in self?.toastInfo = .error(message: $0.localizedDescription) }
       .store(in: &observers)
   }
 
@@ -316,10 +333,8 @@ extension ChapterReaderViewModel {
     await datasource.reloadPages(pages)
   }
 
-  // TODO: Allow for users to unfavorite page
   // TODO: Don't show action on transition pages
-  // TODO: Move error, warning and success all to one variable
-  func onMarkPageAsFavorite(_ pageId: String?) async {
+  func onMarkPageAsFavorite(_ pageId: String?, addToFavorites: Bool) async {
     guard
       let pageId,
       let page = pages.first(where: { $0.id == pageId })
@@ -327,35 +342,44 @@ extension ChapterReaderViewModel {
       return
     }
 
-    do {
-      switch page {
-      case .page(let pageModel):
-        switch pageModel {
-        case .remote(let url, _, let data):
-          try await savePageUseCase.savePage(
-            data: data,
-            pageUrl: url,
-            mangaId: mangaId,
-            sourceId: source.id,
-            isFavorite: true
-          )
+    var toastInfo: ToastInfo?
 
-          await MainActor.run {
-            success = "Page added to favorites"
-          }
+    switch page {
+    case .page(.remote(let url, _, let data)):
+      if addToFavorites {
+        let result =  await markPageAsFavoriteUseCase.markPageAsFavorite(
+          data: data,
+          pageId: pageId,
+          mangaId: mangaId,
+          chapterId: chapter.id,
+          pageNumber: selectedPageNumber,
+          pageUrl: url,
+          sourceId: source.id
+        )
 
-        case .loading, .notFound:
-          await MainActor.run {
-            warning = "Page is not yet loaded"
-          }
+        switch result {
+        case .success:
+          toastInfo = .success(message: "Page added to favorites")
+
+        case .failure(let error):
+          toastInfo = .error(message: error.localizedDescription)
         }
+      } else {
+        await markPageAsFavoriteUseCase.unmarkPageAsFavorite(pageId)
 
-      case .transition:
-        return
+        toastInfo = .info(message: "Page removed from favorites")
       }
-    } catch {
+
+    case .page(.loading), .page(.notFound):
+      toastInfo = .warning(message: "Page is not yet loaded")
+
+    case .transition:
+      return
+    }
+
+    if let toastInfo {
       await MainActor.run {
-        self.error = .catchError(error)
+        self.toastInfo = toastInfo
       }
     }
   }
@@ -393,7 +417,7 @@ extension ChapterReaderViewModel {
     )
 
     chapter = nextChapter
-    resetViewModel(prepareDatasource: true)
+    resetViewModel(prepareDatasource: true, jumpToPage: nil)
   }
 
   private func onMoveToPrevious() {
@@ -411,7 +435,7 @@ extension ChapterReaderViewModel {
     )
 
     chapter = previousChapter
-    resetViewModel(prepareDatasource: true)
+    resetViewModel(prepareDatasource: true, jumpToPage: nil)
   }
 
 }

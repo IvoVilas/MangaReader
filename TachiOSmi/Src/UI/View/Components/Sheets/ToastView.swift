@@ -35,10 +35,22 @@ enum ToastStyle {
 
 // MARK: ToastModel
 struct Toast: Equatable {
+
   let style: ToastStyle
   let message: String
   let duration: Double = 3
   let width: Double = .infinity
+
+  init(style: ToastStyle, message: String) {
+    self.style = style
+    self.message = message
+  }
+
+  init(using info: ToastInfo) {
+    self.style = info.style
+    self.message = info.message
+  }
+
 }
 
 // MARK: ToastView

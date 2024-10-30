@@ -13,19 +13,13 @@ final class ChapterCrud {
   func getChapter(
     _ id: String,
     moc: NSManagedObjectContext
-  ) throws -> ChapterMO? {
+  ) -> ChapterMO? {
     let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Chapter")
 
     fetchRequest.predicate  = NSPredicate(format: "id == %@", id)
     fetchRequest.fetchLimit = 1
 
-    do {
-      let results = try moc.fetch(fetchRequest) as? [ChapterMO]
-
-      return results?.first
-    } catch {
-      throw CrudError.requestError(error)
-    }
+    return try? moc.fetch(fetchRequest).first as? ChapterMO
   }
 
   func getChaptersPublished(

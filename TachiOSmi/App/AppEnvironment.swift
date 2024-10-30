@@ -42,7 +42,7 @@ final class AppEnvironment {
 
   // UseCase
   let refreshLibraryUseCase: RefreshLibraryUseCase
-  let savePageUseCase: SavePageUseCase
+  let markPageAsFavoriteUseCase: MarkPageAsFavoriteUseCase
   let fetchPageUseCase: FetchPageUseCase
 
   init(
@@ -80,7 +80,7 @@ final class AppEnvironment {
       systemDateTime: systemDateTime,
       container: persistenceContainer
     )
-    savePageUseCase = SavePageUseCase(
+    markPageAsFavoriteUseCase = MarkPageAsFavoriteUseCase(
       fileManager: fileManager,
       crud: pageCrud,
       container: persistenceContainer

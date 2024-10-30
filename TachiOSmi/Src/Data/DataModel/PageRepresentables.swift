@@ -9,18 +9,24 @@ import Foundation
 
 struct StoredPageModel: Identifiable, Hashable {
 
-  let id: String
+  let pageId: String
   let mangaId: String
+  let chapterId: String
+  let pageNumber: Int
   let source: Source
   let isFavorite: Bool
   let downloadInfo: String
   let filePath: String?
   let data: Data?
 
+  var id: String { pageId }
+
   static func from(_ entity: PageMO) -> StoredPageModel {
     StoredPageModel(
-      id: entity.id,
+      pageId: entity.pageId,
       mangaId: entity.mangaId,
+      chapterId: entity.chapterId,
+      pageNumber: Int(entity.pageNumber),
       source: Source.safeInit(from: entity.sourceId),
       isFavorite: entity.isFavorite,
       downloadInfo: entity.downloadInfo,
@@ -31,8 +37,10 @@ struct StoredPageModel: Identifiable, Hashable {
 
   func injectData(_ data: Data?) -> StoredPageModel {
     StoredPageModel(
-      id: id,
+      pageId: pageId,
       mangaId: mangaId,
+      chapterId: chapterId,
+      pageNumber: pageNumber,
       source: source,
       isFavorite: isFavorite,
       downloadInfo: downloadInfo,

@@ -28,8 +28,6 @@ final class LocalFileManager {
     do {
       try data.write(to: url)
 
-      print("LocalFileManager -> Image saved to \(url)")
-
       return true
     } catch {
       print("LocalFileManager -> Error: Couldn't save image - \(error)")
@@ -39,24 +37,11 @@ final class LocalFileManager {
   }
 
   func loadImage(
-    fromPath path: String
-  ) -> Data? {
-    if fileManager.fileExists(atPath: path) {
-      return try? Data(
-        contentsOf: URL(fileURLWithPath: path)
-      )
-    } else {
-      print("LocalFileManager -> Error: Image not found at path \(path)")
-
-      return nil
-    }
-  }
-
-  func loadImage(
     withName name: String
   ) -> Data? {
     guard let url = getDocumentsDirectory()?.appendingPathComponent("\(name).jpg") else {
       print("LocalFileManager -> Error: Couldn't create file URL")
+
       return nil
     }
 
@@ -66,17 +51,22 @@ final class LocalFileManager {
       )
     } else {
       print("LocalFileManager -> Error: Image not found at path \(url.path)")
+
       return nil
     }
   }
 
   func deleteImage(
-    atPath path: String
+    withName name: String
   ) -> Bool {
     do {
-      try fileManager.removeItem(atPath: path)
+      guard let url = getDocumentsDirectory()?.appendingPathComponent("\(name).jpg") else {
+        print("LocalFileManager -> Error: Couldn't create file URL")
 
-      print("LocalFileManager -> Image deleted from path: \(path)")
+        return false
+      }
+
+      try fileManager.removeItem(atPath: url.path)
 
       return true
     } catch {
@@ -99,12 +89,12 @@ final class LocalFileManager {
       for fileURL in fileURLs {
         if fileURL.pathExtension == "jpg" || fileURL.pathExtension == "png" || fileURL.pathExtension == "jpeg" {
           try fileManager.removeItem(at: fileURL)
-          print("LocalFileManager -> Deleted image at path: \(fileURL.path)")
         }
       }
       return true
     } catch {
       print("LocalFileManager -> Error: Couldn't delete all images - \(error.localizedDescription)")
+
       return false
     }
   }

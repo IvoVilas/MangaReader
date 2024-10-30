@@ -28,7 +28,7 @@ struct MangaFavoritesView: View {
 
       ZStack {
         VStack(spacing: 8) {
-          Image("heart-relax")
+          Image(systemName: "heart.text.square")
             .resizable()
             .scaledToFit()
             .foregroundStyle(scheme.secondaryColor)

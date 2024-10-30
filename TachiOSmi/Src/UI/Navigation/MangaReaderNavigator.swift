@@ -12,6 +12,7 @@ struct MangaReaderNavigator: Navigator {
   let source: Source
   let mangaId: String
   let mangaTitle: String
+  let jumpToPage: String?
   let chapter: ChapterModel
   let readingDirection: ReadingDirection
 
@@ -22,6 +23,7 @@ struct MangaReaderNavigator: Navigator {
       source: entity.source,
       mangaId: entity.mangaId,
       mangaTitle: entity.mangaTitle,
+      jumpToPage: entity.jumpToPage,
       chapter: entity.chapter,
       readingDirection: entity.readingDirection
     )

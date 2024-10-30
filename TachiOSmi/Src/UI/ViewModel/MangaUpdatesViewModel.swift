@@ -50,6 +50,7 @@ extension MangaUpdatesViewModel {
       source: log.manga.source,
       mangaId: log.manga.id,
       mangaTitle: log.manga.title,
+      jumpToPage: nil,
       chapter: log.chapter,
       readingDirection: log.manga.readingDirection
     )
