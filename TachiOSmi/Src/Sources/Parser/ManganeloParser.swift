@@ -181,12 +181,15 @@ extension ManganeloParser {
     _ html: String,
     mangaId: String
   ) throws -> [ChapterIndexResult] {
+    guard let doc: Document = try? SwiftSoup.parse(html) else {
+      throw ParserError.parsingError
+    }
+
     guard
-      let doc: Document = try? SwiftSoup.parse(html),
       let chapterListInfo = try? doc.select("div.panel-story-chapter-list").first(),
       let chaptersInfo = try? chapterListInfo.select("li.a-h").array()
     else {
-      throw ParserError.parsingError
+      return []
     }
 
     // The id retrived here does not seem to be unique

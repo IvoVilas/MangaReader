@@ -27,16 +27,17 @@ struct FavoritePageView: View {
 
       ZStack {
         ScrollView {
-          Spacer().frame(height: 48)
+          Spacer().frame(height: 72)
 
           if let page, let data = page.data, let uiImage = UIImage(data: data) {
             ZoomableImageView(image: uiImage, allowsZoom: true)
               .matchedGeometryEffect(id: page.pageId, in: namespace)
-              .frame(maxWidth: .infinity)
+              .frame(maxWidth: .infinity, maxHeight: UIScreen.main.bounds.height - 200)
               .zIndex(1)
               .clipShape(RoundedRectangle(cornerRadius: 12))
           }
         }
+        .scrollIndicators(.hidden)
 
         VStack(alignment: .leading, spacing: 8) {
           Button { onDismiss() } label: {
@@ -49,33 +50,38 @@ struct FavoritePageView: View {
 
           Spacer()
 
-          HStack(spacing: 0) {
-            Spacer()
-
-            Button { onGoToChapter(page) } label: {
-              HStack(spacing: 8) {
-                Text("Open chapter")
-                  .tint(scheme.foregroundColor)
-
-                Image(systemName: "arrow.right")
-                  .resizable()
-                  .scaledToFit()
-                  .frame(width: 16, height: 16)
-                  .tint(scheme.foregroundColor)
-              }
-              .padding(.vertical, 16)
-              .padding(.horizontal, 24)
-              .background(scheme.terciaryColor)
-              .clipShape(Capsule())
-            }
-
-            Spacer()
-          }
+          goToChapterView()
         }
       }
     }
   }
-  
+
+  @ViewBuilder
+  private func goToChapterView() -> some View {
+    HStack(spacing: 0) {
+      Spacer()
+
+      Button { onGoToChapter(page) } label: {
+        HStack(spacing: 8) {
+          Text("Open chapter")
+            .tint(scheme.foregroundColor)
+
+          Image(systemName: "arrow.right")
+            .resizable()
+            .scaledToFit()
+            .frame(width: 16, height: 16)
+            .tint(scheme.foregroundColor)
+        }
+        .padding(.vertical, 16)
+        .padding(.horizontal, 24)
+        .background(scheme.terciaryColor)
+        .clipShape(Capsule())
+      }
+
+      Spacer()
+    }
+  }
+
 }
 
 #Preview {

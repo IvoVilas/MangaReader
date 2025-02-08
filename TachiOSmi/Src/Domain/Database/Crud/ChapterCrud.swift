@@ -217,7 +217,7 @@ final class ChapterCrud {
     manga: MangaMO,
     moc: NSManagedObjectContext
   ) throws -> ChapterMO {
-    if let local = try getChapter(id, moc: moc) {
+    if let local = getChapter(id, moc: moc) {
       updateChapter(
         local,
         chapterNumber: chapterNumber,
@@ -252,7 +252,7 @@ final class ChapterCrud {
     manga: MangaMO,
     moc: NSManagedObjectContext
   ) throws -> (Bool, ChapterMO) {
-    if let local = try getChapter(id, moc: moc) {
+    if let local = getChapter(id, moc: moc) {
       updateChapter(
         local,
         chapterNumber: chapterNumber,

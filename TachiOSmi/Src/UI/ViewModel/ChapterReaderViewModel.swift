@@ -243,7 +243,7 @@ final class ChapterReaderViewModel: ObservableObject {
     let context = moc
 
     try await context.perform {
-      guard let manga = try self.mangaCrud.getManga(self.mangaId, moc: context) else {
+      guard let manga = self.mangaCrud.getManga(self.mangaId, moc: context) else {
         throw CrudError.mangaNotFound(id: self.mangaId)
       }
 
@@ -277,7 +277,7 @@ extension ChapterReaderViewModel {
         try? await context.perform {
           guard
             let pageIndex,
-            let chapter = try? self.chapterCrud.getChapter(
+            let chapter = self.chapterCrud.getChapter(
               self.chapter.id,
               moc: context
             )
