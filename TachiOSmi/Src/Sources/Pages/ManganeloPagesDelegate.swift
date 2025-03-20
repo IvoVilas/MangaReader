@@ -23,7 +23,7 @@ final class ManganeloPagesDelegate: PagesDelegateType {
     using url: String,
     saveData: Bool
   ) async throws -> ChapterDownloadInfo {
-    let referer = "https://chapmanganelo.com/manga-\(mangaId)"
+    let referer = "\(mangaId)"
     let html = try await httpClient.makeHtmlSafeGetRequest(url, comingFrom: referer)
 
     guard let doc: Document = try? SwiftSoup.parse(html) else {
@@ -32,7 +32,7 @@ final class ManganeloPagesDelegate: PagesDelegateType {
 
     guard
       let info = try? doc.select("div.container-chapter-reader").first(),
-      let pages = try? info.select("img.reader-content").array()
+      let pages = try? info.select("img").array()
     else {
       throw ParserError.parsingError
     }
@@ -51,8 +51,8 @@ final class ManganeloPagesDelegate: PagesDelegateType {
 
     return try await httpClient.makeDataSafeGetRequest(
       info.pages[index],
-      comingFrom: "https://chapmanganelo.com/",
-      addRefererCookies: false
+      comingFrom: "https://www.nelomanga.com/",
+      addRefererCookies: true
     )
   }
 
@@ -62,8 +62,8 @@ final class ManganeloPagesDelegate: PagesDelegateType {
   ) async throws -> Data {
     return try await httpClient.makeDataSafeGetRequest(
       url,
-      comingFrom: "https://chapmanganelo.com/",
-      addRefererCookies: false
+      comingFrom: "https://www.nelomanga.com/",
+      addRefererCookies: true
     )
   }
 

@@ -194,6 +194,7 @@ private extension MangaLibraryView {
               title: result.manga.title,
               unreadChapters: result.unreadChapters,
               textColor: scheme.foregroundColor,
+              source: result.manga.source,
               layout: $viewModel.layout,
               refreshStatus: .constant(viewModel.refreshStatus[result.manga.id] ?? .idle)
             )
@@ -219,6 +220,7 @@ private extension MangaLibraryView {
               title: result.manga.title,
               unreadChapters: result.unreadChapters,
               textColor: scheme.foregroundColor,
+              source: result.manga.source,
               layout: $viewModel.layout,
               refreshStatus: .constant(viewModel.refreshStatus[result.manga.id] ?? .idle)
             )
@@ -357,6 +359,7 @@ private struct MangaResultItemView: View, Equatable {
   let title: String
   let unreadChapters: Int
   let textColor: Color
+  let source: Source
 
   @Binding var layout: CollectionLayout
   @Binding var refreshStatus: RefreshLibraryUseCase.RefreshStatus
@@ -412,16 +415,28 @@ private struct MangaResultItemView: View, Equatable {
         foregroundColor: textColor
       )
       .overlay(alignment: .topLeading) {
-        Text("\(unreadChapters)")
-          .font(.footnote)
-          .lineLimit(1)
-          .foregroundStyle(.white)
-          .padding(4)
-          .background(.blue)
-          .clipShape(RoundedRectangle(cornerRadius: 4))
-          .padding(.leading, 8)
-          .padding(.top, 8)
-          .opacity(unreadChapters > 0 ? 1 : 0)
+        HStack {
+          Text("\(unreadChapters)")
+            .font(.footnote)
+            .lineLimit(1)
+            .foregroundStyle(.white)
+            .padding(4)
+            .background(.blue)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .padding(.leading, 8)
+            .padding(.top, 8)
+            .opacity(unreadChapters > 0 ? 1 : 0)
+
+          Spacer()
+
+          Image(uiImage: source.logo)
+            .resizable()
+            .frame(width: 16, height: 16)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .shadow(color: .black.opacity(0.5), radius: 4)
+            .padding(.trailing, 8)
+            .padding(.top, 8)
+        }
       }
       .overlay(alignment: .bottom) {
         ProgressView(value: refreshStatus.progress)

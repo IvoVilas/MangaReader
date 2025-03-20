@@ -23,20 +23,8 @@ final class ManganeloRefreshDelegate: RefreshDelegateType {
     _ mangaId: String,
     updateCover: Bool
   ) async throws -> MangaRefreshData {
-    let components = mangaId.components(separatedBy: "%")
-
-    guard let id = components.first else {
-      throw ParserError.parameterNotFound("Id")
-    }
-
-    let url: String
-    if let urlType = components.safeGet(1), urlType == "1" {
-      url = "https://m.manganelo.com/manga-\(id)"
-    } else {
-      url = "https://chapmanganelo.com/manga-\(id)"
-    }
-
-    let html = try await httpClient.makeHtmlSafeGetRequest(url, comingFrom: "https://m.manganelo.com/")
+    let url = mangaId
+    let html = try await httpClient.makeHtmlSafeGetRequest(url, comingFrom: "https://www.nelomanga.com/")
 
     let details = try parser.parseDetailsResponse(html, mangaId: mangaId)
     let chapters = try parser.parseChaptersResponse(html, mangaId: mangaId)
@@ -58,17 +46,12 @@ extension ManganeloRefreshDelegate {
     mangaId: String,
     coverInfo: String
   ) async throws -> Data {
-    let referer: String
-    if let urlType = mangaId.components(separatedBy: "%").safeGet(1), urlType == "1" {
-      referer = "https://m.manganelo.com/"
-    } else {
-      referer = "https://chapmanganelo.com/"
-    }
+    let referer = "https://www.nelomanga.com/"
 
     return try await httpClient.makeDataSafeGetRequest(
       coverInfo,
       comingFrom: referer,
-      addRefererCookies: false
+      addRefererCookies: true
     )
   }
 

@@ -11,5 +11,32 @@
 		<string>fetch</string>
 		<string>processing</string>
 	</array>
+  <key>NSAppTransportSecurity</key>
+  <dict>
+      <key>NSExceptionDomains</key>
+      <dict>
+          <key>virus2hub.com</key>
+          <dict>
+              <key>NSExceptionAllowsInsecureHTTPLoads</key>
+              <true/>
+              <key>NSExceptionRequiresForwardSecrecy</key>
+              <false/>
+          </dict>
+          <key>2xstorage.com</key>
+          <dict>
+              <key>NSExceptionAllowsInsecureHTTPLoads</key>
+              <true/>
+              <key>NSExceptionRequiresForwardSecrecy</key>
+              <false/>
+          </dict>
+          <key>imgs-2.2xstorage.com</key>
+          <dict>
+              <key>NSExceptionAllowsInsecureHTTPLoads</key>
+              <true/>
+              <key>NSExceptionRequiresForwardSecrecy</key>
+              <false/>
+          </dict>
+      </dict>
+  </dict>
 </dict>
 </plist>
